@@ -23,3 +23,6 @@ ai_models/
 
 # Installers
 *.run
+
+# local junk drawer
+/_graveyard/
