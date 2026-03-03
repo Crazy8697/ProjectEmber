@@ -1,9 +1,11 @@
 import os
 import sys
 import json
+import sqlite3
 import time
 import signal
 import subprocess
+import socket
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -262,6 +264,431 @@ def api_llama_stop():
             pass
     return jsonify({"ok": ok, "pid": pid})
 
+
+# ----------------------------
+# Admin API
+# ----------------------------
+def _tcp_check(host: str, port: int, timeout: float = 0.5) -> bool:
+    try:
+        with socket.create_connection((host, port), timeout=timeout):
+            return True
+    except Exception:
+        return False
+
+def _parse_host_port(url: str) -> (str, int):
+    # very small parser for http://host:port
+    try:
+        u = url.strip()
+        if "://" in u:
+            u = u.split("://", 1)[1]
+        u = u.split("/", 1)[0]
+        if ":" in u:
+            h, p = u.rsplit(":", 1)
+            return h, int(p)
+        return u, 80
+    except Exception:
+        return "127.0.0.1", 8080
+
+@ember.get("/api/admin/status")
+def api_admin_status():
+    # Note: do NOT return secret values. Only presence flags.
+    ember_host = os.environ.get("EMBER_HOST", "127.0.0.1")
+    ember_port = int(os.environ.get("EMBER_PORT", "5000"))
+
+    llama_host, llama_port = _parse_host_port(LLAMA_SERVER_URL)
+
+    llama_pid = _read_pidfile(LLAMA_PIDFILE)
+    llama_alive = bool(llama_pid and _pid_alive(llama_pid))
+
+    scavenger_dir = SCAVENGER_DIR
+    scavenger_exists = Path(scavenger_dir).exists()
+    scavenger_app_path = Path(scavenger_dir) / "app" / "app.py"
+    scavenger_app_exists = scavenger_app_path.exists()
+
+    return jsonify({
+        "ok": True,
+        "ember": {
+            "pid": os.getpid(),
+            "host": ember_host,
+            "port": ember_port,
+            "listening": _tcp_check(ember_host, ember_port),
+        },
+        "llama": {
+            "server_url": LLAMA_SERVER_URL,
+            "host": llama_host,
+            "port": llama_port,
+            "listening": _tcp_check(llama_host, llama_port),
+            "pidfile": str(LLAMA_PIDFILE),
+            "pid": llama_pid,
+            "alive": llama_alive,
+            "log": str(PID_DIR / "llama_server.log"),
+        },
+        "inventory": {
+            "mount_path": SCAVENGER_MOUNT_PATH,
+            "scavenger_dir": scavenger_dir,
+            "dir_exists": scavenger_exists,
+            "app_py_exists": scavenger_app_exists,
+        },
+        "env_flags": {
+            "BRAVE_ENABLED": bool(os.environ.get("BRAVE_ENABLED")),
+            "BRAVE_API_KEY": bool(os.environ.get("BRAVE_API_KEY")),
+            "OPENAI_API_KEY": bool(os.environ.get("OPENAI_API_KEY")),
+            "OPENAI_MODEL": bool(os.environ.get("OPENAI_MODEL")),
+        },
+    })
+
+# ----------------------------
+# Cache Inspector API (Scavenger SQLite)
+# ----------------------------
+SCAVENGER_DB_PATH = Path(os.environ.get("SCAVENGER_DB_PATH", str(APP_DIR / "app" / "data" / "scavenger.sqlite"))).resolve()
+
+def _db_connect():
+    conn = sqlite3.connect(str(SCAVENGER_DB_PATH))
+    conn.row_factory = sqlite3.Row
+    return conn
+
+@ember.get("/api/cache/part/search")
+def api_cache_part_search():
+    mpn = (request.args.get("mpn") or "").strip()
+    like = (request.args.get("like") or "").strip() in ("1", "true", "yes", "on")
+    include_payload = (request.args.get("payload") or "").strip() in ("1", "true", "yes", "on")
+    try:
+        limit = int(request.args.get("limit") or "50")
+    except Exception:
+        limit = 50
+    limit = max(1, min(limit, 200))
+
+    if not SCAVENGER_DB_PATH.exists():
+        return jsonify({"ok": False, "error": f"DB not found: {SCAVENGER_DB_PATH}"}), 404
+
+    q = "SELECT mpn, confidence, source, updated_at, payload_json FROM part_enrich_cache"
+    params = []
+    if mpn:
+        if like:
+            q += " WHERE mpn LIKE ?"
+            params.append(f"%{mpn}%")
+        else:
+            q += " WHERE mpn = ?"
+            params.append(mpn)
+    q += " ORDER BY updated_at DESC LIMIT ?"
+    params.append(limit)
+
+    rows = []
+    with _db_connect() as conn:
+        for r in conn.execute(q, params):
+            payload = r["payload_json"] or ""
+            rows.append({
+                "mpn": r["mpn"],
+                "confidence": r["confidence"],
+                "source": r["source"],
+                "updated_at": r["updated_at"],
+                "payload_len": len(payload),
+                "payload_preview": payload[:400] + ("…" if len(payload) > 400 else ""),
+                **({"payload_json": payload} if include_payload else {}),
+            })
+
+    return jsonify({"ok": True, "db_path": str(SCAVENGER_DB_PATH), "count": len(rows), "rows": rows})
+
+@ember.post("/api/cache/part/delete")
+def api_cache_part_delete():
+    data = request.get_json(force=True, silent=True) or {}
+    mpn = (data.get("mpn") or "").strip()
+    if not mpn:
+        return jsonify({"ok": False, "error": "Missing mpn"}), 400
+    if not SCAVENGER_DB_PATH.exists():
+        return jsonify({"ok": False, "error": f"DB not found: {SCAVENGER_DB_PATH}"}), 404
+
+    with _db_connect() as conn:
+        cur = conn.execute("DELETE FROM part_enrich_cache WHERE mpn = ?", (mpn,))
+        conn.commit()
+        deleted = cur.rowcount
+
+    return jsonify({"ok": True, "mpn": mpn, "deleted": deleted})
+
+@ember.get("/api/cache/web/search")
+def api_cache_web_search():
+    query = (request.args.get("query") or "").strip()
+    like = (request.args.get("like") or "").strip() in ("1", "true", "yes", "on")
+    try:
+        limit = int(request.args.get("limit") or "50")
+    except Exception:
+        limit = 50
+    limit = max(1, min(limit, 300))
+
+    if not SCAVENGER_DB_PATH.exists():
+        return jsonify({"ok": False, "error": f"DB not found: {SCAVENGER_DB_PATH}"}), 404
+
+    q = "SELECT query, rank, url, title, snippet, fetched_at FROM web_search_cache"
+    params = []
+    if query:
+        if like:
+            q += " WHERE query LIKE ?"
+            params.append(f"%{query}%")
+        else:
+            q += " WHERE query = ?"
+            params.append(query)
+    q += " ORDER BY fetched_at DESC, query ASC, rank ASC LIMIT ?"
+    params.append(limit)
+
+    rows = []
+    with _db_connect() as conn:
+        for r in conn.execute(q, params):
+            rows.append({
+                "query": r["query"],
+                "rank": r["rank"],
+                "url": r["url"],
+                "title": r["title"],
+                "snippet": r["snippet"],
+                "fetched_at": r["fetched_at"],
+            })
+
+    return jsonify({"ok": True, "db_path": str(SCAVENGER_DB_PATH), "count": len(rows), "rows": rows})
+
+@ember.post("/api/cache/web/delete")
+def api_cache_web_delete():
+    data = request.get_json(force=True, silent=True) or {}
+    query = (data.get("query") or "").strip()
+    rank = data.get("rank", None)
+    delete_all = bool(data.get("all_for_query"))
+    if not query:
+        return jsonify({"ok": False, "error": "Missing query"}), 400
+    if not SCAVENGER_DB_PATH.exists():
+        return jsonify({"ok": False, "error": f"DB not found: {SCAVENGER_DB_PATH}"}), 404
+
+    with _db_connect() as conn:
+        if delete_all:
+            cur = conn.execute("DELETE FROM web_search_cache WHERE query = ?", (query,))
+        else:
+            if rank is None:
+                return jsonify({"ok": False, "error": "Missing rank (or set all_for_query=true)"}), 400
+            try:
+                rank_i = int(rank)
+            except Exception:
+                return jsonify({"ok": False, "error": "rank must be an integer"}), 400
+            cur = conn.execute("DELETE FROM web_search_cache WHERE query = ? AND rank = ?", (query, rank_i))
+        conn.commit()
+        deleted = cur.rowcount
+
+    return jsonify({"ok": True, "query": query, "rank": rank, "all_for_query": delete_all, "deleted": deleted})
+
+
+# ----------------------------
+# Scavenger Bins + Categories (Admin CRUD)
+# ----------------------------
+SCAVENGER_DB_PATH = Path(os.environ.get("SCAVENGER_DB_PATH", APP_DIR / "app" / "data" / "scavenger.sqlite")).resolve()
+
+def _now_iso() -> str:
+    # ISO-ish, sortable, local time
+    return time.strftime("%Y-%m-%dT%H:%M:%S")
+
+def _scav_db_connect():
+    import sqlite3
+    conn = sqlite3.connect(str(SCAVENGER_DB_PATH))
+    conn.row_factory = sqlite3.Row
+    try:
+        conn.execute("PRAGMA foreign_keys=ON;")
+    except Exception:
+        pass
+    return conn
+
+@ember.get("/api/bins/list")
+def api_bins_list():
+    q = (request.args.get("q") or "").strip()
+    like = (request.args.get("like") or "").strip() in ("1", "true", "yes", "on")
+    limit = int(request.args.get("limit") or "100")
+    limit = max(1, min(limit, 500))
+
+    sql = "SELECT id, code, name, description, created_at, updated_at FROM bins"
+    params = []
+    if q:
+        if like:
+            sql += " WHERE code LIKE ? OR name LIKE ? OR description LIKE ?"
+            qq = f"%{q}%"
+            params += [qq, qq, qq]
+        else:
+            sql += " WHERE code = ? OR name = ?"
+            params += [q, q]
+    sql += " ORDER BY code ASC LIMIT ?"
+    params.append(limit)
+
+    try:
+        conn = _scav_db_connect()
+        rows = [dict(r) for r in conn.execute(sql, params).fetchall()]
+        conn.close()
+        return jsonify({"ok": True, "rows": rows})
+    except Exception as e:
+        return jsonify({"ok": False, "error": f"{type(e).__name__}: {e}"}), 500
+
+@ember.post("/api/bins/upsert")
+def api_bins_upsert():
+    data = request.get_json(force=True, silent=True) or {}
+    bid = data.get("id")
+    code = (data.get("code") or "").strip()
+    name = (data.get("name") or "").strip() or None
+    desc = (data.get("description") or "").strip() or None
+
+    if not code:
+        return jsonify({"ok": False, "error": "Missing code"}), 400
+
+    now = _now_iso()
+    try:
+        conn = _scav_db_connect()
+        if bid:
+            conn.execute(
+                "UPDATE bins SET code=?, name=?, description=?, updated_at=? WHERE id=?",
+                (code, name, desc, now, int(bid)),
+            )
+        else:
+            conn.execute(
+                "INSERT INTO bins(code, name, description, created_at, updated_at) VALUES(?,?,?,?,?)",
+                (code, name, desc, now, now),
+            )
+        conn.commit()
+        # Return the row by code (unique)
+        row = conn.execute(
+            "SELECT id, code, name, description, created_at, updated_at FROM bins WHERE code=?",
+            (code,),
+        ).fetchone()
+        conn.close()
+        return jsonify({"ok": True, "row": dict(row) if row else None})
+    except Exception as e:
+        return jsonify({"ok": False, "error": f"{type(e).__name__}: {e}"}), 500
+
+@ember.post("/api/bins/delete")
+def api_bins_delete():
+    data = request.get_json(force=True, silent=True) or {}
+    bid = data.get("id")
+    code = (data.get("code") or "").strip()
+    if not bid and not code:
+        return jsonify({"ok": False, "error": "Provide id or code"}), 400
+    try:
+        conn = _scav_db_connect()
+        if bid:
+            cur = conn.execute("DELETE FROM bins WHERE id=?", (int(bid),))
+        else:
+            cur = conn.execute("DELETE FROM bins WHERE code=?", (code,))
+        conn.commit()
+        deleted = cur.rowcount if cur is not None else 0
+        conn.close()
+        return jsonify({"ok": True, "deleted": deleted})
+    except Exception as e:
+        return jsonify({"ok": False, "error": f"{type(e).__name__}: {e}"}), 500
+
+@ember.get("/api/categories/list")
+def api_categories_list():
+    q = (request.args.get("q") or "").strip()
+    like = (request.args.get("like") or "").strip() in ("1", "true", "yes", "on")
+    limit = int(request.args.get("limit") or "200")
+    limit = max(1, min(limit, 1000))
+
+    sql = """SELECT id, slug, name, description, parent_id, created_at, updated_at
+             FROM categories"""
+    params = []
+    if q:
+        if like:
+            qq = f"%{q}%"
+            sql += " WHERE slug LIKE ? OR name LIKE ? OR description LIKE ?"
+            params += [qq, qq, qq]
+        else:
+            sql += " WHERE slug = ? OR name = ?"
+            params += [q, q]
+    sql += " ORDER BY COALESCE(parent_id, id), parent_id IS NOT NULL, name ASC LIMIT ?"
+    params.append(limit)
+
+    try:
+        conn = _scav_db_connect()
+        rows = [dict(r) for r in conn.execute(sql, params).fetchall()]
+        conn.close()
+        return jsonify({"ok": True, "rows": rows})
+    except Exception as e:
+        return jsonify({"ok": False, "error": f"{type(e).__name__}: {e}"}), 500
+
+@ember.get("/api/categories/tree")
+def api_categories_tree():
+    try:
+        conn = _scav_db_connect()
+        rows = [dict(r) for r in conn.execute(
+            "SELECT id, slug, name, description, parent_id FROM categories ORDER BY name ASC"
+        ).fetchall()]
+        conn.close()
+        by_id = {r["id"]: r for r in rows}
+        for r in rows:
+            r["children"] = []
+        roots = []
+        for r in rows:
+            pid = r.get("parent_id")
+            if pid and pid in by_id:
+                by_id[pid]["children"].append(r)
+            else:
+                roots.append(r)
+        return jsonify({"ok": True, "roots": roots})
+    except Exception as e:
+        return jsonify({"ok": False, "error": f"{type(e).__name__}: {e}"}), 500
+
+@ember.post("/api/categories/upsert")
+def api_categories_upsert():
+    data = request.get_json(force=True, silent=True) or {}
+    cid = data.get("id")
+    slug = (data.get("slug") or "").strip()
+    name = (data.get("name") or "").strip()
+    desc = (data.get("description") or "").strip() or None
+    parent_id = data.get("parent_id")
+    parent_id = int(parent_id) if str(parent_id).strip() not in ("", "None", "null") else None
+
+    if not slug:
+        return jsonify({"ok": False, "error": "Missing slug"}), 400
+    if not name:
+        return jsonify({"ok": False, "error": "Missing name"}), 400
+
+    now = _now_iso()
+    try:
+        conn = _scav_db_connect()
+        if cid:
+            conn.execute(
+                "UPDATE categories SET slug=?, name=?, description=?, parent_id=?, updated_at=? WHERE id=?",
+                (slug, name, desc, parent_id, now, int(cid)),
+            )
+        else:
+            conn.execute(
+                "INSERT INTO categories(slug, name, description, parent_id, created_at, updated_at) VALUES(?,?,?,?,?,?)",
+                (slug, name, desc, parent_id, now, now),
+            )
+        conn.commit()
+        row = conn.execute(
+            "SELECT id, slug, name, description, parent_id, created_at, updated_at FROM categories WHERE slug=?",
+            (slug,),
+        ).fetchone()
+        conn.close()
+        return jsonify({"ok": True, "row": dict(row) if row else None})
+    except Exception as e:
+        return jsonify({"ok": False, "error": f"{type(e).__name__}: {e}"}), 500
+
+@ember.post("/api/categories/delete")
+def api_categories_delete():
+    data = request.get_json(force=True, silent=True) or {}
+    cid = data.get("id")
+    force = bool(data.get("force"))
+    if not cid:
+        return jsonify({"ok": False, "error": "Missing id"}), 400
+    cid = int(cid)
+    try:
+        conn = _scav_db_connect()
+        # check children
+        child_count = conn.execute("SELECT COUNT(*) AS c FROM categories WHERE parent_id=?", (cid,)).fetchone()["c"]
+        if child_count and not force:
+            conn.close()
+            return jsonify({"ok": False, "error": f"Category has {child_count} child(ren). Set force=true to delete (children will be detached)."}), 400
+        if child_count and force:
+            conn.execute("UPDATE categories SET parent_id=NULL, updated_at=? WHERE parent_id=?", (_now_iso(), cid))
+        cur = conn.execute("DELETE FROM categories WHERE id=?", (cid,))
+        conn.commit()
+        deleted = cur.rowcount if cur is not None else 0
+        conn.close()
+        return jsonify({"ok": True, "deleted": deleted, "children_detached": int(child_count) if (child_count and force) else 0})
+    except Exception as e:
+        return jsonify({"ok": False, "error": f"{type(e).__name__}: {e}"}), 500
+
+
 # ----------------------------
 # Pages
 # ----------------------------
@@ -274,10 +701,19 @@ def home():
 def tools_inventory():
     return render_template("index.html", page="inventory", mode=DEFAULT_MODE)
 
+@ember.get("/tools/admin")
+def tools_admin():
+    return render_template("index.html", page="admin", mode=DEFAULT_MODE)
+
 @ember.get("/control")
 def control():
     # Standalone control page with buttons; doesn't require changing your existing UI.
     return render_template("control.html")
+
+@ember.get("/admin")
+def admin():
+    # Project-wide Admin Console (status/config/logs/cache/etc.)
+    return render_template("admin.html")
 
 # ----------------------------
 # Chat API (existing UI uses /query)

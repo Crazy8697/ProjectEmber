@@ -29,6 +29,7 @@
           <summary class="sideSectionHeader">Tools</summary>
           <div class="sideSectionBody">
             <a class="sideItem {% if page == 'inventory' %}active{% endif %}" href="/tools/inventory" title="Scavenger Inventory">Scavenger Inventory</a>
+            <a class="sideItem" class="sideItem {% if page == 'admin' %}active{% endif %}" href="/tools/admin" title="Admin Console">Admin Console</a>
             <a class="sideItem disabled" href="#" title="New tool (coming soon)">New tool</a>
             <a class="sideItem disabled" href="#" title="Another tool (coming soon)">Another tool</a>
           </div>
@@ -148,6 +149,11 @@
               Set <code>SCAVENGER_DIR</code> if your repo lives elsewhere, then restart Ember.
             </div>
           {% endif %}
+        </section>
+      {% elif page == 'admin' %}
+        <section class="panel">
+          <iframe class="invFrame" id="adminFrame" title="Admin Console" src="/admin"></iframe>
+          <div class="invHint muted">Admin Console running at <code>/admin</code> (embedded here for convenience).</div>
         </section>
       {% else %}
         <section class="chatWrap" aria-label="Chat">
