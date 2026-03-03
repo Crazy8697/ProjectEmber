@@ -1,0 +1,567 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Project Ember Admin Console</title>
+  <style>
+    :root {
+      --bg: #0b0f1a;
+      --card: rgba(255,255,255,.06);
+      --card2: rgba(0,0,0,.35);
+      --border: rgba(255,255,255,.12);
+      --border2: rgba(255,255,255,.10);
+      --text: #e9eefc;
+      --muted: rgba(233,238,252,.75);
+      --muted2: rgba(233,238,252,.60);
+      --btn: rgba(255,255,255,.08);
+      --btnH: rgba(255,255,255,.12);
+      --danger: rgba(255,80,80,.10);
+      --dangerB: rgba(255,80,80,.28);
+      --ok: rgba(80,255,160,.12);
+      --okB: rgba(80,255,160,.28);
+      --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      --ui: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Arial;
+      --r: 16px;
+    }
+    body { font-family: var(--ui); margin: 0; padding: 24px; background: var(--bg); color: var(--text); }
+    .wrap { max-width: 1100px; margin: 0 auto; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--r); padding: 18px; box-shadow: 0 10px 30px rgba(0,0,0,.35); }
+    .titleRow { display:flex; align-items:flex-start; justify-content:space-between; gap: 12px; }
+    h1 { margin:0 0 6px; font-size: 22px; }
+    p { margin:0 0 12px; color: var(--muted); }
+    .pill { display:inline-block; font-size: 12px; padding: 3px 10px; border-radius: 999px; border: 1px solid var(--border); background: rgba(255,255,255,.05); color: var(--muted); }
+    .row { display:flex; gap: 12px; flex-wrap:wrap; align-items:center; }
+    .grid { display:grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .subcard { background: rgba(255,255,255,.05); border: 1px solid var(--border2); border-radius: 14px; padding: 14px; }
+    .subcard h2 { margin:0 0 8px; font-size: 16px; }
+    .subcard p { margin:0 0 10px; color: var(--muted2); font-size: 13px; }
+    label { display:block; font-size: 12px; opacity:.85; margin: 10px 0 6px; }
+    input, textarea, select {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,.18);
+      background: rgba(255,255,255,.06);
+      color: var(--text);
+      font-family: var(--ui);
+      box-sizing: border-box;
+    }
+    textarea { min-height: 76px; resize: vertical; }
+    button, a.btn {
+      cursor:pointer;
+      border: 1px solid rgba(255,255,255,.18);
+      background: var(--btn);
+      color: var(--text);
+      padding: 10px 12px;
+      border-radius: 12px;
+      font-weight: 600;
+      text-decoration: none;
+      display: inline-flex;
+      align-items:center;
+      gap: 8px;
+      font-size: 13px;
+    }
+    button:hover, a.btn:hover { background: var(--btnH); }
+    button.danger { background: var(--danger); border-color: var(--dangerB); }
+    button.danger:hover { background: rgba(255,80,80,.16); }
+    button.good { background: var(--ok); border-color: var(--okB); }
+    button.good:hover { background: rgba(80,255,160,.18); }
+    .status {
+      margin-top: 12px;
+      padding: 12px;
+      border-radius: 12px;
+      background: var(--card2);
+      border: 1px solid var(--border2);
+      white-space: pre-wrap;
+      font-family: var(--mono);
+      font-size: 12px;
+      overflow:auto;
+      max-height: 340px;
+    }
+    .muted { color: var(--muted2); font-size: 12px; }
+    .table {
+      width:100%;
+      border-collapse: collapse;
+      font-family: var(--mono);
+      font-size: 12px;
+      margin-top: 10px;
+    }
+    .table th, .table td {
+      border-bottom: 1px solid rgba(255,255,255,.10);
+      padding: 8px 6px;
+      vertical-align: top;
+    }
+    .table th { text-align:left; color: var(--muted); font-weight: 700; }
+    .table tr:hover td { background: rgba(255,255,255,.03); }
+    .k { color: var(--muted); }
+    .right { text-align:right; }
+    .smallRow { display:flex; gap: 8px; flex-wrap:wrap; align-items:center; }
+    .smallRow > * { flex: 1 1 auto; }
+    .smallRow .fixed { flex: 0 0 auto; }
+    .split { display:grid; grid-template-columns: 1fr; gap: 12px; }
+    @media (min-width: 920px) {
+      .split { grid-template-columns: 1fr 1fr; }
+    }
+    details { border: 1px solid var(--border2); border-radius: 14px; background: rgba(255,255,255,.04); }
+    summary { cursor:pointer; padding: 10px 12px; user-select:none; color: var(--text); font-weight: 700; }
+    details > div { padding: 0 12px 12px; }
+    .hint { margin-top: 10px; font-size: 12px; color: var(--muted2); }
+    .badge { font-family: var(--mono); font-size: 11px; padding: 2px 6px; border-radius: 999px; border: 1px solid rgba(255,255,255,.16); background: rgba(255,255,255,.05); color: var(--muted); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <div class="titleRow">
+        <div>
+          <h1>Project Ember Admin Console</h1>
+          <p>Controls, status, and other responsible-adult nonsense.</p>
+        </div>
+        <div class="pill">/admin</div>
+      </div>
+
+      <div class="row">
+        <button id="btnStatus">Refresh status</button>
+        <a class="btn" href="/control">legacy /control</a>
+        <a class="btn" href="/">back to chat</a>
+      </div>
+
+      <div id="statusOut" class="status">…</div>
+      <div class="hint">This page is intentionally boring. Boring is stable.</div>
+    </div>
+
+    <div style="height:12px"></div>
+
+    <div class="card">
+      <h1 style="font-size:18px; margin-bottom:8px;">Cache Inspector</h1>
+      <p class="muted">Scavenger cache tables: <span class="badge">part_enrich_cache</span> and <span class="badge">web_search_cache</span>.</p>
+
+      <div class="split">
+        <div class="subcard">
+          <h2>Part Enrich Cache</h2>
+          <div class="smallRow">
+            <input id="pecQuery" placeholder="mpn (exact or partial)"/>
+            <label class="fixed" style="display:flex;align-items:center;gap:6px;margin:0;">
+              <input id="pecLike" type="checkbox" style="width:auto;margin:0;"/> LIKE
+            </label>
+            <label class="fixed" style="display:flex;align-items:center;gap:6px;margin:0;">
+              <input id="pecWithPayload" type="checkbox" style="width:auto;margin:0;"/> payload
+            </label>
+          </div>
+          <div class="row" style="margin-top:10px;">
+            <button id="pecSearch">Search</button>
+          </div>
+
+          <div class="smallRow" style="margin-top:10px;">
+            <input id="pecDeleteMpn" placeholder="mpn to delete"/>
+            <button id="pecDeleteBtn" class="danger fixed">Delete MPN</button>
+          </div>
+
+          <div id="pecOut" class="status">…</div>
+          <div class="hint">Tip: leave MPN blank and hit Search to see newest rows.</div>
+        </div>
+
+        <div class="subcard">
+          <h2>Web Search Cache</h2>
+          <div class="smallRow">
+            <input id="wscQuery" placeholder="query (exact or partial)"/>
+            <label class="fixed" style="display:flex;align-items:center;gap:6px;margin:0;">
+              <input id="wscLike" type="checkbox" style="width:auto;margin:0;"/> LIKE
+            </label>
+            <button id="wscSearch" class="fixed">Search</button>
+          </div>
+
+          <div class="smallRow" style="margin-top:10px;">
+            <input id="wscDelQuery" placeholder="query to delete"/>
+            <input id="wscDelRank" placeholder="rank (optional)"/>
+            <button id="wscDelOne" class="danger fixed">Delete (query,rank)</button>
+          </div>
+
+          <div class="row" style="margin-top:10px;">
+            <button id="wscDelAll" class="danger">Delete all for query</button>
+          </div>
+
+          <div id="wscOut" class="status">…</div>
+          <div class="hint">Tip: rank is required unless deleting all for the query.</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="height:12px"></div>
+
+    <div class="card">
+      <div class="grid">
+        <div class="subcard">
+          <h2>Bin Manager</h2>
+          <p class="muted">CRUD for <span class="badge">bins</span> (id, code, name, description).</p>
+
+          <details open>
+            <summary>List / Search</summary>
+            <div>
+              <div class="smallRow">
+                <input id="binsFilter" placeholder="filter (code/name contains)"/>
+                <button id="binsRefresh" class="fixed">Refresh</button>
+              </div>
+              <div id="binsOut" class="status">…</div>
+            </div>
+          </details>
+
+          <details>
+            <summary>Add / Update</summary>
+            <div>
+              <label>id (blank = create new)</label>
+              <input id="binId" placeholder=""/>
+
+              <label>code (unique, required)</label>
+              <input id="binCode" placeholder="B12"/>
+
+              <label>name</label>
+              <input id="binName" placeholder="Drawer B12"/>
+
+              <label>description</label>
+              <textarea id="binDesc" placeholder="optional"></textarea>
+
+              <div class="row">
+                <button id="binSave" class="good">Save</button>
+                <button id="binClear" type="button">Clear form</button>
+              </div>
+              <div class="hint">Click a row in the list to load it into the form.</div>
+            </div>
+          </details>
+
+          <details>
+            <summary>Delete</summary>
+            <div>
+              <div class="smallRow">
+                <input id="binDelId" placeholder="id to delete"/>
+                <button id="binDelete" class="danger fixed">Delete</button>
+              </div>
+              <div class="hint">Deletion is permanent. Unlike your confidence.</div>
+            </div>
+          </details>
+
+        </div>
+
+        <div class="subcard">
+          <h2>Category Manager</h2>
+          <p class="muted">CRUD for <span class="badge">categories</span> (id, slug, name, parent_id).</p>
+
+          <details open>
+            <summary>Tree</summary>
+            <div>
+              <div class="row">
+                <button id="catTree" class="fixed">Refresh tree</button>
+              </div>
+              <div id="catTreeOut" class="status">…</div>
+            </div>
+          </details>
+
+          <details>
+            <summary>List / Search</summary>
+            <div>
+              <div class="smallRow">
+                <input id="catsFilter" placeholder="filter (slug/name contains)"/>
+                <button id="catsRefresh" class="fixed">Refresh</button>
+              </div>
+              <div id="catsOut" class="status">…</div>
+              <div class="hint">Click a row in the list to load it into the form.</div>
+            </div>
+          </details>
+
+          <details>
+            <summary>Add / Update</summary>
+            <div>
+              <label>id (blank = create new)</label>
+              <input id="catId" placeholder=""/>
+
+              <label>slug (unique, required)</label>
+              <input id="catSlug" placeholder="resistors"/>
+
+              <label>name (required)</label>
+              <input id="catName" placeholder="Resistors"/>
+
+              <label>description</label>
+              <textarea id="catDesc" placeholder="optional"></textarea>
+
+              <label>parent_id (optional)</label>
+              <input id="catParent" placeholder="e.g. 1"/>
+
+              <div class="row">
+                <button id="catSave" class="good">Save</button>
+                <button id="catClear" type="button">Clear form</button>
+              </div>
+            </div>
+          </details>
+
+          <details>
+            <summary>Delete</summary>
+            <div>
+              <div class="smallRow">
+                <input id="catDelId" placeholder="id to delete"/>
+                <button id="catDelete" class="danger fixed">Delete</button>
+              </div>
+              <div class="hint">If it's a parent with children, you might want to reparent first. SQLite will set children parent_id to NULL if foreign key enforcement is on and configured that way.</div>
+            </div>
+          </details>
+
+        </div>
+      </div>
+    </div>
+
+    <div class="hint muted" style="margin-top:10px;">Admin Console running at <code>/admin</code> (embedded in Ember UI for convenience).</div>
+  </div>
+
+<script>
+async function j(url, opts) {
+  const r = await fetch(url, opts);
+  const t = await r.text();
+  try { return JSON.parse(t); } catch { return { raw: t, status: r.status }; }
+}
+function show(el, x){
+  el.textContent = (typeof x === 'string') ? x : JSON.stringify(x, null, 2);
+}
+function esc(s){ return (s ?? '').toString(); }
+
+const statusOut = document.getElementById('statusOut');
+document.getElementById('btnStatus').addEventListener('click', async () => {
+  show(statusOut, await j('/api/status'));
+});
+(async()=>{ show(statusOut, await j('/api/status')); })();
+
+// Cache inspector (existing endpoints expected)
+const pecOut = document.getElementById('pecOut');
+document.getElementById('pecSearch').addEventListener('click', async () => {
+  const q = document.getElementById('pecQuery').value.trim();
+  const like = document.getElementById('pecLike').checked;
+  const payload = document.getElementById('pecWithPayload').checked;
+  const url = new URL('/api/cache/part_enrich/search', window.location.origin);
+  if (q) url.searchParams.set('q', q);
+  if (like) url.searchParams.set('like', '1');
+  if (payload) url.searchParams.set('payload', '1');
+  show(pecOut, await j(url.toString()));
+});
+document.getElementById('pecDeleteBtn').addEventListener('click', async () => {
+  const mpn = document.getElementById('pecDeleteMpn').value.trim();
+  if (!mpn) return show(pecOut, {ok:false, error:"missing mpn"});
+  show(pecOut, await j('/api/cache/part_enrich/delete', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({mpn})}));
+});
+
+const wscOut = document.getElementById('wscOut');
+document.getElementById('wscSearch').addEventListener('click', async () => {
+  const q = document.getElementById('wscQuery').value.trim();
+  const like = document.getElementById('wscLike').checked;
+  const url = new URL('/api/cache/web_search/search', window.location.origin);
+  if (q) url.searchParams.set('q', q);
+  if (like) url.searchParams.set('like', '1');
+  show(wscOut, await j(url.toString()));
+});
+document.getElementById('wscDelOne').addEventListener('click', async () => {
+  const query = document.getElementById('wscDelQuery').value.trim();
+  const rankRaw = document.getElementById('wscDelRank').value.trim();
+  const rank = rankRaw === '' ? null : parseInt(rankRaw, 10);
+  if (!query) return show(wscOut, {ok:false, error:"missing query"});
+  if (rank === null || Number.isNaN(rank)) return show(wscOut, {ok:false, error:"rank required"});
+  show(wscOut, await j('/api/cache/web_search/delete', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({query, rank})}));
+});
+document.getElementById('wscDelAll').addEventListener('click', async () => {
+  const query = document.getElementById('wscDelQuery').value.trim();
+  if (!query) return show(wscOut, {ok:false, error:"missing query"});
+  show(wscOut, await j('/api/cache/web_search/delete_all', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({query})}));
+});
+
+// Bins CRUD
+const binsOut = document.getElementById('binsOut');
+function renderBins(rows){
+  if (!Array.isArray(rows)) return show(binsOut, rows);
+  let html = `<table class="table"><thead><tr>
+    <th>id</th><th>code</th><th>name</th><th>description</th><th class="right">actions</th>
+  </tr></thead><tbody>`;
+  for (const r of rows) {
+    const id = esc(r.id);
+    const code = esc(r.code);
+    const name = esc(r.name || '');
+    const desc = esc(r.description || '');
+    html += `<tr data-id="${id}" data-code="${code}" data-name="${name.replaceAll('"','&quot;')}" data-desc="${desc.replaceAll('"','&quot;')}">
+      <td>${id}</td><td>${code}</td><td>${name}</td><td>${desc}</td>
+      <td class="right"><button class="btnRow" data-action="load" data-id="${id}">load</button>
+      <button class="btnRow danger" data-action="del" data-id="${id}">del</button></td>
+    </tr>`;
+  }
+  html += `</tbody></table>`;
+  binsOut.innerHTML = html;
+
+  binsOut.querySelectorAll('button.btnRow').forEach(btn => {
+    btn.addEventListener('click', async (ev) => {
+      const action = btn.getAttribute('data-action');
+      const id = btn.getAttribute('data-id');
+      if (action === 'load') {
+        const tr = btn.closest('tr');
+        document.getElementById('binId').value = tr.getAttribute('data-id') || '';
+        document.getElementById('binCode').value = tr.getAttribute('data-code') || '';
+        document.getElementById('binName').value = tr.getAttribute('data-name') || '';
+        document.getElementById('binDesc').value = tr.getAttribute('data-desc') || '';
+        document.getElementById('binDelId').value = tr.getAttribute('data-id') || '';
+      } else if (action === 'del') {
+        document.getElementById('binDelId').value = id || '';
+        await doBinDelete();
+      }
+    });
+  });
+}
+async function refreshBins(){
+  const filter = document.getElementById('binsFilter').value.trim();
+  const url = new URL('/api/bins/list', window.location.origin);
+  if (filter) url.searchParams.set('q', filter);
+  const resp = await j(url.toString());
+  if (resp && resp.ok && Array.isArray(resp.rows)) renderBins(resp.rows);
+  else show(binsOut, resp);
+}
+document.getElementById('binsRefresh').addEventListener('click', refreshBins);
+
+document.getElementById('binClear').addEventListener('click', () => {
+  ['binId','binCode','binName','binDesc','binDelId'].forEach(id => document.getElementById(id).value = '');
+});
+
+document.getElementById('binSave').addEventListener('click', async () => {
+  const idRaw = document.getElementById('binId').value.trim();
+  const code = document.getElementById('binCode').value.trim();
+  const name = document.getElementById('binName').value.trim();
+  const description = document.getElementById('binDesc').value.trim();
+  if (!code) return show(binsOut, {ok:false, error:"code required"});
+  const payload = { code, name, description };
+  if (idRaw) payload.id = parseInt(idRaw, 10);
+  const resp = await j('/api/bins/upsert', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)});
+  show(binsOut, resp);
+  await refreshBins();
+});
+
+async function doBinDelete(){
+  const idRaw = document.getElementById('binDelId').value.trim();
+  if (!idRaw) return show(binsOut, {ok:false, error:"id required"});
+  const id = parseInt(idRaw, 10);
+  const resp = await j('/api/bins/delete', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({id})});
+  show(binsOut, resp);
+  await refreshBins();
+}
+document.getElementById('binDelete').addEventListener('click', doBinDelete);
+
+// Categories CRUD
+const catsOut = document.getElementById('catsOut');
+const catTreeOut = document.getElementById('catTreeOut');
+
+function renderCats(rows){
+  if (!Array.isArray(rows)) return show(catsOut, rows);
+  let html = `<table class="table"><thead><tr>
+    <th>id</th><th>slug</th><th>name</th><th>parent_id</th><th class="right">actions</th>
+  </tr></thead><tbody>`;
+  for (const r of rows) {
+    const id = esc(r.id);
+    const slug = esc(r.slug);
+    const name = esc(r.name);
+    const parent = (r.parent_id === null || r.parent_id === undefined) ? '' : esc(r.parent_id);
+    const desc = esc(r.description || '');
+    html += `<tr data-id="${id}" data-slug="${slug}" data-name="${name.replaceAll('"','&quot;')}" data-parent="${parent}" data-desc="${desc.replaceAll('"','&quot;')}">
+      <td>${id}</td><td>${slug}</td><td>${name}</td><td>${parent}</td>
+      <td class="right"><button class="catRow" data-action="load" data-id="${id}">load</button>
+      <button class="catRow danger" data-action="del" data-id="${id}">del</button></td>
+    </tr>`;
+  }
+  html += `</tbody></table>`;
+  catsOut.innerHTML = html;
+
+  catsOut.querySelectorAll('button.catRow').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const action = btn.getAttribute('data-action');
+      const id = btn.getAttribute('data-id');
+      if (action === 'load') {
+        const tr = btn.closest('tr');
+        document.getElementById('catId').value = tr.getAttribute('data-id') || '';
+        document.getElementById('catSlug').value = tr.getAttribute('data-slug') || '';
+        document.getElementById('catName').value = tr.getAttribute('data-name') || '';
+        document.getElementById('catParent').value = tr.getAttribute('data-parent') || '';
+        document.getElementById('catDesc').value = tr.getAttribute('data-desc') || '';
+        document.getElementById('catDelId').value = tr.getAttribute('data-id') || '';
+      } else if (action === 'del') {
+        document.getElementById('catDelId').value = id || '';
+        await doCatDelete();
+      }
+    });
+  });
+}
+
+async function refreshCats(){
+  const filter = document.getElementById('catsFilter').value.trim();
+  const url = new URL('/api/categories/list', window.location.origin);
+  if (filter) url.searchParams.set('q', filter);
+  const resp = await j(url.toString());
+  if (resp && resp.ok && Array.isArray(resp.rows)) renderCats(resp.rows);
+  else show(catsOut, resp);
+}
+document.getElementById('catsRefresh').addEventListener('click', refreshCats);
+
+document.getElementById('catClear').addEventListener('click', () => {
+  ['catId','catSlug','catName','catDesc','catParent','catDelId'].forEach(id => document.getElementById(id).value = '');
+});
+
+document.getElementById('catSave').addEventListener('click', async () => {
+  const idRaw = document.getElementById('catId').value.trim();
+  const slug = document.getElementById('catSlug').value.trim();
+  const name = document.getElementById('catName').value.trim();
+  const description = document.getElementById('catDesc').value.trim();
+  const parentRaw = document.getElementById('catParent').value.trim();
+  if (!slug) return show(catsOut, {ok:false, error:"slug required"});
+  if (!name) return show(catsOut, {ok:false, error:"name required"});
+  const payload = { slug, name, description };
+  if (idRaw) payload.id = parseInt(idRaw, 10);
+  if (parentRaw) payload.parent_id = parseInt(parentRaw, 10);
+  else payload.parent_id = null;
+  const resp = await j('/api/categories/upsert', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)});
+  show(catsOut, resp);
+  await refreshCats();
+  await refreshTree();
+});
+
+async function doCatDelete(){
+  const idRaw = document.getElementById('catDelId').value.trim();
+  if (!idRaw) return show(catsOut, {ok:false, error:"id required"});
+  const id = parseInt(idRaw, 10);
+  const resp = await j('/api/categories/delete', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({id})});
+  show(catsOut, resp);
+  await refreshCats();
+  await refreshTree();
+}
+document.getElementById('catDelete').addEventListener('click', doCatDelete);
+
+function renderTreeNode(n, depth){
+  const pad = '  '.repeat(depth);
+  const id = esc(n.id);
+  const slug = esc(n.slug);
+  const name = esc(n.name);
+  let s = `${pad}- (${id}) ${slug} :: ${name}`;
+  if (Array.isArray(n.children) && n.children.length) {
+    for (const c of n.children) s += `\n` + renderTreeNode(c, depth+1);
+  }
+  return s;
+}
+async function refreshTree(){
+  const resp = await j('/api/categories/tree');
+  if (resp && resp.ok && Array.isArray(resp.tree)) {
+    let out = "";
+    for (const n of resp.tree) out += renderTreeNode(n, 0) + "\n";
+    show(catTreeOut, out.trim() || "(empty)");
+  } else {
+    show(catTreeOut, resp);
+  }
+}
+document.getElementById('catTree').addEventListener('click', refreshTree);
+
+// initial loads
+(async()=>{
+  try { await refreshBins(); } catch (e) { show(binsOut, {ok:false, error:String(e)}); }
+  try { await refreshCats(); } catch (e) { show(catsOut, {ok:false, error:String(e)}); }
+  try { await refreshTree(); } catch (e) { show(catTreeOut, {ok:false, error:String(e)}); }
+})();
+</script>
+</body>
+</html>
