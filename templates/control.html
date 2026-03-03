@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Project Ember Control</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Arial; margin: 0; padding: 24px; background: #0b0f1a; color: #e9eefc;}
+    .card { max-width: 760px; margin: 0 auto; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.12); border-radius: 16px; padding: 18px; }
+    h1 { margin: 0 0 8px; font-size: 20px;}
+    p { margin: 0 0 14px; color: rgba(233,238,252,.75); }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; }
+    button { cursor: pointer; border: 1px solid rgba(255,255,255,.18); background: rgba(255,255,255,.08); color: #e9eefc; padding: 10px 12px; border-radius: 12px; font-weight: 600; }
+    button:hover { background: rgba(255,255,255,.12); }
+    .status { margin-top: 14px; padding: 12px; border-radius: 12px; background: rgba(0,0,0,.35); border: 1px solid rgba(255,255,255,.10); white-space: pre-wrap; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .small { font-size: 12px; opacity: .75; margin-top: 10px;}
+    input { width: 100%; padding: 10px 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,.18); background: rgba(255,255,255,.06); color: #e9eefc; }
+    label { display:block; margin: 10px 0 6px; font-size: 12px; opacity:.8; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Project Ember Control</h1>
+    <p>Buttons. For humans. You're welcome.</p>
+
+    <label>Model path (optional; leave blank to use default)</label>
+    <input id="modelPath" placeholder="/home/daddy/ProjectEmber/ai_models/mistral7b/Mistral-7B-Instruct-v0.3-Q4_K_M.gguf"/>
+
+    <div class="row" style="margin-top:12px;">
+      <button id="btnStart">Start LLM server</button>
+      <button id="btnStop">Stop LLM server</button>
+      <button id="btnStatus">Refresh status</button>
+      <button id="btnTime">Get system time</button>
+    </div>
+
+    <div id="out" class="status">…</div>
+    <div class="small">Tip: if the UI is "blank", open the devtools console. It's usually JavaScript being dramatic.</div>
+  </div>
+
+<script>
+async function j(url, opts) {
+  const r = await fetch(url, opts);
+  const t = await r.text();
+  try { return JSON.parse(t); } catch { return { raw: t, status: r.status }; }
+}
+const out = document.getElementById('out');
+function show(x){ out.textContent = typeof x === 'string' ? x : JSON.stringify(x, null, 2); }
+
+document.getElementById('btnStatus').addEventListener('click', async () => {
+  show(await j('/api/llama/status'));
+});
+document.getElementById('btnTime').addEventListener('click', async () => {
+  show(await j('/api/time'));
+});
+document.getElementById('btnStart').addEventListener('click', async () => {
+  const model = document.getElementById('modelPath').value.trim();
+  show(await j('/api/llama/start', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(model ? {model} : {})}));
+});
+document.getElementById('btnStop').addEventListener('click', async () => {
+  show(await j('/api/llama/stop', {method:'POST'}));
+});
+
+// initial
+(async()=>{ show(await j('/api/llama/status')); })();
+</script>
+</body>
+</html>

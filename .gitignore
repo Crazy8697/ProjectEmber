@@ -1,0 +1,25 @@
+# Secrets
+.env
+
+# Python
+__pycache__/
+*.pyc
+
+# Runtime
+logs/
+run/
+
+# Databases
+*.sqlite
+data/
+
+# Models
+ai_models/
+
+# Backups
+*.bak_*
+*.new
+.bak_*/
+
+# Installers
+*.run

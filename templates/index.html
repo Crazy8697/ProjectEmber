@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>{% if page == 'inventory' %}Scavenger Inventory{% else %}Project Ember{% endif %}</title>
+  <link rel="stylesheet" href="/static/ember.css?v=20260301_mount_scav_v4"/>
+</head>
+<body data-page="{{ page }}">
+  <div class="layout">
+
+    <!-- Sidebar -->
+    <aside class="sidebar" aria-label="Sidebar navigation">
+      <div class="sideHeader">
+        <div class="sideTitle">Projects</div>
+      </div>
+
+      <nav class="sideNav">
+        <details class="sideSection" open>
+          <summary class="sideSectionHeader">Project Ember</summary>
+          <div class="sideSectionBody">
+            <a class="sideItem {% if page == 'chat' %}active{% endif %}" href="/" title="Chat">Chat</a>
+            <a class="sideItem disabled" href="#" title="Models (coming soon)">Models</a>
+            <a class="sideItem disabled" href="#" title="Settings (coming soon)">Settings</a>
+          </div>
+        </details>
+
+        <details class="sideSection" open>
+          <summary class="sideSectionHeader">Tools</summary>
+          <div class="sideSectionBody">
+            <a class="sideItem {% if page == 'inventory' %}active{% endif %}" href="/tools/inventory" title="Scavenger Inventory">Scavenger Inventory</a>
+            <a class="sideItem disabled" href="#" title="New tool (coming soon)">New tool</a>
+            <a class="sideItem disabled" href="#" title="Another tool (coming soon)">Another tool</a>
+          </div>
+        </details>
+      </nav>
+
+      <div class="sideFooter muted">local only</div>
+    </aside>
+
+    <!-- Main -->
+    <main class="main">
+      <header class="topbar">
+        <div class="brand">
+          <a class="logoBtn" href="https://darkrelay.net" target="_blank" rel="noreferrer" title="darkrelay.net">Ω</a>
+          <div class="brandText">
+            <div class="title">{% if page == 'inventory' %}Scavenger Inventory{% else %}Project Ember{% endif %}</div>
+            <div class="subtitle">{% if page == 'inventory' %}local warehouse brain{% else %}local brain, less drama{% endif %}</div>
+          </div>
+        </div>
+
+        <div class="topActions">
+          {% if page == 'inventory' %}
+            <a class="btn pill" href="/inventory/?v=20260302_074158" target="_self">Inventory</a>
+            <a class="btn pill" href="/inventory/add" target="_self">Add Part</a>
+            <button class="btn pill" id="invPushBtn" type="button">Push to GitHub</button>
+          {% endif %}
+
+          <label class="modeLabel">
+            <span>Mode</span>
+            <select id="modeSel">
+              <option value="quick">Quick</option>
+              <option value="medium" selected>Medium</option>
+              <option value="deep">Deep</option>
+            </select>
+          </label>
+        </div>
+      </header>
+
+      {% if page == 'inventory' %}
+        <section class="panel">
+          {% if inv_mounted %}
+            <iframe class="invFrame" id="invFrame" title="Scavenger Inventory" src="/inventory/?v=20260302_122705"></iframe>
+            <div class="invHint muted">Running inside Project Ember at /inventory (same port).</div>
+          {% else %}
+            <div class="muted" style="padding:18px">
+              <b><div style="margin-top:0; height: calc(100vh - 140px); border: 0; border-radius: 18px; overflow:hidden;">
+  <iframe id="scavengerFrame" src="/inventory/?v=20260302_074158" style="display:block; width:100%; height:100%; border:0;"></iframe>
+</div>
+<script>
+  // Same-origin iframe, so we can clean up Scavenger's header to avoid double-nav.
+  (function () {
+    const f = document.getElementById('scavengerFrame');
+  // NAV_TRAP_INVENTORY_LINKS: keep top-level clicks inside the embedded Scavenger iframe
+  (function () {
+    const f = document.getElementById('scavengerFrame');
+    if (!f) return;
+
+    function setFrame(url) {
+      const hasV = (url.includes("?v=") || url.includes("&v="));
+      if (!hasV) {
+        const v = String(Date.now());
+        url = url + ((url.includes("?") ? "&" : "?") + "v=" + v);
+      }
+      f.src = url;
+    }
+
+    document.querySelectorAll('a[href^="/inventory"]').forEach(a => {
+      a.addEventListener('click', (ev) => {
+        if (ev.defaultPrevented) return;
+        if (ev.button !== 0) return;
+        if (ev.metaKey || ev.ctrlKey || ev.shiftKey || ev.altKey) return;
+
+        const href = a.getAttribute('href') || '';
+        if (!href.startsWith('/inventory')) return;
+
+        ev.preventDefault();
+        setFrame(href);
+      }, true);
+    });
+  })();
+
+    if (!f) return;
+    f.addEventListener('load', () => {
+      try {
+        const doc = f.contentDocument || f.contentWindow.document;
+        if (!doc) return;
+
+        // Hide Scavenger top bar to prevent duplicate navigation.
+        const topbar = doc.querySelector('header.topbar');
+        if (topbar) topbar.style.display = 'none';
+
+        // Make Scavenger content use the space (less centered-card, more full-width).
+        const wrap = doc.querySelector('main.wrap');
+        if (wrap) {
+          wrap.style.maxWidth = 'none';
+          wrap.style.paddingLeft = '16px';
+          wrap.style.paddingRight = '16px';
+        }
+        // Let cards stretch too.
+        doc.querySelectorAll('.card').forEach(c => { c.style.maxWidth = 'none'; });
+
+
+        // Remove top spacing if present.
+        const main = doc.querySelector('main.wrap');
+        if (main) main.style.marginTop = '0';
+
+        // Keep background seamless.
+        doc.documentElement.style.background = 'transparent';
+        doc.body.style.background = 'transparent';
+      } catch (e) {
+        // fail quietly
+      }
+    });
+  })();
+</script>
+</b><br/>
+              Set <code>SCAVENGER_DIR</code> if your repo lives elsewhere, then restart Ember.
+            </div>
+          {% endif %}
+        </section>
+      {% else %}
+        <section class="chatWrap" aria-label="Chat">
+          <div class="chat" id="chat"></div>
+
+          <form class="composer" id="composer" autocomplete="off">
+            <textarea id="msg" placeholder="Type here… (Enter to send, Shift+Enter for newline)" rows="2"></textarea>
+            <button class="btn send" type="submit">Send</button>
+          </form>
+
+          <div class="hint muted">Tip: keep prompts concrete.</div>
+        </section>
+      {% endif %}
+
+      <!-- cheap modal for push output -->
+      <div class="modal" id="pushModal" aria-hidden="true">
+        <div class="modalCard">
+          <div class="modalHead">
+            <div class="modalTitle">Push to GitHub</div>
+            <button class="btn pill" id="pushClose" type="button">Close</button>
+          </div>
+          <pre class="output" id="pushOutput"></pre>
+        </div>
+      </div>
+
+    </main>
+
+  </div>
+
+  <script src="/static/ember.js?v=20260301_mount_scav_v4"></script>
+</body>
+</html>
