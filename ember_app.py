@@ -292,7 +292,7 @@ def _parse_host_port(url: str) -> (str, int):
 @ember.get("/api/admin/status")
 def api_admin_status():
     # Note: do NOT return secret values. Only presence flags.
-    ember_host = os.environ.get("EMBER_HOST", "127.0.0.1")
+    ember_host = os.environ.get("EMBER_HOST", "0.0.0.0")
     ember_port = int(os.environ.get("EMBER_PORT", "5000"))
 
     llama_host, llama_port = _parse_host_port(LLAMA_SERVER_URL)
@@ -692,27 +692,64 @@ def api_categories_delete():
 # ----------------------------
 # Pages
 # ----------------------------
+from tools_registry import list_tools, get_tool, tools_by_group
+
 @ember.get("/")
 def home():
     mode = request.args.get("mode", DEFAULT_MODE)
-    return render_template("index.html", page="chat", mode=mode)
+    return render_template(
+        "index.html",
+        page="chat",
+        mode=mode,
+        tools=list_tools(),
+        tool_groups=tools_by_group(),
+        active_tool_id=None,
+        tool=None,
+    )
 
+@ember.get("/tools/<tool_id>")
+def tools_host(tool_id: str):
+    tool = get_tool(tool_id)
+    if not tool:
+        return (
+            render_template(
+                "index.html",
+                page="tool",
+                mode=DEFAULT_MODE,
+                tools=list_tools(),
+                tool_groups=tools_by_group(),
+                active_tool_id=None,
+                tool=None,
+                error=f"Unknown tool: {tool_id}",
+            ),
+            404,
+        )
+
+    return render_template(
+        "index.html",
+        page="tool",
+        mode=DEFAULT_MODE,
+        tools=list_tools(),
+        tool_groups=tools_by_group(),
+        active_tool_id=tool.id,
+        tool=tool,
+    )
+
+# Backwards compatibility routes
 @ember.get("/tools/inventory")
 def tools_inventory():
-    return render_template("index.html", page="inventory", mode=DEFAULT_MODE)
+    return tools_host("inventory")
 
 @ember.get("/tools/admin")
 def tools_admin():
-    return render_template("index.html", page="admin", mode=DEFAULT_MODE)
+    return tools_host("admin")
 
 @ember.get("/control")
 def control():
-    # Standalone control page with buttons; doesn't require changing your existing UI.
     return render_template("control.html")
 
 @ember.get("/admin")
 def admin():
-    # Project-wide Admin Console (status/config/logs/cache/etc.)
     return render_template("admin.html")
 
 # ----------------------------

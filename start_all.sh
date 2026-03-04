@@ -15,7 +15,7 @@ MODEL="${LLAMA_MODEL:-/home/daddy/ProjectEmber/ai_models/mistral7b/Mistral-7B-In
 LLAMA_HOST="${LLAMA_HOST:-127.0.0.1}"
 LLAMA_PORT="${LLAMA_PORT:-8080}"
 
-FLASK_HOST="${FLASK_HOST:-127.0.0.1}"
+FLASK_HOST="${FLASK_HOST:-0.0.0.0}"
 FLASK_PORT="${FLASK_PORT:-5000}"
 FLASK_APP_CMD="${FLASK_APP_CMD:-python3 ember_app.py}"
 

@@ -31,17 +31,52 @@
     if (e.target === pushModal) hidePushModal();
   });
 
+  async function fetchJsonOrText(url, opts) {
+    const resp = await fetch(url, opts);
+    const text = await resp.text();
+
+    let data = null;
+    try {
+      data = JSON.parse(text);
+    } catch (_) {
+      // not JSON
+    }
+
+    return { resp, text, data };
+  }
+
+  function trimBody(s, max = 4000) {
+    const t = String(s || '');
+    if (t.length <= max) return t;
+    return t.slice(0, max) + "\n\n…(truncated)…\n";
+  }
+
   if (invPushBtn) {
     invPushBtn.addEventListener('click', async () => {
       showPushModal('Running /inventory/push…\n');
       try {
-        const resp = await fetch('/inventory/push', { method: 'POST' });
-        const data = await resp.json();
-        if (!data.ok) {
-          showPushModal(`FAILED (code ${data.code ?? '??'})\n\n${data.error || data.output || ''}`);
+        const { resp, text, data } = await fetchJsonOrText('/inventory/push', { method: 'POST' });
+
+        // If we got JSON, use it. If not, show raw response body.
+        if (data && typeof data === 'object') {
+          if (!data.ok) {
+            showPushModal(
+              `FAILED (HTTP ${resp.status}, code ${data.code ?? '??'})\n\n` +
+              `${data.error || data.output || ''}`
+            );
+            return;
+          }
+          showPushModal(`OK (HTTP ${resp.status}, code ${data.code})\n\n${data.output || ''}`);
           return;
         }
-        showPushModal(`OK (code ${data.code})\n\n${data.output || ''}`);
+
+        // Non-JSON response (HTML error page, plain text, etc.)
+        const ct = resp.headers.get('content-type') || '(no content-type)';
+        showPushModal(
+          `NON-JSON RESPONSE (HTTP ${resp.status})\n` +
+          `content-type: ${ct}\n\n` +
+          trimBody(text)
+        );
       } catch (err) {
         showPushModal(`Error: ${err}`);
       }

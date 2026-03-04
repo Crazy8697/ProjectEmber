@@ -325,9 +325,9 @@ function esc(s){ return (s ?? '').toString(); }
 
 const statusOut = document.getElementById('statusOut');
 document.getElementById('btnStatus').addEventListener('click', async () => {
-  show(statusOut, await j('/api/status'));
+  show(statusOut, await j('/api/admin/status'));
 });
-(async()=>{ show(statusOut, await j('/api/status')); })();
+(async()=>{ show(statusOut, await j('/api/admin/status')); })();
 
 // Cache inspector (existing endpoints expected)
 const pecOut = document.getElementById('pecOut');
@@ -335,7 +335,7 @@ document.getElementById('pecSearch').addEventListener('click', async () => {
   const q = document.getElementById('pecQuery').value.trim();
   const like = document.getElementById('pecLike').checked;
   const payload = document.getElementById('pecWithPayload').checked;
-  const url = new URL('/api/cache/part_enrich/search', window.location.origin);
+  const url = new URL('/api/cache/part/search', window.location.origin);
   if (q) url.searchParams.set('q', q);
   if (like) url.searchParams.set('like', '1');
   if (payload) url.searchParams.set('payload', '1');
@@ -344,14 +344,14 @@ document.getElementById('pecSearch').addEventListener('click', async () => {
 document.getElementById('pecDeleteBtn').addEventListener('click', async () => {
   const mpn = document.getElementById('pecDeleteMpn').value.trim();
   if (!mpn) return show(pecOut, {ok:false, error:"missing mpn"});
-  show(pecOut, await j('/api/cache/part_enrich/delete', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({mpn})}));
+  show(pecOut, await j('/api/cache/part/delete', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({mpn})}));
 });
 
 const wscOut = document.getElementById('wscOut');
 document.getElementById('wscSearch').addEventListener('click', async () => {
   const q = document.getElementById('wscQuery').value.trim();
   const like = document.getElementById('wscLike').checked;
-  const url = new URL('/api/cache/web_search/search', window.location.origin);
+  const url = new URL('/api/cache/web/search', window.location.origin);
   if (q) url.searchParams.set('q', q);
   if (like) url.searchParams.set('like', '1');
   show(wscOut, await j(url.toString()));
@@ -362,12 +362,12 @@ document.getElementById('wscDelOne').addEventListener('click', async () => {
   const rank = rankRaw === '' ? null : parseInt(rankRaw, 10);
   if (!query) return show(wscOut, {ok:false, error:"missing query"});
   if (rank === null || Number.isNaN(rank)) return show(wscOut, {ok:false, error:"rank required"});
-  show(wscOut, await j('/api/cache/web_search/delete', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({query, rank})}));
+  show(wscOut, await j('/api/cache/web/delete', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({query, rank})}));
 });
 document.getElementById('wscDelAll').addEventListener('click', async () => {
   const query = document.getElementById('wscDelQuery').value.trim();
   if (!query) return show(wscOut, {ok:false, error:"missing query"});
-  show(wscOut, await j('/api/cache/web_search/delete_all', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({query})}));
+  show(wscOut, await j('/api/cache/web/delete_all', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({query, all_for_query: true})}));
 });
 
 // Bins CRUD
