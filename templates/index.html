@@ -1,91 +1,125 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Project Ember</title>
-<link rel="stylesheet" href="/static/ember.css"/>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>
+    {% if page == 'tool' and tool %}{{ tool.name }}{% else %}Project Ember{% endif %}
+  </title>
+  <link rel="icon" href="/static/favicon.ico"/>
+  <link rel="stylesheet" href="/static/ember.css?v=20260301_mount_scav_v4"/>
 </head>
-<body data-page="{{ page }}" data-tool="{{ active_tool_id or '' }}">
+<body data-page="{{ 'chat' if page == 'chat' else 'tool' }}">
+  <div class="layout">
 
-<div class="layout">
-
-<!-- Sidebar -->
-<aside class="sidebar">
-  <div class="sideHeader">
-    <div class="sideTitle">Project Ember</div>
-  </div>
-
-  <nav class="sideNav">
-
-    <div class="sideSection">
-      <div class="sideSectionHeader">Core</div>
-      <div class="sideSectionBody">
-        <a class="sideItem {% if page == 'chat' %}active{% endif %}" href="/">Chat</a>
+    <!-- Sidebar -->
+    <aside class="sidebar" aria-label="Sidebar navigation">
+      <div class="sideHeader">
+        <div class="sideTitle">Projects</div>
       </div>
-    </div>
 
-    <div class="sideSection">
-      <div class="sideSectionHeader">Tools</div>
-      <div class="sideSectionBody">
+      <nav class="sideNav">
+        <details class="sideSection" open>
+          <summary class="sideSectionHeader">Project Ember</summary>
+          <div class="sideSectionBody">
+            <a class="sideItem {{ 'active' if page == 'chat' else '' }}" href="/" title="Chat">Chat</a>
+            <a class="sideItem disabled" href="#" title="Models (coming soon)">Models</a>
+            <a class="sideItem disabled" href="#" title="Settings (coming soon)">Settings</a>
+          </div>
+        </details>
 
-      {% for tool in tools %}
-        <a class="sideItem {% if active_tool_id == tool.id %}active{% endif %}"
-           href="/tools/{{ tool.id }}">
-           {{ tool.name }}
-        </a>
-      {% endfor %}
+        {% for group, tools in tool_groups.items() %}
+        <details class="sideSection" open>
+          <summary class="sideSectionHeader">{{ group }}</summary>
+          <div class="sideSectionBody">
+            {% for t in tools %}
+              <a class="sideItem {{ 'active' if (page == 'tool' and tool and tool.id == t.id) else '' }}"
+                 href="/tools/{{ t.id }}"
+                 title="{{ t.description or t.name }}">{{ t.name }}</a>
+            {% endfor %}
+          </div>
+        </details>
+        {% endfor %}
+      </nav>
 
+      <div class="sideFooter muted">local only</div>
+    </aside>
+
+    <!-- Main -->
+    <main class="main">
+      <header class="topbar">
+        <div class="brand">
+          <a class="logoBtn" href="https://darkrelay.net" target="_blank" rel="noreferrer" title="darkrelay.net">Ω</a>
+          <div class="brandText">
+            <div class="title">
+              {% if page == 'tool' and tool %}{{ tool.name }}{% else %}Project Ember{% endif %}
+            </div>
+            <div class="subtitle">
+              {% if page == 'tool' and tool %}{{ tool.description or 'tool' }}{% else %}local brain, less drama{% endif %}
+            </div>
+          </div>
+        </div>
+
+        <div class="topActions">
+          {% if page == 'tool' and tool and tool.id == 'inventory' %}
+            <a class="btn pill" href="/inventory/" target="_self">Inventory</a>
+            <a class="btn pill" href="/inventory/add" target="_self">Add Part</a>
+            <button class="btn pill" id="invPushBtn" type="button">Push to GitHub</button>
+          {% endif %}
+
+          <label class="modeLabel">
+            <span>Mode</span>
+            <select id="modeSel">
+              <option value="quick">Quick</option>
+              <option value="medium" selected>Medium</option>
+              <option value="deep">Deep</option>
+            </select>
+          </label>
+        </div>
+      </header>
+
+      {% if page == 'tool' and tool %}
+        <section class="panel">
+          {% if tool.kind == 'iframe' %}
+            <div style="margin-top:0; height: calc(100vh - 140px); border: 0; border-radius: 18px; overflow:hidden;">
+              <iframe class="invFrame" title="{{ tool.name }}" src="{{ tool.iframe_src }}"></iframe>
+            </div>
+            {% if tool.hint %}
+              <div class="invHint muted">{{ tool.hint }}</div>
+            {% endif %}
+          {% else %}
+            <div class="muted" style="padding:18px">
+              Native tool shell for <b>{{ tool.name }}</b> isn’t implemented yet.
+            </div>
+          {% endif %}
+        </section>
+      {% else %}
+        <section class="chatWrap" aria-label="Chat">
+          <div class="chat" id="chat"></div>
+
+          <form class="composer" id="composer" autocomplete="off">
+            <textarea id="msg" placeholder="Type here… (Enter to send, Shift+Enter for newline)" rows="2"></textarea>
+            <button class="btn send" type="submit">Send</button>
+          </form>
+
+          <div class="hint muted">Tip: keep prompts concrete.</div>
+        </section>
+      {% endif %}
+
+      <!-- modal for push output -->
+      <div class="modal" id="pushModal" aria-hidden="true">
+        <div class="modalCard">
+          <div class="modalHead">
+            <div class="modalTitle">Push to GitHub</div>
+            <button class="btn pill" id="pushClose" type="button">Close</button>
+          </div>
+          <pre class="output" id="pushOutput"></pre>
+        </div>
       </div>
-    </div>
 
-  </nav>
-
-</aside>
-
-<!-- Main -->
-<main class="main">
-
-<header class="topbar">
-  <div class="title">
-    {% if page == 'tool' and tool %}
-      {{ tool.name }}
-    {% else %}
-      Project Ember
-    {% endif %}
+    </main>
   </div>
-</header>
 
-{% if page == "tool" and tool %}
-
-  {% if tool.kind == "iframe" %}
-  <iframe
-    src="{{ tool.iframe_src }}"
-    style="width:100%;height:calc(100vh - 80px);border:0;">
-  </iframe>
-  {% else %}
-  <div style="padding:20px">
-    Native tool placeholder for {{ tool.name }}
-  </div>
-  {% endif %}
-
-{% else %}
-
-<section class="chatWrap">
-  <div id="chat"></div>
-
-  <form id="composer">
-    <textarea id="msg" rows="2"></textarea>
-    <button type="submit">Send</button>
-  </form>
-</section>
-
-{% endif %}
-
-</main>
-</div>
-
-<script src="/static/ember.js"></script>
-
+  <script src="/static/ember.js?v=20260301_mount_scav_v4"></script>
 </body>
 </html>

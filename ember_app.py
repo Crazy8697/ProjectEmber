@@ -1,4 +1,5 @@
 import os
+from tools_registry import tools_by_group
 import sys
 import json
 import sqlite3
@@ -687,70 +688,60 @@ def api_categories_delete():
         return jsonify({"ok": True, "deleted": deleted, "children_detached": int(child_count) if (child_count and force) else 0})
     except Exception as e:
         return jsonify({"ok": False, "error": f"{type(e).__name__}: {e}"}), 500
+from tools_registry import tools_by_group
 
+
+
+from tools_registry import tools_by_group, get_tool
 
 # ----------------------------
 # Pages
 # ----------------------------
-from tools_registry import list_tools, get_tool, tools_by_group
-
 @ember.get("/")
 def home():
     mode = request.args.get("mode", DEFAULT_MODE)
-    return render_template(
-        "index.html",
-        page="chat",
-        mode=mode,
-        tools=list_tools(),
-        tool_groups=tools_by_group(),
-        active_tool_id=None,
-        tool=None,
-    )
-
-@ember.get("/tools/<tool_id>")
-def tools_host(tool_id: str):
-    tool = get_tool(tool_id)
-    if not tool:
-        return (
-            render_template(
-                "index.html",
-                page="tool",
-                mode=DEFAULT_MODE,
-                tools=list_tools(),
-                tool_groups=tools_by_group(),
-                active_tool_id=None,
-                tool=None,
-                error=f"Unknown tool: {tool_id}",
-            ),
-            404,
-        )
-
-    return render_template(
-        "index.html",
-        page="tool",
-        mode=DEFAULT_MODE,
-        tools=list_tools(),
-        tool_groups=tools_by_group(),
-        active_tool_id=tool.id,
-        tool=tool,
-    )
-
-# Backwards compatibility routes
-@ember.get("/tools/inventory")
+    return render_template("index.html", page="chat", mode=mode, tool_groups=tools_by_group())
+@ember.get("/tools/_legacy_inventory")
 def tools_inventory():
-    return tools_host("inventory")
+    # legacy path; tool host is canonical
+    from flask import redirect
+    return redirect("/tools/inventory", code=302)
 
-@ember.get("/tools/admin")
+
+@ember.get("/tools/_legacy_admin")
 def tools_admin():
-    return tools_host("admin")
+    # legacy path; tool host is canonical
+    from flask import redirect
+    return redirect("/tools/admin", code=302)
+
 
 @ember.get("/control")
 def control():
+    # Standalone control page with buttons; doesn't require changing your existing UI.
     return render_template("control.html")
 
 @ember.get("/admin")
 def admin():
+    # Project-wide Admin Console (status/config/logs/cache/etc.)
     return render_template("admin.html")
+
+
+@ember.get("/tools/<tool_id>")
+def tool_host(tool_id):
+    # Canonical tool host page: renders Ember chrome + embeds tool content.
+    from flask import abort
+    mode = request.args.get("mode", DEFAULT_MODE)
+    t = get_tool(tool_id)
+    if not t:
+        abort(404)
+    return render_template(
+        "index.html",
+        page="tool",
+        mode=mode,
+        tool=t,
+        tool_id=tool_id,
+        tool_groups=tools_by_group(),
+    )
 
 # ----------------------------
 # Chat API (existing UI uses /query)
