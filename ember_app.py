@@ -872,5 +872,119 @@ def main():
     )
 
 
+
+# ------- Projects API -------
+
+@ember.post("/api/projects/create")
+def api_create_project():
+    """Create a new project."""
+    from chat_storage import create_project
+    data = request.get_json(force=True, silent=True) or {}
+    name = (data.get("name") or "Untitled Project").strip()
+    project = create_project(name)
+    return jsonify(project)
+
+@ember.get("/api/projects/list")
+def api_list_projects():
+    """List all projects."""
+    from chat_storage import list_projects
+    projects = list_projects()
+    return jsonify({"projects": projects})
+
+@ember.get("/api/projects/<project_id>")
+def api_get_project(project_id):
+    """Get a single project."""
+    from chat_storage import get_project
+    project = get_project(project_id)
+    if not project:
+        return jsonify({"error": "Not found"}), 404
+    return jsonify(project)
+
+@ember.delete("/api/projects/<project_id>")
+def api_delete_project(project_id):
+    """Delete a project."""
+    from chat_storage import delete_project
+    delete_project(project_id)
+    return jsonify({"ok": True})
+
+# ------- Chats API -------
+
+@ember.post("/api/chats/create")
+def api_create_chat():
+    """Create a new chat in a project."""
+    from chat_storage import create_chat
+    data = request.get_json(force=True, silent=True) or {}
+    project_id = data.get("project_id") or ""
+    name = (data.get("name") or "New Chat").strip()
+    
+    if not project_id:
+        return jsonify({"error": "project_id required"}), 400
+    
+    chat = create_chat(project_id, name)
+    return jsonify(chat)
+
+@ember.get("/api/chats/list/<project_id>")
+def api_list_chats(project_id):
+    """List all chats in a project."""
+    from chat_storage import list_chats
+    chats = list_chats(project_id)
+    return jsonify({"chats": chats})
+
+@ember.get("/api/chats/<chat_id>")
+def api_get_chat(chat_id):
+    """Get a single chat."""
+    from chat_storage import get_chat
+    chat = get_chat(chat_id)
+    if not chat:
+        return jsonify({"error": "Not found"}), 404
+    return jsonify(chat)
+
+@ember.post("/api/chats/<chat_id>/rename")
+def api_rename_chat(chat_id):
+    """Rename a chat."""
+    from chat_storage import rename_chat
+    data = request.get_json(force=True, silent=True) or {}
+    new_name = (data.get("name") or "Untitled").strip()
+    chat = rename_chat(chat_id, new_name)
+    return jsonify(chat)
+
+@ember.delete("/api/chats/<chat_id>")
+def api_delete_chat(chat_id):
+    """Delete a chat."""
+    from chat_storage import delete_chat
+    delete_chat(chat_id)
+    return jsonify({"ok": True})
+
+# ------- Messages API -------
+
+@ember.post("/api/messages/add")
+def api_add_message():
+    """Add a message to a chat."""
+    from chat_storage import add_message
+    data = request.get_json(force=True, silent=True) or {}
+    chat_id = data.get("chat_id") or ""
+    role = data.get("role") or "user"
+    content = data.get("content") or ""
+    
+    if not chat_id or not content:
+        return jsonify({"error": "chat_id and content required"}), 400
+    
+    msg = add_message(chat_id, role, content)
+    return jsonify(msg)
+
+@ember.get("/api/messages/history/<chat_id>")
+def api_get_history(chat_id):
+    """Get all messages in a chat."""
+    from chat_storage import get_chat_history
+    messages = get_chat_history(chat_id)
+    return jsonify({"messages": messages})
+
+@ember.delete("/api/messages/clear/<chat_id>")
+def api_clear_history(chat_id):
+    """Clear all messages in a chat."""
+    from chat_storage import clear_chat_history
+    clear_chat_history(chat_id)
+    return jsonify({"ok": True})
+
 if __name__ == "__main__":
     main()
