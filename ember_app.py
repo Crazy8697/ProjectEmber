@@ -799,6 +799,243 @@ def api_memory_set():
 # ----------------------------
 SCAVENGER_DIR = os.environ.get("SCAVENGER_DIR", "/home/daddy/scavenger-inventory").strip()
 SCAVENGER_MOUNT_PATH = "/inventory"
+INVENTORY_CSV_PATH = Path(os.environ.get("INVENTORY_CSV", os.path.join(SCAVENGER_DIR, "inventory.csv"))).resolve()
+
+# ----------------------------
+# Scavenger Inventory Items API (CSV-backed)
+# ----------------------------
+import csv
+
+def _load_inventory():
+    """Load inventory.csv → (headers, rows). Returns ([], []) if file missing."""
+    if not INVENTORY_CSV_PATH.exists():
+        return [], []
+    with INVENTORY_CSV_PATH.open(newline="", encoding="utf-8") as fh:
+        reader = csv.DictReader(fh)
+        headers = list(reader.fieldnames or [])
+        rows = [dict(r) for r in reader]
+    return headers, rows
+
+def _atomic_write_csv(headers: List[str], rows: List[dict]) -> str:
+    """Write rows back to inventory.csv atomically.
+
+    Creates a timestamped backup of the current file first (matching the
+    scavenger app's own atomic_write_csv behaviour), then writes to a .tmp
+    file and replaces the original.  Returns the backup path.
+    """
+    import shutil
+    from datetime import datetime as _dt
+
+    INVENTORY_CSV_PATH.parent.mkdir(parents=True, exist_ok=True)
+
+    # Backup only if the file already exists (nothing to back up on first write)
+    backup_path = ""
+    if INVENTORY_CSV_PATH.exists():
+        ts = _dt.now().strftime("%Y%m%d_%H%M%S")
+        backup_path = str(
+            INVENTORY_CSV_PATH.with_name(
+                f"{INVENTORY_CSV_PATH.stem}_backup_{ts}.csv"
+            )
+        )
+        shutil.copy2(str(INVENTORY_CSV_PATH), backup_path)
+
+    tmp_path = INVENTORY_CSV_PATH.with_suffix(".tmp")
+    try:
+        with tmp_path.open("w", newline="", encoding="utf-8") as fh:
+            writer = csv.DictWriter(fh, fieldnames=headers, extrasaction="ignore")
+            writer.writeheader()
+            for r in rows:
+                writer.writerow({h: r.get(h, "") for h in headers})
+        tmp_path.replace(INVENTORY_CSV_PATH)
+    except Exception:
+        try:
+            tmp_path.unlink(missing_ok=True)
+        except OSError:
+            pass
+        raise
+
+    return backup_path
+
+def _find_by_mpn(rows: List[dict], mpn: str) -> Optional[dict]:
+    """Return the first row matching mpn (case-insensitive)."""
+    mpn_l = mpn.strip().lower()
+    for r in rows:
+        if (r.get("mpn") or "").strip().lower() == mpn_l:
+            return r
+    return None
+
+@ember.get("/api/inventory/list")
+def api_inventory_list():
+    """List / search / filter inventory items from the CSV."""
+    q = (request.args.get("q") or "").strip().lower()
+    cat_filter = (request.args.get("category") or "").strip().lower()
+    loc_filter = (request.args.get("location_bin") or "").strip().lower()
+    limit = int(request.args.get("limit") or "500")
+    limit = max(1, min(limit, 2000))
+
+    try:
+        headers, rows = _load_inventory()
+    except Exception as e:
+        return jsonify({"ok": False, "error": f"{type(e).__name__}: {e}"}), 500
+
+    filtered = []
+    for r in rows:
+        if q:
+            haystack = " ".join((v or "") for v in r.values()).lower()
+            if q not in haystack:
+                continue
+        if cat_filter:
+            if (r.get("category") or "").strip().lower() != cat_filter:
+                continue
+        if loc_filter:
+            if (r.get("location_bin") or "").strip().lower() != loc_filter:
+                continue
+        filtered.append(r)
+
+    shown = filtered[:limit]
+
+    # Build unique lists for filter dropdowns
+    categories = sorted({(r.get("category") or "").strip() for r in rows if r.get("category")})
+    locations = sorted({(r.get("location_bin") or "").strip() for r in rows if r.get("location_bin")})
+
+    return jsonify({
+        "ok": True,
+        "headers": headers,
+        "rows": shown,
+        "total": len(rows),
+        "shown": len(shown),
+        "categories": categories,
+        "locations": locations,
+    })
+
+@ember.get("/api/inventory/item/<mpn>")
+def api_inventory_item(mpn):
+    """Get a single inventory item by MPN."""
+    mpn = (mpn or "").strip()
+    if not mpn:
+        return jsonify({"ok": False, "error": "MPN required"}), 400
+    try:
+        headers, rows = _load_inventory()
+    except Exception as e:
+        return jsonify({"ok": False, "error": f"{type(e).__name__}: {e}"}), 500
+    row = _find_by_mpn(rows, mpn)
+    if row is None:
+        return jsonify({"ok": False, "error": f"MPN not found: {mpn}"}), 404
+    return jsonify({"ok": True, "headers": headers, "row": row})
+
+@ember.post("/api/inventory/add")
+def api_inventory_add():
+    """Add a new part (or merge qty if MPN already exists)."""
+    data = request.get_json(force=True, silent=True) or {}
+    mpn = (data.get("mpn") or "").strip()
+    if not mpn:
+        return jsonify({"ok": False, "error": "mpn required"}), 400
+
+    try:
+        headers, rows = _load_inventory()
+    except Exception as e:
+        return jsonify({"ok": False, "error": f"{type(e).__name__}: {e}"}), 500
+
+    # Ensure standard columns exist in headers
+    for col in ["mpn", "description", "category", "location_bin", "qty_on_hand", "notes", "needs_review"]:
+        if col not in headers:
+            headers.append(col)
+
+    existing = _find_by_mpn(rows, mpn)
+    merged = existing is not None
+
+    if existing:
+        # Merge: increment qty, append notes, propagate needs_review flag,
+        # update all other non-empty incoming fields — matching scavenger app.py.
+        new_qty_raw = str(data.get("qty_on_hand") or "").strip()
+        if new_qty_raw:
+            try:
+                old_qty = int(float(existing.get("qty_on_hand") or 0))
+                add_qty = int(float(new_qty_raw))
+                existing["qty_on_hand"] = str(old_qty + add_qty)
+            except ValueError:
+                existing["qty_on_hand"] = new_qty_raw
+        for col in headers:
+            if col in ("mpn", "qty_on_hand"):
+                continue
+            val = str(data.get(col) or "").strip()
+            if not val:
+                continue
+            if col == "notes":
+                old_notes = (existing.get("notes") or "").strip()
+                if old_notes and val not in old_notes:
+                    existing["notes"] = old_notes + "\n" + val
+                else:
+                    existing["notes"] = val
+            elif col == "needs_review" and val.lower() in ("1", "true", "yes", "y", "on"):
+                existing["needs_review"] = "true"
+            else:
+                existing[col] = val
+        row = existing
+    else:
+        row = {col: str(data.get(col) or "") for col in headers}
+        row["mpn"] = mpn
+        rows.append(row)
+
+    try:
+        _atomic_write_csv(headers, rows)
+    except Exception as e:
+        return jsonify({"ok": False, "error": f"{type(e).__name__}: {e}"}), 500
+
+    return jsonify({"ok": True, "row": row, "merged": merged})
+
+@ember.post("/api/inventory/update/<mpn>")
+def api_inventory_update(mpn):
+    """Update fields of an existing part."""
+    mpn = (mpn or "").strip()
+    if not mpn:
+        return jsonify({"ok": False, "error": "MPN required"}), 400
+    data = request.get_json(force=True, silent=True) or {}
+
+    try:
+        headers, rows = _load_inventory()
+    except Exception as e:
+        return jsonify({"ok": False, "error": f"{type(e).__name__}: {e}"}), 500
+
+    row = _find_by_mpn(rows, mpn)
+    if row is None:
+        return jsonify({"ok": False, "error": f"MPN not found: {mpn}"}), 404
+
+    for col in headers:
+        if col == "mpn":
+            continue
+        if col in data:
+            row[col] = str(data[col] or "")
+
+    try:
+        _atomic_write_csv(headers, rows)
+    except Exception as e:
+        return jsonify({"ok": False, "error": f"{type(e).__name__}: {e}"}), 500
+
+    return jsonify({"ok": True, "row": row})
+
+@ember.post("/api/inventory/delete/<mpn>")
+def api_inventory_delete(mpn):
+    """Delete a part by MPN."""
+    mpn = (mpn or "").strip()
+    if not mpn:
+        return jsonify({"ok": False, "error": "MPN required"}), 400
+
+    try:
+        headers, rows = _load_inventory()
+    except Exception as e:
+        return jsonify({"ok": False, "error": f"{type(e).__name__}: {e}"}), 500
+
+    new_rows = [r for r in rows if (r.get("mpn") or "").strip().lower() != mpn.lower()]
+    if len(new_rows) == len(rows):
+        return jsonify({"ok": False, "error": f"MPN not found: {mpn}"}), 404
+
+    try:
+        _atomic_write_csv(headers, new_rows)
+    except Exception as e:
+        return jsonify({"ok": False, "error": f"{type(e).__name__}: {e}"}), 500
+
+    return jsonify({"ok": True, "deleted": mpn})
 
 def _load_scavenger_app(scavenger_dir: str):
     """Load Scavenger Inventory's Flask module reliably (no 'app' collisions)."""
@@ -980,11 +1217,15 @@ def scavenger():
     """Serve the scavenger inventory page."""
     return redirect("/")
 
+@ember.get("/inventory-page")
+def inventory_page():
+    """Native inventory page using Ember's theme."""
+    return render_template("inventory.html")
+
 @ember.route("/inventory-only")
 def inventory_only():
-    """Serve the scavenger inventory."""
-    from flask import render_template
-    return render_template("index.html")
+    """Serve the native scavenger inventory page."""
+    return render_template("inventory.html")
 
 if __name__ == "__main__":
     main()

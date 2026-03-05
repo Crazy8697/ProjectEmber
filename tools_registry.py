@@ -22,10 +22,10 @@ TOOLS: List[Tool] = [
         id="inventory",
         name="Scavenger Inventory",
         kind="iframe",
-        description="Local parts inventory (mounted at /inventory).",
+        description="Local parts inventory.",
         group="Tools",
-        iframe_src="/inventory/?v=20260302_122705",
-        hint="Running inside Project Ember at /inventory (same port).",
+        iframe_src="/inventory-page",
+        hint="Native Ember-themed inventory page.",
     ),
     Tool(
         id="admin",
