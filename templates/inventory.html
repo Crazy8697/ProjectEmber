@@ -159,11 +159,14 @@
     <div class="card">
       <h1 style="font-size:18px; margin-bottom:8px;">Add / Edit Part</h1>
 
-      <details open>
+      <details id="editDetails" open>
         <summary>Add / Edit Form</summary>
         <div>
           <label>MPN (manufacturer part number — required)</label>
           <input id="fMpn" placeholder="e.g. LM358"/>
+
+          <label>Manufacturer</label>
+          <input id="fManufacturer" placeholder="Texas Instruments"/>
 
           <label>Description</label>
           <input id="fDesc" placeholder="Op-amp, dual, DIP-8"/>
@@ -172,21 +175,38 @@
           <input id="fCat" placeholder="ICs / Linear" list="catList"/>
           <datalist id="catList"></datalist>
 
+          <label>Package</label>
+          <input id="fPackage" placeholder="DIP-8, TO-220, SOT-23…"/>
+
           <label>Location / Bin</label>
           <input id="fLoc" placeholder="B3-2" list="locList"/>
           <datalist id="locList"></datalist>
 
+          <label>Suggested Bin</label>
+          <input id="fSuggestedBin" placeholder="optional alternate bin"/>
+
           <label>Qty on hand</label>
           <input id="fQty" type="number" min="0" placeholder="0"/>
 
+          <label>Avg Cost ($)</label>
+          <input id="fAvgCost" placeholder="0.00"/>
+
+          <label>Datasheet URL</label>
+          <input id="fDatasheet" placeholder="https://…"/>
+
           <label>Notes</label>
           <textarea id="fNotes" placeholder="optional — known issues, datasheet URL, etc."></textarea>
+
+          <label style="display:flex;align-items:center;gap:8px;margin-top:10px;">
+            <input id="fNeedsReview" type="checkbox" style="width:auto;margin:0;"/>
+            Needs review
+          </label>
 
           <div class="row" style="margin-top:10px;">
             <button id="btnSave" class="good">💾 Save</button>
             <button id="btnClear" type="button">Clear form</button>
           </div>
-          <div class="hint">If MPN already exists, qty will be <em>added</em> (numeric) or replaced (non-numeric) and non-empty fields will be updated.</div>
+          <div class="hint">If MPN already exists, qty will be <em>added</em> (numeric) or replaced (non-numeric), notes will be appended, and non-empty fields will be updated.</div>
           <div id="editOut" class="status" style="display:none;"></div>
         </div>
       </details>
@@ -286,14 +306,21 @@ function renderTable(headers, rows) {
         const tr = btn.closest('tr');
         const row = JSON.parse(tr.getAttribute('data-row') || '{}');
         document.getElementById('fMpn').value = row.mpn || '';
+        document.getElementById('fManufacturer').value = row.manufacturer || '';
         document.getElementById('fDesc').value = row.description || '';
         document.getElementById('fCat').value = row.category || '';
+        document.getElementById('fPackage').value = row.package || '';
         document.getElementById('fLoc').value = row.location_bin || '';
+        document.getElementById('fSuggestedBin').value = row.suggested_bin || '';
         document.getElementById('fQty').value = row.qty_on_hand || '';
+        document.getElementById('fAvgCost').value = row.avg_cost || '';
+        document.getElementById('fDatasheet').value = row.datasheet_url || '';
         document.getElementById('fNotes').value = row.notes || '';
+        const nr = (row.needs_review || '').toLowerCase();
+        document.getElementById('fNeedsReview').checked = nr === 'true' || nr === '1' || nr === 'yes';
         document.getElementById('delMpn').value = row.mpn || '';
         // Open the Add/Edit details if collapsed
-        const det = document.querySelector('details');
+        const det = document.getElementById('editDetails');
         if (det) det.open = true;
       } else if (action === 'del') {
         document.getElementById('delMpn').value = mpn;
@@ -334,11 +361,17 @@ document.getElementById('btnSave').addEventListener('click', async () => {
   if (!mpn) return show(document.getElementById('editOut'), {ok:false, error:'MPN is required'});
   const payload = {
     mpn,
+    manufacturer: document.getElementById('fManufacturer').value.trim(),
     description: document.getElementById('fDesc').value.trim(),
     category: document.getElementById('fCat').value.trim(),
+    package: document.getElementById('fPackage').value.trim(),
     location_bin: document.getElementById('fLoc').value.trim(),
+    suggested_bin: document.getElementById('fSuggestedBin').value.trim(),
     qty_on_hand: document.getElementById('fQty').value.trim(),
+    avg_cost: document.getElementById('fAvgCost').value.trim(),
+    datasheet_url: document.getElementById('fDatasheet').value.trim(),
     notes: document.getElementById('fNotes').value.trim(),
+    needs_review: document.getElementById('fNeedsReview').checked ? 'true' : '',
   };
   const resp = await j('/api/inventory/add', {
     method: 'POST',
@@ -350,7 +383,8 @@ document.getElementById('btnSave').addEventListener('click', async () => {
 });
 
 document.getElementById('btnClear').addEventListener('click', () => {
-  ['fMpn','fDesc','fCat','fLoc','fQty','fNotes'].forEach(id => document.getElementById(id).value = '');
+  ['fMpn','fManufacturer','fDesc','fCat','fPackage','fLoc','fSuggestedBin','fQty','fAvgCost','fDatasheet','fNotes'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('fNeedsReview').checked = false;
   document.getElementById('editOut').style.display = 'none';
 });
 

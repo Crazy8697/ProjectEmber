@@ -805,7 +805,6 @@ INVENTORY_CSV_PATH = Path(os.environ.get("INVENTORY_CSV", os.path.join(SCAVENGER
 # Scavenger Inventory Items API (CSV-backed)
 # ----------------------------
 import csv
-import tempfile
 
 def _load_inventory():
     """Load inventory.csv → (headers, rows). Returns ([], []) if file missing."""
@@ -817,24 +816,45 @@ def _load_inventory():
         rows = [dict(r) for r in reader]
     return headers, rows
 
-def _atomic_write_csv(headers: List[str], rows: List[dict]) -> None:
-    """Write rows back to inventory.csv atomically via a temp file."""
+def _atomic_write_csv(headers: List[str], rows: List[dict]) -> str:
+    """Write rows back to inventory.csv atomically.
+
+    Creates a timestamped backup of the current file first (matching the
+    scavenger app's own atomic_write_csv behaviour), then writes to a .tmp
+    file and replaces the original.  Returns the backup path.
+    """
+    import shutil
+    from datetime import datetime as _dt
+
     INVENTORY_CSV_PATH.parent.mkdir(parents=True, exist_ok=True)
-    fd, tmp_path = tempfile.mkstemp(
-        dir=str(INVENTORY_CSV_PATH.parent), suffix=".tmp"
-    )
+
+    # Backup only if the file already exists (nothing to back up on first write)
+    backup_path = ""
+    if INVENTORY_CSV_PATH.exists():
+        ts = _dt.now().strftime("%Y%m%d_%H%M%S")
+        backup_path = str(
+            INVENTORY_CSV_PATH.with_name(
+                f"{INVENTORY_CSV_PATH.stem}_backup_{ts}.csv"
+            )
+        )
+        shutil.copy2(str(INVENTORY_CSV_PATH), backup_path)
+
+    tmp_path = INVENTORY_CSV_PATH.with_suffix(".tmp")
     try:
-        with os.fdopen(fd, "w", newline="", encoding="utf-8") as fh:
+        with tmp_path.open("w", newline="", encoding="utf-8") as fh:
             writer = csv.DictWriter(fh, fieldnames=headers, extrasaction="ignore")
             writer.writeheader()
-            writer.writerows(rows)
-        os.replace(tmp_path, str(INVENTORY_CSV_PATH))
+            for r in rows:
+                writer.writerow({h: r.get(h, "") for h in headers})
+        tmp_path.replace(INVENTORY_CSV_PATH)
     except Exception:
         try:
-            os.unlink(tmp_path)
+            tmp_path.unlink(missing_ok=True)
         except OSError:
             pass
         raise
+
+    return backup_path
 
 def _find_by_mpn(rows: List[dict], mpn: str) -> Optional[dict]:
     """Return the first row matching mpn (case-insensitive)."""
@@ -925,20 +945,31 @@ def api_inventory_add():
     merged = existing is not None
 
     if existing:
-        # Merge: increment qty if provided, update other non-empty fields
+        # Merge: increment qty, append notes, propagate needs_review flag,
+        # update all other non-empty incoming fields — matching scavenger app.py.
         new_qty_raw = str(data.get("qty_on_hand") or "").strip()
         if new_qty_raw:
             try:
-                old_qty = int(existing.get("qty_on_hand") or 0)
-                add_qty = int(new_qty_raw)
+                old_qty = int(float(existing.get("qty_on_hand") or 0))
+                add_qty = int(float(new_qty_raw))
                 existing["qty_on_hand"] = str(old_qty + add_qty)
             except ValueError:
                 existing["qty_on_hand"] = new_qty_raw
         for col in headers:
             if col in ("mpn", "qty_on_hand"):
                 continue
-            val = (data.get(col) or "").strip()
-            if val:
+            val = str(data.get(col) or "").strip()
+            if not val:
+                continue
+            if col == "notes":
+                old_notes = (existing.get("notes") or "").strip()
+                if old_notes and val not in old_notes:
+                    existing["notes"] = old_notes + "\n" + val
+                else:
+                    existing["notes"] = val
+            elif col == "needs_review" and val.lower() in ("1", "true", "yes", "y", "on"):
+                existing["needs_review"] = "true"
+            else:
                 existing[col] = val
         row = existing
     else:
