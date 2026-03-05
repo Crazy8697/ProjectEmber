@@ -3,13 +3,16 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  {% set v = page if page is defined else (view if view is defined else 'chat') %}
   <title>
-    {% if page == 'tool' and tool %}{{ tool.name }}{% else %}Project Ember{% endif %}
+    {% if v == 'tool' and tool %}{{ tool.name }}{% else %}Project Ember{% endif %}
   </title>
-  <link rel="icon" href="/static/favicon.ico"/>
+
   <link rel="stylesheet" href="/static/ember.css?v=20260301_mount_scav_v4"/>
+  <link rel="icon" href="/static/favicon.ico"/>
 </head>
-<body data-page="{{ 'chat' if page == 'chat' else 'tool' }}">
+
+<body data-page="{{ 'chat' if v == 'chat' else 'tool' }}">
   <div class="layout">
 
     <!-- Sidebar -->
@@ -22,24 +25,26 @@
         <details class="sideSection" open>
           <summary class="sideSectionHeader">Project Ember</summary>
           <div class="sideSectionBody">
-            <a class="sideItem {{ 'active' if page == 'chat' else '' }}" href="/" title="Chat">Chat</a>
+            <a class="sideItem {{ 'active' if v == 'chat' else '' }}" href="/" title="Chat">Chat</a>
             <a class="sideItem disabled" href="#" title="Models (coming soon)">Models</a>
             <a class="sideItem disabled" href="#" title="Settings (coming soon)">Settings</a>
           </div>
         </details>
 
-        {% for group, tools in tool_groups.items() %}
-        <details class="sideSection" open>
-          <summary class="sideSectionHeader">{{ group }}</summary>
-          <div class="sideSectionBody">
-            {% for t in tools %}
-              <a class="sideItem {{ 'active' if (page == 'tool' and tool and tool.id == t.id) else '' }}"
-                 href="/tools/{{ t.id }}"
-                 title="{{ t.description or t.name }}">{{ t.name }}</a>
-            {% endfor %}
-          </div>
-        </details>
-        {% endfor %}
+        {% if tool_groups %}
+          {% for group, tools in tool_groups.items() %}
+          <details class="sideSection" open>
+            <summary class="sideSectionHeader">{{ group }}</summary>
+            <div class="sideSectionBody">
+              {% for t in tools %}
+                <a class="sideItem {{ 'active' if (v == 'tool' and tool and tool.id == t.id) else '' }}"
+                   href="/tools/{{ t.id }}"
+                   title="{{ t.description or t.name }}">{{ t.name }}</a>
+              {% endfor %}
+            </div>
+          </details>
+          {% endfor %}
+        {% endif %}
       </nav>
 
       <div class="sideFooter muted">local only</div>
@@ -52,18 +57,20 @@
           <a class="logoBtn" href="https://darkrelay.net" target="_blank" rel="noreferrer" title="darkrelay.net">Ω</a>
           <div class="brandText">
             <div class="title">
-              {% if page == 'tool' and tool %}{{ tool.name }}{% else %}Project Ember{% endif %}
+              {% if v == 'tool' and tool %}{{ tool.name }}{% else %}Project Ember{% endif %}
             </div>
             <div class="subtitle">
-              {% if page == 'tool' and tool %}{{ tool.description or 'tool' }}{% else %}local brain, less drama{% endif %}
+              {% if v == 'tool' and tool %}{{ tool.description or 'tool' }}{% else %}local brain, less drama{% endif %}
             </div>
           </div>
         </div>
 
         <div class="topActions">
-          {% if page == 'tool' and tool and tool.id == 'inventory' %}
-            <a class="btn pill" href="/inventory/" target="_self">Inventory</a>
-            <a class="btn pill" href="/inventory/add" target="_self">Add Part</a>
+          {# Inventory controls live in Ember chrome. They drive the iframe. #}
+          {% if v == 'tool' and tool and tool.id == 'inventory' %}
+            <a class="btn pill toolNav" href="/inventory/?embed=1" data-iframe="/inventory/?embed=1" target="_self">Inventory</a>
+            <a class="btn pill toolNav" href="/inventory/add?embed=1" data-iframe="/inventory/add?embed=1" target="_self">Add Part</a>
+            <a class="btn pill toolNav" href="/inventory/admin?embed=1" data-iframe="/inventory/admin?embed=1" target="_self">Admin</a>
             <button class="btn pill" id="invPushBtn" type="button">Push to GitHub</button>
           {% endif %}
 
@@ -78,11 +85,11 @@
         </div>
       </header>
 
-      {% if page == 'tool' and tool %}
+      {% if v == 'tool' and tool %}
         <section class="panel">
           {% if tool.kind == 'iframe' %}
-            <div style="margin-top:0; height: calc(100vh - 140px); border: 0; border-radius: 18px; overflow:hidden;">
-              <iframe class="invFrame" title="{{ tool.name }}" src="{{ tool.iframe_src }}"></iframe>
+            <div class="toolFrameWrap" style="height: calc(100vh - 140px); border-radius: 18px; overflow:hidden;">
+              <iframe id="toolFrame" class="invFrame" title="{{ tool.name }}" src="{{ tool.iframe_src }}"></iframe>
             </div>
             {% if tool.hint %}
               <div class="invHint muted">{{ tool.hint }}</div>
@@ -106,7 +113,7 @@
         </section>
       {% endif %}
 
-      <!-- modal for push output -->
+      <!-- cheap modal for push output -->
       <div class="modal" id="pushModal" aria-hidden="true">
         <div class="modalCard">
           <div class="modalHead">
@@ -121,5 +128,22 @@
   </div>
 
   <script src="/static/ember.js?v=20260301_mount_scav_v4"></script>
+
+  {# Tiny iframe-nav shim: keep /tools/inventory URL stable, swap iframe src. #}
+  <script>
+    (function () {
+      const frame = document.getElementById("toolFrame");
+      if (!frame) return;
+
+      document.querySelectorAll("a.toolNav[data-iframe]").forEach(a => {
+        a.addEventListener("click", (e) => {
+          e.preventDefault();
+          frame.src = a.getAttribute("data-iframe");
+          // no history push; keep canonical tool URL
+          return false;
+        });
+      });
+    })();
+  </script>
 </body>
 </html>

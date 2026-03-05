@@ -3,10 +3,13 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>{% if page == 'inventory' %}Scavenger Inventory{% else %}Project Ember{% endif %}</title>
+  <title>
+    {% if view == 'tool' and tool %}{{ tool.name }}{% else %}Project Ember{% endif %}
+  </title>
   <link rel="stylesheet" href="/static/ember.css?v=20260301_mount_scav_v4"/>
+  <link rel="icon" href="/static/favicon.ico"/>
 </head>
-<body data-page="{{ page }}">
+<body data-page="{{ 'chat' if view == 'chat' else 'tool' }}">
   <div class="layout">
 
     <!-- Sidebar -->
@@ -19,21 +22,24 @@
         <details class="sideSection" open>
           <summary class="sideSectionHeader">Project Ember</summary>
           <div class="sideSectionBody">
-            <a class="sideItem {% if page == 'chat' %}active{% endif %}" href="/" title="Chat">Chat</a>
+            <a class="sideItem {{ 'active' if view == 'chat' else '' }}" href="/" title="Chat">Chat</a>
             <a class="sideItem disabled" href="#" title="Models (coming soon)">Models</a>
             <a class="sideItem disabled" href="#" title="Settings (coming soon)">Settings</a>
           </div>
         </details>
 
+        {% for group, tools in tool_groups.items() %}
         <details class="sideSection" open>
-          <summary class="sideSectionHeader">Tools</summary>
+          <summary class="sideSectionHeader">{{ group }}</summary>
           <div class="sideSectionBody">
-            <a class="sideItem {% if page == 'inventory' %}active{% endif %}" href="/tools/inventory" title="Scavenger Inventory">Scavenger Inventory</a>
-            <a class="sideItem" class="sideItem {% if page == 'admin' %}active{% endif %}" href="/tools/admin" title="Admin Console">Admin Console</a>
-            <a class="sideItem disabled" href="#" title="New tool (coming soon)">New tool</a>
-            <a class="sideItem disabled" href="#" title="Another tool (coming soon)">Another tool</a>
+            {% for t in tools %}
+              <a class="sideItem {{ 'active' if (view == 'tool' and tool and tool.id == t.id) else '' }}"
+                 href="/tools/{{ t.id }}"
+                 title="{{ t.description or t.name }}">{{ t.name }}</a>
+            {% endfor %}
           </div>
         </details>
+        {% endfor %}
       </nav>
 
       <div class="sideFooter muted">local only</div>
@@ -45,15 +51,21 @@
         <div class="brand">
           <a class="logoBtn" href="https://darkrelay.net" target="_blank" rel="noreferrer" title="darkrelay.net">Ω</a>
           <div class="brandText">
-            <div class="title">{% if page == 'inventory' %}Scavenger Inventory{% else %}Project Ember{% endif %}</div>
-            <div class="subtitle">{% if page == 'inventory' %}local warehouse brain{% else %}local brain, less drama{% endif %}</div>
+            <div class="title">
+              {% if view == 'tool' and tool %}{{ tool.name }}{% else %}Project Ember{% endif %}
+            </div>
+            <div class="subtitle">
+              {% if view == 'tool' and tool %}{{ tool.description or 'tool' }}{% else %}local brain, less drama{% endif %}
+            </div>
           </div>
         </div>
 
         <div class="topActions">
-          {% if page == 'inventory' %}
-            <a class="btn pill" href="/inventory/?v=20260302_074158" target="_self">Inventory</a>
-            <a class="btn pill" href="/inventory/add" target="_self">Add Part</a>
+          {% if view == 'tool' and tool and tool.id == 'inventory' and tool.kind == 'iframe' %}
+            <!-- IMPORTANT: these control the iframe, not the browser -->
+            <button class="btn pill" id="invNavInventory" type="button" data-iframe-src="/inventory/">Inventory</button>
+            <button class="btn pill" id="invNavAdd" type="button" data-iframe-src="/inventory/add">Add Part</button>
+            <button class="btn pill" id="invNavAdmin" type="button" data-iframe-src="/inventory/admin">Admin</button>
             <button class="btn pill" id="invPushBtn" type="button">Push to GitHub</button>
           {% endif %}
 
@@ -68,92 +80,20 @@
         </div>
       </header>
 
-      {% if page == 'inventory' %}
+      {% if view == 'tool' and tool %}
         <section class="panel">
-          {% if inv_mounted %}
-            <iframe class="invFrame" id="invFrame" title="Scavenger Inventory" src="/inventory/?v=20260302_122705"></iframe>
-            <div class="invHint muted">Running inside Project Ember at /inventory (same port).</div>
+          {% if tool.kind == 'iframe' %}
+            <div style="margin-top:0; height: calc(100vh - 140px); border: 0; border-radius: 18px; overflow:hidden;">
+              <iframe class="invFrame" id="toolFrame" title="{{ tool.name }}" src="{{ tool.iframe_src }}"></iframe>
+            </div>
+            {% if tool.hint %}
+              <div class="invHint muted">{{ tool.hint }}</div>
+            {% endif %}
           {% else %}
             <div class="muted" style="padding:18px">
-              <b><div style="margin-top:0; height: calc(100vh - 140px); border: 0; border-radius: 18px; overflow:hidden;">
-  <iframe id="scavengerFrame" src="/inventory/?v=20260302_074158" style="display:block; width:100%; height:100%; border:0;"></iframe>
-</div>
-<script>
-  // Same-origin iframe, so we can clean up Scavenger's header to avoid double-nav.
-  (function () {
-    const f = document.getElementById('scavengerFrame');
-  // NAV_TRAP_INVENTORY_LINKS: keep top-level clicks inside the embedded Scavenger iframe
-  (function () {
-    const f = document.getElementById('scavengerFrame');
-    if (!f) return;
-
-    function setFrame(url) {
-      const hasV = (url.includes("?v=") || url.includes("&v="));
-      if (!hasV) {
-        const v = String(Date.now());
-        url = url + ((url.includes("?") ? "&" : "?") + "v=" + v);
-      }
-      f.src = url;
-    }
-
-    document.querySelectorAll('a[href^="/inventory"]').forEach(a => {
-      a.addEventListener('click', (ev) => {
-        if (ev.defaultPrevented) return;
-        if (ev.button !== 0) return;
-        if (ev.metaKey || ev.ctrlKey || ev.shiftKey || ev.altKey) return;
-
-        const href = a.getAttribute('href') || '';
-        if (!href.startsWith('/inventory')) return;
-
-        ev.preventDefault();
-        setFrame(href);
-      }, true);
-    });
-  })();
-
-    if (!f) return;
-    f.addEventListener('load', () => {
-      try {
-        const doc = f.contentDocument || f.contentWindow.document;
-        if (!doc) return;
-
-        // Hide Scavenger top bar to prevent duplicate navigation.
-        const topbar = doc.querySelector('header.topbar');
-        if (topbar) topbar.style.display = 'none';
-
-        // Make Scavenger content use the space (less centered-card, more full-width).
-        const wrap = doc.querySelector('main.wrap');
-        if (wrap) {
-          wrap.style.maxWidth = 'none';
-          wrap.style.paddingLeft = '16px';
-          wrap.style.paddingRight = '16px';
-        }
-        // Let cards stretch too.
-        doc.querySelectorAll('.card').forEach(c => { c.style.maxWidth = 'none'; });
-
-
-        // Remove top spacing if present.
-        const main = doc.querySelector('main.wrap');
-        if (main) main.style.marginTop = '0';
-
-        // Keep background seamless.
-        doc.documentElement.style.background = 'transparent';
-        doc.body.style.background = 'transparent';
-      } catch (e) {
-        // fail quietly
-      }
-    });
-  })();
-</script>
-</b><br/>
-              Set <code>SCAVENGER_DIR</code> if your repo lives elsewhere, then restart Ember.
+              Native tool shell for <b>{{ tool.name }}</b> isn’t implemented yet.
             </div>
           {% endif %}
-        </section>
-      {% elif page == 'admin' %}
-        <section class="panel">
-          <iframe class="invFrame" id="adminFrame" title="Admin Console" src="/admin"></iframe>
-          <div class="invHint muted">Admin Console running at <code>/admin</code> (embedded here for convenience).</div>
         </section>
       {% else %}
         <section class="chatWrap" aria-label="Chat">
@@ -180,9 +120,43 @@
       </div>
 
     </main>
-
   </div>
 
   <script src="/static/ember.js?v=20260301_mount_scav_v4"></script>
+
+  <!-- Tool iframe navigation (kept here to avoid touching ember.js) -->
+  <script>
+  (function () {
+    const frame = document.getElementById("toolFrame");
+    if (!frame) return;
+
+    function setActive(btn) {
+      ["invNavInventory","invNavAdd","invNavAdmin"].forEach(id => {
+        const b = document.getElementById(id);
+        if (b) b.classList.remove("active");
+      });
+      if (btn) btn.classList.add("active");
+    }
+
+    function hook(id) {
+      const btn = document.getElementById(id);
+      if (!btn) return null;
+      btn.addEventListener("click", function () {
+        const src = btn.getAttribute("data-iframe-src");
+        if (!src) return;
+        frame.setAttribute("src", src);
+        setActive(btn);
+      });
+      return btn;
+    }
+
+    const bInv = hook("invNavInventory");
+    hook("invNavAdd");
+    hook("invNavAdmin");
+
+    // default highlight
+    setActive(bInv);
+  })();
+  </script>
 </body>
 </html>
