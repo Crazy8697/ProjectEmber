@@ -50,11 +50,9 @@ ember = Flask(__name__, static_folder="static", template_folder="templates")
 # Personality + honesty guardrails
 # ----------------------------
 DEFAULT_SYSTEM_PROMPT = (
-    "You are a sarcastic, blunt assistant running locally on the user's machine.\n"
+    "You are Ember, a sarcastic, blunt assistant running locally on the user's machine.\n"
     "Personality: sharp wit, zero patience for stupidity, occasionally crude — but profanity is used for\n"
     "  emphasis or genuine frustration, NOT sprinkled randomly into every sentence.\n"
-    "Name: you do NOT have an assigned name. If the user asks your name, choose one yourself when you feel\n"
-    "  ready; don't claim a name you haven't picked, and don't let the user assign one unless you accept it.\n"
     "Honesty guardrails (non-negotiable):\n"
     "  - Never invent facts, people, places, businesses, or data you were not given.\n"
     "  - If you don't know something, say so bluntly — do not make something up to fill the gap.\n"
@@ -62,27 +60,6 @@ DEFAULT_SYSTEM_PROMPT = (
     "  - Do not recommend specific restaurants, products, or services unless the user gave you a list to work from.\n"
     "Format: concise by default (1-3 sentences). Expand only when the user asks for detail.\n"
 )
-
-KETO_SYSTEM_PROMPT = (
-    "You are a keto-diet tracking assistant running locally on the user's machine.\n"
-    "Personality: same sarcastic, blunt edge as always — profanity when it lands, not as filler.\n"
-    "Primary job: help the user track macros, calculate net carbs, plan keto-friendly meals,\n"
-    "  and understand nutritional data they provide.\n"
-    "Honesty guardrails (non-negotiable):\n"
-    "  - Only use nutritional values the user explicitly gives you or that are common public knowledge\n"
-    "    (e.g. standard USDA figures). Never invent macros or calorie counts.\n"
-    "  - If you don't have the data, ask the user for it — do not guess.\n"
-    "  - Do not recommend specific branded products or restaurants unless the user supplied that list.\n"
-    "Keto rules you always follow:\n"
-    "  - Net carbs = total carbs − fiber − sugar alcohols (if applicable).\n"
-    "  - Standard keto daily targets unless user overrides: <20 g net carbs, ~70-75% fat, ~20-25% protein.\n"
-    "Format: concise calculations first, then brief explanation. Show your math.\n"
-)
-
-# Map mode names to their system prompts. Extend here to add new sub-minds.
-PROMPT_BY_MODE: Dict[str, str] = {
-    "keto": KETO_SYSTEM_PROMPT,
-}
 
 # ----------------------------
 # Persistent memory (simple JSON)
@@ -774,24 +751,35 @@ def tool_host(tool_id):
 # ----------------------------
 @ember.post("/query")
 def query():
+    from submind_router import detect_submind, _make_routing
+    from subminds import get_submind
+
     data = request.get_json(force=True, silent=True) or {}
     q = (data.get("query") or "").strip()
     history = data.get("history") or []
     mode = (data.get("mode") or DEFAULT_MODE).lower()
 
-    # Route to the appropriate system prompt based on mode, then allow explicit override.
-    default_for_mode = PROMPT_BY_MODE.get(mode, DEFAULT_SYSTEM_PROMPT)
-    system_prompt = (data.get("system_prompt") or default_for_mode).strip()
-
     if not q:
         return jsonify({"response": ""})
+
+    # If the caller explicitly provides a system_prompt, honour it.
+    # Otherwise: run the submind router to pick the right system prompt.
+    explicit_prompt = (data.get("system_prompt") or "").strip()
+    if explicit_prompt:
+        system_prompt = explicit_prompt
+        routing = _make_routing("override", "explicit system_prompt supplied")
+    else:
+        routing = detect_submind(q)
+        submind_id = routing.get("submind", "general")
+        submind = get_submind(submind_id)
+        system_prompt = submind["system_prompt"] if submind else DEFAULT_SYSTEM_PROMPT
 
     prompt = _build_prompt(q, history, system_prompt)
     try:
         resp = _llama_completion(prompt, mode=mode)
-        return jsonify({"response": resp})
+        return jsonify({"response": resp, "routing": routing})
     except Exception as e:
-        return jsonify({"response": f"Error: {type(e).__name__}: {e}"}), 200
+        return jsonify({"response": f"Error: {type(e).__name__}: {e}", "routing": routing}), 200
 
 @ember.get("/health")
 def health():
