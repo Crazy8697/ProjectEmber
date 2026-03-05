@@ -980,5 +980,11 @@ def scavenger():
     """Serve the scavenger inventory page."""
     return redirect("/")
 
+@ember.route("/inventory-only")
+def inventory_only():
+    """Serve the scavenger inventory."""
+    from flask import render_template
+    return render_template("index.html")
+
 if __name__ == "__main__":
     main()
