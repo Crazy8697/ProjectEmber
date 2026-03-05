@@ -1,149 +1,328 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  {% set v = page if page is defined else (view if view is defined else 'chat') %}
-  <title>
-    {% if v == 'tool' and tool %}{{ tool.name }}{% else %}Project Ember{% endif %}
-  </title>
-
-  <link rel="stylesheet" href="/static/ember.css?v=20260301_mount_scav_v4"/>
-  <link rel="icon" href="/static/favicon.ico"/>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Ember</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: linear-gradient(135deg, #0f1419 0%, #1a202c 100%); color: #e2e8f0; min-height: 100vh; }
+        #app { display: flex; height: 100vh; }
+        .sidebar { width: 250px; background: #111827; border-right: 1px solid #2d2d44; display: flex; flex-direction: column; padding: 20px; overflow-y: auto; }
+        .sidebar h1 { font-size: 20px; margin-bottom: 20px; background: linear-gradient(135deg, #06b6d4, #0891b2); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .section { margin-bottom: 20px; }
+        .section-title { font-size: 11px; font-weight: 700; text-transform: uppercase; color: #64748b; margin-bottom: 8px; }
+        .btn-new { width: 100%; padding: 10px; background: linear-gradient(135deg, #06b6d4, #0891b2); border: none; color: white; border-radius: 6px; font-weight: 600; cursor: pointer; margin-bottom: 12px; }
+        .btn-new:hover { opacity: 0.9; }
+        .item { padding: 10px 12px; margin-bottom: 6px; border-radius: 6px; background: #1f2937; border: 1px solid #374151; cursor: pointer; transition: all 0.2s; display: flex; justify-content: space-between; align-items: center; }
+        .item:hover { background: #374151; border-color: #06b6d4; }
+        .item.active { background: #06b6d4; color: #0f1419; }
+        .item-name { flex: 1; }
+        .btn-small { width: 20px; height: 20px; padding: 0; background: #2d2d44; border: none; border-radius: 3px; color: #94a3b8; cursor: pointer; }
+        .main-content { flex: 1; display: flex; flex-direction: column; }
+        .header { padding: 20px; border-bottom: 1px solid #2d2d44; background: #111827; }
+        .content { flex: 1; overflow: hidden; }
+        .chat-area { height: 100%; display: flex; flex-direction: column; padding: 20px; }
+        .messages { flex: 1; overflow-y: auto; margin-bottom: 20px; display: flex; flex-direction: column; gap: 12px; }
+        .message { display: flex; }
+        .message.user { justify-content: flex-end; }
+        .message-content { max-width: 60%; padding: 12px 16px; border-radius: 12px; word-wrap: break-word; }
+        .message.assistant .message-content { background: #1f2937; }
+        .message.user .message-content { background: linear-gradient(135deg, #06b6d4, #0891b2); color: white; }
+        .input-area { display: flex; gap: 10px; }
+        .input-area input { flex: 1; padding: 12px 16px; background: #1f2937; border: 1px solid #374151; border-radius: 6px; color: #e2e8f0; }
+        .input-area input:focus { outline: none; border-color: #06b6d4; }
+        .input-area button { padding: 12px 24px; background: linear-gradient(135deg, #06b6d4, #0891b2); border: none; color: white; border-radius: 6px; cursor: pointer; }
+        .welcome { display: flex; align-items: center; justify-content: center; height: 100%; color: #64748b; text-align: center; }
+        .tool-view { height: 100%; overflow: auto; }
+        .tool-view iframe { width: 100%; height: 100%; border: none; }
+        .empty { color: #64748b; font-size: 12px; padding: 8px; }
+        .modal-backdrop { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 9999; }
+        .modal-box { background: #1f2937; padding: 24px; border-radius: 8px; width: 90%; max-width: 400px; }
+        .modal-title { font-size: 18px; font-weight: 700; margin-bottom: 16px; }
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+        .form-group input { width: 100%; padding: 10px 12px; background: #111827; border: 1px solid #374151; border-radius: 4px; color: #e2e8f0; }
+        .modal-footer { display: flex; gap: 12px; margin-top: 20px; }
+        .modal-footer button { flex: 1; padding: 10px; border: none; border-radius: 4px; font-weight: 600; cursor: pointer; }
+        .btn-primary { background: linear-gradient(135deg, #06b6d4, #0891b2); color: white; }
+        .btn-secondary { background: #374151; color: #e2e8f0; }
+    </style>
 </head>
-
-<body data-page="{{ 'chat' if v == 'chat' else 'tool' }}">
-  <div class="layout">
-
-    <!-- Sidebar -->
-    <aside class="sidebar" aria-label="Sidebar navigation">
-      <div class="sideHeader">
-        <div class="sideTitle">Projects</div>
-      </div>
-
-      <nav class="sideNav">
-        <details class="sideSection" open>
-          <summary class="sideSectionHeader">Project Ember</summary>
-          <div class="sideSectionBody">
-            <a class="sideItem {{ 'active' if v == 'chat' else '' }}" href="/" title="Chat">Chat</a>
-            <a class="sideItem disabled" href="#" title="Models (coming soon)">Models</a>
-            <a class="sideItem disabled" href="#" title="Settings (coming soon)">Settings</a>
-          </div>
-        </details>
-
-        {% if tool_groups %}
-          {% for group, tools in tool_groups.items() %}
-          <details class="sideSection" open>
-            <summary class="sideSectionHeader">{{ group }}</summary>
-            <div class="sideSectionBody">
-              {% for t in tools %}
-                <a class="sideItem {{ 'active' if (v == 'tool' and tool and tool.id == t.id) else '' }}"
-                   href="/tools/{{ t.id }}"
-                   title="{{ t.description or t.name }}">{{ t.name }}</a>
-              {% endfor %}
+<body>
+    <div id="app">
+        <div class="sidebar">
+            <h1>🔥 Ember</h1>
+            <button class="btn-new" @click="showNewProjectModal = true">+ New Project</button>
+            
+            <div class="section">
+                <div class="section-title">Projects</div>
+                <div v-for="p in projects" :key="p.id" class="item" :class="{active: currentProject?.id === p.id}" @click="selectProject(p)">
+                    <span class="item-name">{{ p.name }}</span>
+                    <button class="btn-small" @click.stop="deleteProject(p.id)">×</button>
+                </div>
+                <div v-if="!projects.length" class="empty">No projects</div>
             </div>
-          </details>
-          {% endfor %}
-        {% endif %}
-      </nav>
 
-      <div class="sideFooter muted">local only</div>
-    </aside>
+            <div class="section" v-if="currentProject">
+                <div class="section-title">Chats</div>
+                <button class="btn-new" @click="showNewChatModal = true">+ New Chat</button>
+                <div v-for="c in chats" :key="c.id" class="item" :class="{active: currentChat?.id === c.id}" @click="selectChat(c)">
+                    <span class="item-name">{{ c.name }}</span>
+                    <button class="btn-small" @click.stop="deleteChat(c.id)">×</button>
+                </div>
+                <div v-if="!chats.length" class="empty">No chats</div>
+            </div>
 
-    <!-- Main -->
-    <main class="main">
-      <header class="topbar">
-        <div class="brand">
-          <a class="logoBtn" href="https://darkrelay.net" target="_blank" rel="noreferrer" title="darkrelay.net">Ω</a>
-          <div class="brandText">
-            <div class="title">
-              {% if v == 'tool' and tool %}{{ tool.name }}{% else %}Project Ember{% endif %}
+            <div class="section">
+                <div class="section-title">Tools</div>
+                <button class="item" @click="selectTool('inventory')">Scavenger Inventory</button>
+                <button class="item" @click="selectTool('admin')">Admin Console</button>
             </div>
-            <div class="subtitle">
-              {% if v == 'tool' and tool %}{{ tool.description or 'tool' }}{% else %}local brain, less drama{% endif %}
-            </div>
-          </div>
         </div>
 
-        <div class="topActions">
-          {# Inventory controls live in Ember chrome. They drive the iframe. #}
-          {% if v == 'tool' and tool and tool.id == 'inventory' %}
-            <a class="btn pill toolNav" href="/inventory/?embed=1" data-iframe="/inventory/?embed=1" target="_self">Inventory</a>
-            <a class="btn pill toolNav" href="/inventory/add?embed=1" data-iframe="/inventory/add?embed=1" target="_self">Add Part</a>
-            <a class="btn pill toolNav" href="/inventory/admin?embed=1" data-iframe="/inventory/admin?embed=1" target="_self">Admin</a>
-            <button class="btn pill" id="invPushBtn" type="button">Push to GitHub</button>
-          {% endif %}
-
-          <label class="modeLabel">
-            <span>Mode</span>
-            <select id="modeSel">
-              <option value="quick">Quick</option>
-              <option value="medium" selected>Medium</option>
-              <option value="deep">Deep</option>
-            </select>
-          </label>
-        </div>
-      </header>
-
-      {% if v == 'tool' and tool %}
-        <section class="panel">
-          {% if tool.kind == 'iframe' %}
-            <div class="toolFrameWrap" style="height: calc(100vh - 140px); border-radius: 18px; overflow:hidden;">
-              <iframe id="toolFrame" class="invFrame" title="{{ tool.name }}" src="{{ tool.iframe_src }}"></iframe>
+        <div class="main-content">
+            <div class="header" v-if="currentChat">
+                <h2>{{ currentChat.name }}</h2>
+                <small>{{ currentProject?.name }}</small>
             </div>
-            {% if tool.hint %}
-              <div class="invHint muted">{{ tool.hint }}</div>
-            {% endif %}
-          {% else %}
-            <div class="muted" style="padding:18px">
-              Native tool shell for <b>{{ tool.name }}</b> isn’t implemented yet.
+
+            <div class="content">
+                <div v-if="currentTool === 'inventory'" class="tool-view">
+                    <iframe src="/"></iframe>
+                </div>
+
+                <div v-else-if="currentTool === 'admin'" class="tool-view">
+                    <iframe src="/admin"></iframe>
+                </div>
+
+                <div v-else-if="currentChat" class="chat-area">
+                    <div class="messages" ref="msgs">
+                        <div v-for="(m, i) in messages" :key="i" class="message" :class="m.role">
+                            <div class="message-content">{{ m.content }}</div>
+                        </div>
+                    </div>
+                    <div class="input-area">
+                        <input v-model="newMessage" @keyup.enter="sendMessage" placeholder="Type..." :disabled="sending" />
+                        <button @click="sendMessage" :disabled="!newMessage.trim() || sending">→</button>
+                    </div>
+                </div>
+
+                <div v-else class="welcome">
+                    <div><h3>👋 Welcome to Project Ember</h3><p>Create a project and start chatting</p></div>
+                </div>
             </div>
-          {% endif %}
-        </section>
-      {% else %}
-        <section class="chatWrap" aria-label="Chat">
-          <div class="chat" id="chat"></div>
-
-          <form class="composer" id="composer" autocomplete="off">
-            <textarea id="msg" placeholder="Type here… (Enter to send, Shift+Enter for newline)" rows="2"></textarea>
-            <button class="btn send" type="submit">Send</button>
-          </form>
-
-          <div class="hint muted">Tip: keep prompts concrete.</div>
-        </section>
-      {% endif %}
-
-      <!-- cheap modal for push output -->
-      <div class="modal" id="pushModal" aria-hidden="true">
-        <div class="modalCard">
-          <div class="modalHead">
-            <div class="modalTitle">Push to GitHub</div>
-            <button class="btn pill" id="pushClose" type="button">Close</button>
-          </div>
-          <pre class="output" id="pushOutput"></pre>
         </div>
-      </div>
+    </div>
 
-    </main>
-  </div>
+    <div class="modal-backdrop" v-show="showNewProjectModal">
+        <div class="modal-box">
+            <div class="modal-title">Create Project</div>
+            <div class="form-group">
+                <label>Name</label>
+                <input v-model="newProjectName" @keyup.enter="createProject" />
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" @click="showNewProjectModal = false">Cancel</button>
+                <button class="btn-primary" @click="createProject">Create</button>
+            </div>
+        </div>
+    </div>
 
-  <script src="/static/ember.js?v=20260301_mount_scav_v4"></script>
+    <div class="modal-backdrop" v-show="showNewChatModal">
+        <div class="modal-box">
+            <div class="modal-title">Create Chat</div>
+            <div class="form-group">
+                <label>Name</label>
+                <input v-model="newChatName" @keyup.enter="createChat" />
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" @click="showNewChatModal = false">Cancel</button>
+                <button class="btn-primary" @click="createChat">Create</button>
+            </div>
+        </div>
+    </div>
 
-  {# Tiny iframe-nav shim: keep /tools/inventory URL stable, swap iframe src. #}
-  <script>
-    (function () {
-      const frame = document.getElementById("toolFrame");
-      if (!frame) return;
-
-      document.querySelectorAll("a.toolNav[data-iframe]").forEach(a => {
-        a.addEventListener("click", (e) => {
-          e.preventDefault();
-          frame.src = a.getAttribute("data-iframe");
-          // no history push; keep canonical tool URL
-          return false;
-        });
-      });
-    })();
-  </script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script>
+        const {createApp} = Vue;
+        createApp({
+            data() {
+                return {
+                    projects: [],
+                    chats: [],
+                    messages: [],
+                    currentProject: null,
+                    currentChat: null,
+                    currentTool: null,
+                    newMessage: '',
+                    newProjectName: '',
+                    newChatName: '',
+                    showNewProjectModal: false,
+                    showNewChatModal: false,
+                    sending: false
+                };
+            },
+            methods: {
+                async loadProjects() {
+                    try {
+                        const res = await fetch('/api/projects/list');
+                        const d = await res.json();
+                        this.projects = d.projects || [];
+                        console.log('Projects loaded:', this.projects.length);
+                    } catch(e) {
+                        console.error('Load projects error:', e);
+                    }
+                },
+                async createProject() {
+                    if (!this.newProjectName.trim()) {
+                        alert('Project name required');
+                        return;
+                    }
+                    try {
+                        const res = await fetch('/api/projects/create', {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify({name: this.newProjectName})
+                        });
+                        const p = await res.json();
+                        this.projects.push(p);
+                        this.newProjectName = '';
+                        this.showNewProjectModal = false;
+                        this.selectProject(p);
+                    } catch(e) {
+                        console.error('Project creation error:', e);
+                        alert('Error: ' + e.message);
+                    }
+                },
+                async deleteProject(id) {
+                    if(!confirm('Delete?')) return;
+                    try {
+                        await fetch(`/api/projects/${id}`, {method: 'DELETE'});
+                        this.projects = this.projects.filter(p => p.id !== id);
+                        if(this.currentProject?.id === id) {
+                            this.currentProject = null;
+                            this.chats = [];
+                        }
+                    } catch(e) {
+                        console.error(e);
+                    }
+                },
+                async selectProject(p) {
+                    this.currentProject = p;
+                    this.currentChat = null;
+                    this.currentTool = null;
+                    this.messages = [];
+                    await this.loadChats();
+                },
+                async loadChats() {
+                    if (!this.currentProject) return;
+                    try {
+                        const res = await fetch(`/api/chats/list/${this.currentProject.id}`);
+                        const d = await res.json();
+                        this.chats = d.chats || [];
+                    } catch(e) {
+                        console.error(e);
+                    }
+                },
+                async createChat() {
+                    if (!this.newChatName.trim()) {
+                        alert('Chat name required');
+                        return;
+                    }
+                    if (!this.currentProject) {
+                        alert('Select a project first');
+                        return;
+                    }
+                    try {
+                        const res = await fetch('/api/chats/create', {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify({project_id: this.currentProject.id, name: this.newChatName})
+                        });
+                        const c = await res.json();
+                        this.chats.push(c);
+                        this.newChatName = '';
+                        this.showNewChatModal = false;
+                        this.selectChat(c);
+                    } catch(e) {
+                        console.error('Chat creation error:', e);
+                        alert('Error: ' + e.message);
+                    }
+                },
+                async deleteChat(id) {
+                    if(!confirm('Delete?')) return;
+                    try {
+                        await fetch(`/api/chats/${id}`, {method: 'DELETE'});
+                        this.chats = this.chats.filter(c => c.id !== id);
+                        if(this.currentChat?.id === id) {
+                            this.currentChat = null;
+                            this.messages = [];
+                        }
+                    } catch(e) {
+                        console.error(e);
+                    }
+                },
+                async selectChat(c) {
+                    this.currentChat = c;
+                    this.currentTool = null;
+                    this.messages = [];
+                    await this.loadMessages();
+                },
+                selectTool(t) {
+                    this.currentTool = t;
+                    this.currentChat = null;
+                    this.currentProject = null;
+                },
+                async loadMessages() {
+                    if (!this.currentChat) return;
+                    try {
+                        const res = await fetch(`/api/messages/history/${this.currentChat.id}`);
+                        const d = await res.json();
+                        this.messages = d.messages || [];
+                        this.$nextTick(() => {
+                            const m = this.$refs.msgs;
+                            if(m) m.scrollTop = m.scrollHeight;
+                        });
+                    } catch(e) {
+                        console.error(e);
+                    }
+                },
+                async sendMessage() {
+                    if (!this.newMessage.trim() || !this.currentChat || this.sending) return;
+                    const msg = this.newMessage;
+                    this.newMessage = '';
+                    this.sending = true;
+                    try {
+                        await fetch('/api/messages/add', {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify({chat_id: this.currentChat.id, role: 'user', content: msg})
+                        });
+                        const res = await fetch('/query', {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify({q: msg, chat_id: this.currentChat.id, history: this.messages})
+                        });
+                        const d = await res.json();
+                        const r = d.response || 'No response';
+                        await fetch('/api/messages/add', {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify({chat_id: this.currentChat.id, role: 'assistant', content: r})
+                        });
+                        await this.loadMessages();
+                    } catch(e) {
+                        console.error(e);
+                    } finally {
+                        this.sending = false;
+                    }
+                }
+            },
+            mounted() {
+                this.loadProjects();
+            }
+        }).mount('#app');
+    </script>
 </body>
 </html>
