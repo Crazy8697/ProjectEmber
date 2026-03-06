@@ -816,35 +816,6 @@ def health():
 # ----------------------------
 # Memory API
 # ----------------------------
-@ember.get("/api/memory/list")
-def api_memory_list():
-    return jsonify({"ok": True, "memory": _load_memory()})
-
-@ember.post("/api/memory/set")
-def api_memory_set():
-    data = request.get_json(force=True, silent=True) or {}
-    key = (data.get("key") or "").strip()
-    value = (data.get("value") or "").strip()
-    if not key:
-        return jsonify({"ok": False, "error": "Missing key"}), 400
-    mem = _load_memory()
-    if value:
-        mem[key] = value
-    else:
-        mem.pop(key, None)
-    _save_memory(mem)
-    return jsonify({"ok": True, "memory": mem})
-
-@ember.post("/api/memory/delete")
-def api_memory_delete():
-    data = request.get_json(force=True, silent=True) or {}
-    key = (data.get("key") or "").strip()
-    if not key:
-        return jsonify({"ok": False, "error": "Missing key"}), 400
-    mem = _load_memory()
-    removed = mem.pop(key, None)
-    _save_memory(mem)
-    return jsonify({"ok": True, "removed": key, "had_value": removed is not None, "memory": mem})
 
 # ----------------------------
 # Scavenger Inventory mount
