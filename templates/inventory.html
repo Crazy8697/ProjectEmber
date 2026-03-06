@@ -6,91 +6,130 @@
   <title>Scavenger Inventory</title>
   <style>
     :root {
-      --bg:     #0e1117;
-      --card:   #161b22;
-      --border: rgba(255,255,255,.08);
-      --border2:rgba(255,255,255,.12);
-      --text:   #e9eefc;
-      --muted:  #8b949e;
-      --muted2: #6e7681;
-      --accent: #ff6a00;
-      --mono:   'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+      --bg: #0a0c10;
+      --card: #0d1117;
+      --border: #1a2332;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --muted2: #4a5568;
+      --accent: #06b6d4;
+      --accentH: #22d3ee;
+      --green: #a3e635;
+      --red: #f87171;
+      --orange: #f59e0b;
+      --btn: #111827;
+      --btnH: #1a2332;
+      --mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
-    .wrap { max-width: 1100px; margin: 0 auto; padding: 20px 16px; }
-    .card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 20px; margin-bottom: 12px; }
-    h1 { font-size: 22px; margin-bottom: 4px; }
-    p.muted { color: var(--muted); font-size: 13px; margin-bottom: 8px; }
-    .titleRow { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
-    .pill { font-family: var(--mono); font-size: 11px; background: rgba(255,255,255,.06); border: 1px solid var(--border2); padding: 3px 10px; border-radius: 999px; color: var(--muted); }
-    .row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
-    .smallRow { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; align-items: center; }
-    .btn, button { font-size: 13px; padding: 7px 14px; border-radius: 10px; border: 1px solid var(--border2); background: rgba(255,255,255,.06); color: var(--text); cursor: pointer; text-decoration: none; transition: background .15s; }
-    .btn:hover, button:hover { background: rgba(255,255,255,.12); }
+    body { font-family: var(--mono); background: var(--bg); color: var(--text); min-height: 100vh; font-size: 13px; }
+
+    /* Full width with small buffer */
+    .wrap { padding: 12px 16px; }
+
+    /* Top nav bar */
+    .topnav {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 8px 16px;
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .topnav-title { font-size: 14px; font-weight: 700; color: var(--accent); margin-right: 16px; }
+    .topnav-tab {
+      font-family: var(--mono);
+      font-size: 12px;
+      padding: 6px 14px;
+      border-radius: 4px;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .topnav-tab:hover { color: var(--text); background: var(--btnH); }
+    .topnav-tab.active { color: var(--accent); background: var(--btn); border-color: var(--border); }
+    .topnav-right { margin-left: auto; }
+
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 6px; padding: 16px; margin-bottom: 12px; }
+    h1 { font-size: 14px; margin-bottom: 4px; color: var(--accent); }
+    p.muted { color: var(--muted2); font-size: 12px; margin-bottom: 8px; }
+
+    .row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+    .smallRow { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; align-items: center; }
+
+    button {
+      font-size: 12px; padding: 7px 12px; border-radius: 4px;
+      border: 1px solid var(--border); background: var(--btn);
+      color: var(--text); cursor: pointer; text-decoration: none;
+      font-family: var(--mono); font-weight: 600;
+      display: inline-flex; align-items: center; gap: 6px;
+    }
+    button:hover { background: var(--btnH); color: var(--accentH); }
+
     input, select, textarea {
-      font-size: 13px; padding: 7px 10px; border-radius: 10px;
-      border: 1px solid var(--border2); background: rgba(255,255,255,.06);
-      color: var(--text); width: 100%;
+      font-size: 13px; padding: 7px 10px; border-radius: 4px;
+      border: 1px solid var(--border); background: var(--bg);
+      color: var(--text); width: 100%; font-family: var(--mono);
     }
-    input:focus, select:focus, textarea:focus {
-      outline: none;
-      border-color: rgba(255,255,255,.30);
-      background: rgba(255,255,255,.09);
-    }
-    select option {
-      background: #1a1f2e;
-      color: #e9eefc;
-    }
-    textarea { min-height: 60px; resize: vertical; font-family: var(--mono); }
-    label { display: block; font-size: 12px; color: var(--muted); margin: 8px 0 3px; }
-    .grid { display: grid; grid-template-columns: 1fr; gap: 6px; }
+    input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent); }
+    select option { background: var(--card); color: var(--text); }
+    textarea { min-height: 60px; resize: vertical; }
+    label { display: block; font-size: 11px; color: var(--muted2); margin: 8px 0 3px; text-transform: uppercase; letter-spacing: 0.5px; }
+
     table { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 12px; color: var(--text); }
-    th { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--border2); color: var(--muted); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .5px; }
+    th { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--border); color: var(--muted2); font-weight: 700; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
     td { padding: 5px 8px; border-bottom: 1px solid var(--border); color: var(--text); }
-    tr:hover td { background: rgba(255,255,255,.04); }
+    tr:hover td { background: rgba(255,255,255,.02); }
     tr { cursor: pointer; }
-    pre { white-space: pre-wrap; word-break: break-all; font-family: var(--mono); font-size: 12px; color: var(--text); background: rgba(0,0,0,.25); padding: 8px; border-radius: 8px; margin-top: 6px; max-height: 200px; overflow: auto; }
-    .ok { color: #3fb950; }
-    .err { color: #f85149; }
+
+    pre { white-space: pre-wrap; word-break: break-all; font-family: var(--mono); font-size: 12px; color: var(--muted); background: var(--bg); padding: 8px; border-radius: 4px; border: 1px solid var(--border); margin-top: 6px; max-height: 200px; overflow: auto; }
+    .ok { color: var(--green); }
+    .err { color: var(--red); }
+
     .split { display: grid; grid-template-columns: 1fr; gap: 12px; }
-    @media (min-width: 700px) {
-      .split { grid-template-columns: 1fr 1fr; }
-    }
-    details { border: 1px solid var(--border2); border-radius: 14px; background: rgba(255,255,255,.04); }
-    summary { cursor:pointer; padding: 10px 12px; user-select:none; color: var(--text); font-weight: 700; }
+    @media (min-width: 700px) { .split { grid-template-columns: 1fr 1fr; } }
+
+    details { border: 1px solid var(--border); border-radius: 6px; background: rgba(255,255,255,.02); }
+    summary { cursor: pointer; padding: 8px 12px; user-select: none; color: var(--accent); font-weight: 700; font-size: 12px; }
     details > div { padding: 0 12px 12px; }
-    .hint { margin-top: 10px; font-size: 12px; color: var(--muted2); }
-    .badge { font-family: var(--mono); font-size: 11px; padding: 2px 6px; border-radius: 999px; border: 1px solid rgba(255,255,255,.16); background: rgba(255,255,255,.05); color: var(--muted); }
+
+    .hint { margin-top: 8px; font-size: 11px; color: var(--muted2); }
+    .badge { font-size: 10px; padding: 2px 6px; border-radius: 4px; border: 1px solid var(--border); background: var(--btn); color: var(--muted2); }
     #invTable { overflow-x: auto; }
+
+    .btn-save { background: rgba(163,230,53,.10); border-color: rgba(163,230,53,.30); color: var(--green); }
+    .btn-save:hover { background: rgba(163,230,53,.18); }
+    .btn-danger { background: rgba(248,113,113,.10); border-color: rgba(248,113,113,.30); color: var(--red); }
+    .btn-danger:hover { background: rgba(248,113,113,.18); }
+    .btn-enrich { background: rgba(6,182,212,.10); border-color: rgba(6,182,212,.30); color: var(--accent); }
+    .btn-enrich:hover { background: rgba(6,182,212,.18); }
+
+    /* View toggling */
+    .view { display: none; }
+    .view.active { display: block; }
   </style>
 </head>
 <body>
+
+<!-- Sticky top nav -->
+<div class="topnav">
+  <span class="topnav-title">🎒 Scavenger</span>
+  <button class="topnav-tab active" id="tabInventory" onclick="switchView('inventory')">Inventory</button>
+  <button class="topnav-tab" id="tabAddPart" onclick="switchView('addpart')">+ Add a Part</button>
+  <button class="topnav-tab topnav-right" id="btnPush">⬆ Push to GitHub</button>
+</div>
+
+<!-- ==================== INVENTORY VIEW ==================== -->
+<div class="view active" id="viewInventory">
   <div class="wrap">
-
-    <!-- Header card -->
     <div class="card">
-      <div class="titleRow">
-        <div>
-          <h1>Scavenger Inventory</h1>
-          <p>Parts, bins, and questionable life choices.</p>
-        </div>
-        <div class="pill">/inventory-page</div>
-      </div>
-      <div class="row">
-        <a class="btn" href="/">back to chat</a>
-        <a class="btn" href="/admin">Admin Console</a>
-        <button id="btnPush">⬆ Push to GitHub</button>
-      </div>
-      <div id="pushOut" class="hint" style="display:none;"></div>
-    </div>
-
-    <div style="height:12px"></div>
-
-    <!-- Inventory list card -->
-    <div class="card">
-      <h1 style="font-size:18px; margin-bottom:8px;">Inventory List</h1>
-      <p class="muted">All parts in the CSV. Search, filter, then click a row to load it into the editor.</p>
+      <h1>Inventory List</h1>
+      <p class="muted">All parts in the CSV. Search, filter, then click ✏️ to load into the editor.</p>
 
       <div class="smallRow">
         <input id="invSearch" placeholder="search (all fields)"/>
@@ -103,16 +142,20 @@
       <div id="invTable"></div>
     </div>
 
-    <div style="height:12px"></div>
+    <div id="pushOut" class="hint" style="display:none; padding: 0 16px;"></div>
+  </div>
+</div>
 
-    <!-- Editor / Add card -->
+<!-- ==================== ADD/EDIT PART VIEW ==================== -->
+<div class="view" id="viewAddPart">
+  <div class="wrap">
     <div class="card">
       <div class="split">
         <div>
-          <h1 style="font-size:18px; margin-bottom:8px;">Add / Edit Part</h1>
+          <h1>Add / Edit Part</h1>
           <p class="muted">Fill in fields below. If the MPN already exists, quantities merge automatically.</p>
 
-          <label>MPN <span style="color:var(--accent)">*</span></label>
+          <label>MPN <span style="color:var(--orange)">*</span></label>
           <input id="fMpn" placeholder="e.g. LM358N"/>
 
           <label>Manufacturer</label>
@@ -147,27 +190,27 @@
           <label>Notes</label>
           <textarea id="fNotes" placeholder="Any notes…"></textarea>
 
-          <label style="display:flex; align-items:center; gap:6px; margin-top:10px;">
+          <label style="display:flex; align-items:center; gap:6px; margin-top:10px; text-transform:none;">
             <input type="checkbox" id="fNeedsReview" style="width:auto;"/> Needs Review
           </label>
 
           <div class="row" style="margin-top:12px;">
-            <button id="btnSave">💾 Save</button>
+            <button id="btnSave" class="btn-save">💾 Save</button>
             <button id="btnClear">🧹 Clear</button>
-            <button id="btnDelete" style="border-color:#f85149;">🗑 Delete</button>
+            <button id="btnDelete" class="btn-danger">🗑 Delete</button>
           </div>
         </div>
 
         <div>
-          <h1 style="font-size:18px; margin-bottom:8px;">Enrich (AI)</h1>
+          <h1>Enrich (AI)</h1>
           <p class="muted">Auto-fill fields from OpenAI + Brave search.</p>
 
           <label>Hints (optional context for the model)</label>
           <textarea id="fHints" placeholder="e.g. 'This is a TO-92 transistor from a grab bag'"></textarea>
 
           <div class="row" style="margin-top:10px;">
-            <button id="btnEnrich">🤖 Enrich</button>
-            <button id="btnEnrichApply" disabled>✅ Apply to form</button>
+            <button id="btnEnrich" class="btn-enrich">🤖 Enrich</button>
+            <button id="btnEnrichApply" disabled class="btn-save">✅ Apply to form</button>
           </div>
 
           <details style="margin-top:12px;">
@@ -186,11 +229,39 @@
         </div>
       </div>
     </div>
-
   </div>
+</div>
 
 <script>
-const API = '';  // same origin
+// ==================== View switching ====================
+function switchView(view) {
+  document.getElementById('viewInventory').classList.toggle('active', view === 'inventory');
+  document.getElementById('viewAddPart').classList.toggle('active', view === 'addpart');
+  document.getElementById('tabInventory').classList.toggle('active', view === 'inventory');
+  document.getElementById('tabAddPart').classList.toggle('active', view === 'addpart');
+}
+
+// Switch to add/edit and optionally pre-fill
+function editPart(rowData) {
+  switchView('addpart');
+  if (!rowData) return;
+  document.getElementById('fMpn').value = rowData.mpn || '';
+  document.getElementById('fManufacturer').value = rowData.manufacturer || '';
+  document.getElementById('fDesc').value = rowData.description || '';
+  document.getElementById('fCat').value = rowData.category || '';
+  document.getElementById('fPackage').value = rowData.package || '';
+  document.getElementById('fLoc').value = rowData.location_bin || '';
+  document.getElementById('fSuggestedBin').value = rowData.suggested_bin || '';
+  document.getElementById('fQty').value = rowData.qty_on_hand || '';
+  document.getElementById('fAvgCost').value = rowData.avg_cost || '';
+  document.getElementById('fDatasheet').value = rowData.datasheet_url || '';
+  document.getElementById('fNotes').value = rowData.notes || '';
+  const nr = (rowData.needs_review || '').toLowerCase();
+  document.getElementById('fNeedsReview').checked = ['1','true','yes','y','on'].includes(nr);
+}
+
+// ==================== API helpers ====================
+const API = '';
 
 async function j(url, opts) {
   const r = await fetch(API + url, opts);
@@ -204,6 +275,7 @@ function show(el, data) {
   el.className = data.ok ? 'ok' : 'err';
 }
 
+// ==================== Inventory list ====================
 function syncDropdowns(categories, locations) {
   const catSel = document.getElementById('invCatFilter');
   const locSel = document.getElementById('invLocFilter');
@@ -254,25 +326,9 @@ function renderTable(headers, rows) {
   el.querySelectorAll('.rowBtn').forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
-      const action = btn.getAttribute('data-action');
-      const mpn = btn.getAttribute('data-mpn');
-      if (action === 'load') {
-        const tr = btn.closest('tr');
-        const row = JSON.parse(tr.getAttribute('data-row') || '{}');
-        document.getElementById('fMpn').value = row.mpn || '';
-        document.getElementById('fManufacturer').value = row.manufacturer || '';
-        document.getElementById('fDesc').value = row.description || '';
-        document.getElementById('fCat').value = row.category || '';
-        document.getElementById('fPackage').value = row.package || '';
-        document.getElementById('fLoc').value = row.location_bin || '';
-        document.getElementById('fSuggestedBin').value = row.suggested_bin || '';
-        document.getElementById('fQty').value = row.qty_on_hand || '';
-        document.getElementById('fAvgCost').value = row.avg_cost || '';
-        document.getElementById('fDatasheet').value = row.datasheet_url || '';
-        document.getElementById('fNotes').value = row.notes || '';
-        const nr = (row.needs_review || '').toLowerCase();
-        document.getElementById('fNeedsReview').checked = ['1','true','yes','y','on'].includes(nr);
-      }
+      const tr = btn.closest('tr');
+      const row = JSON.parse(tr.getAttribute('data-row') || '{}');
+      editPart(row);
     });
   });
 }
@@ -305,7 +361,7 @@ document.getElementById('invSearch').addEventListener('keydown', e => { if (e.ke
 document.getElementById('invCatFilter').addEventListener('change', refreshInventory);
 document.getElementById('invLocFilter').addEventListener('change', refreshInventory);
 
-// Save (add / update)
+// ==================== Save / Delete ====================
 document.getElementById('btnSave').addEventListener('click', async () => {
   const mpn = document.getElementById('fMpn').value.trim();
   if (!mpn) return show(document.getElementById('editOut'), {ok:false, error:'MPN is required'});
@@ -346,7 +402,7 @@ document.getElementById('btnDelete').addEventListener('click', async () => {
   await refreshInventory();
 });
 
-// Enrich
+// ==================== Enrich ====================
 let lastEnrichResult = null;
 document.getElementById('btnEnrich').addEventListener('click', async () => {
   const mpn = document.getElementById('fMpn').value.trim();
@@ -381,7 +437,7 @@ document.getElementById('btnEnrichApply').addEventListener('click', () => {
   document.getElementById('fNeedsReview').checked = ['1','true','yes','y','on'].includes(nr);
 });
 
-// Push to GitHub
+// ==================== Push to GitHub ====================
 const pushOut = document.getElementById('pushOut');
 document.getElementById('btnPush').addEventListener('click', async () => {
   pushOut.style.display = 'block';
@@ -390,7 +446,7 @@ document.getElementById('btnPush').addEventListener('click', async () => {
   pushOut.textContent = JSON.stringify(resp, null, 2);
 });
 
-// Initial load
+// ==================== Initial load ====================
 (async () => {
   try { await refreshInventory(); } catch(e) { invCount.textContent = 'Error: ' + e; }
 })();

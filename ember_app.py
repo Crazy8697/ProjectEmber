@@ -51,6 +51,12 @@ init_scavenger(ember)
 
 # ----------------------------
 
+# ----------------------------
+# Memory persistence
+# ----------------------------
+MEM_DIR = Path.home() / ".local" / "share" / "projectember" / "memory"
+MEM_PATH = MEM_DIR / "memory.json"
+
 def _load_memory() -> Dict[str, str]:
     try:
         if MEM_PATH.exists():
@@ -104,6 +110,7 @@ def _llama_completion(prompt: str, mode: str) -> str:
         "temperature": float(s["temperature"]),
         "top_p": float(s["top_p"]),
         "stream": False,
+        "stop": ["User:", "EAI:", "\nUser:", "\nEAI:", "Human:", "\nHuman:"],
     }
 
     r = requests.post(f"{LLAMA_SERVER_URL}/v1/completions", json=payload, timeout=LLAMA_TIMEOUT_S)
@@ -727,13 +734,47 @@ def tool_host(tool_id):
         tool_groups=tools_by_group(),
     )
 
+import re
+
+def _process_memory_commands(response: str) -> str:
+    """Extract [MEMORY_SAVE: key | value] and [MEMORY_DELETE: key] from Eira's response,
+    process them, and return the cleaned response with those tags removed."""
+    mem = _load_memory()
+    changed = False
+
+    # Process saves: [MEMORY_SAVE: key | value]
+    save_pattern = re.compile(r'\[MEMORY_SAVE:\s*([^|]+?)\s*\|\s*(.+?)\s*\]')
+    for match in save_pattern.finditer(response):
+        key = match.group(1).strip()
+        value = match.group(2).strip()
+        if key and value:
+            mem[key] = value
+            changed = True
+
+    # Process deletes: [MEMORY_DELETE: key]
+    del_pattern = re.compile(r'\[MEMORY_DELETE:\s*(.+?)\s*\]')
+    for match in del_pattern.finditer(response):
+        key = match.group(1).strip()
+        if key:
+            mem.pop(key, None)
+            changed = True
+
+    if changed:
+        _save_memory(mem)
+
+    # Strip memory tags from the response the user sees
+    cleaned = save_pattern.sub('', response)
+    cleaned = del_pattern.sub('', cleaned)
+    cleaned = cleaned.strip()
+
+    return cleaned
+
 # ----------------------------
 # Chat API (existing UI uses /query)
 # ----------------------------
 @ember.post("/query")
 def query():
-    from submind_router import detect_submind, _make_routing
-    from subminds import get_submind
+    from subminds import orchestrate
 
     data = request.get_json(force=True, silent=True) or {}
     q = (data.get("query") or "").strip()
@@ -743,24 +784,30 @@ def query():
     if not q:
         return jsonify({"response": ""})
 
-    # If the caller explicitly provides a system_prompt, honour it.
-    # Otherwise: run the submind router to pick the right system prompt.
+    mem_block = _memory_block()
+
     explicit_prompt = (data.get("system_prompt") or "").strip()
     if explicit_prompt:
-        system_prompt = explicit_prompt
-        routing = _make_routing("override", "explicit system_prompt supplied")
-    else:
-        routing = detect_submind(q)
-        submind_id = routing.get("submind", "general")
-        submind = get_submind(submind_id)
-        system_prompt = submind["system_prompt"] if submind else DEFAULT_SYSTEM_PROMPT
+        from submind_router import _make_routing
+        prompt = _build_prompt(q, history, explicit_prompt)
+        try:
+            resp = _llama_completion(prompt, mode=mode)
+            return jsonify({"response": resp, "routing": _make_routing("override", "explicit system_prompt supplied"), "submind_id": "override"})
+        except Exception as e:
+            return jsonify({"response": f"Error: {type(e).__name__}: {e}"}), 200
 
-    prompt = _build_prompt(q, history, system_prompt)
     try:
-        resp = _llama_completion(prompt, mode=mode)
-        return jsonify({"response": resp, "routing": routing})
+        force_general = bool(data.get("force_general", False))
+        result = orchestrate(query=q, history=history, llm_fn=_llama_completion, mode=mode, memory_block=mem_block, force_general=force_general)
+        response = result["response"]
+
+        # Extract and process memory commands from Eira's response
+        response = _process_memory_commands(response)
+
+        return jsonify({"response": response, "routing": result["routing"], "submind_id": result["submind_id"]})
     except Exception as e:
-        return jsonify({"response": f"Error: {type(e).__name__}: {e}", "routing": routing}), 200
+        return jsonify({"response": f"Error: {type(e).__name__}: {e}"}), 200
+
 
 @ember.get("/health")
 def health():
@@ -787,6 +834,17 @@ def api_memory_set():
         mem.pop(key, None)
     _save_memory(mem)
     return jsonify({"ok": True, "memory": mem})
+
+@ember.post("/api/memory/delete")
+def api_memory_delete():
+    data = request.get_json(force=True, silent=True) or {}
+    key = (data.get("key") or "").strip()
+    if not key:
+        return jsonify({"ok": False, "error": "Missing key"}), 400
+    mem = _load_memory()
+    removed = mem.pop(key, None)
+    _save_memory(mem)
+    return jsonify({"ok": True, "removed": key, "had_value": removed is not None, "memory": mem})
 
 # ----------------------------
 # Scavenger Inventory mount
@@ -1085,6 +1143,15 @@ def api_delete_project(project_id):
     from chat_storage import delete_project
     delete_project(project_id)
     return jsonify({"ok": True})
+
+@ember.post("/api/projects/<project_id>/rename")
+def api_rename_project(project_id):
+    """Rename a project."""
+    from chat_storage import rename_project
+    data = request.get_json(force=True, silent=True) or {}
+    new_name = (data.get("name") or "Untitled").strip()
+    project = rename_project(project_id, new_name)
+    return jsonify(project)
 
 # ------- Chats API -------
 

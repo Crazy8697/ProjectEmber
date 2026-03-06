@@ -6,6 +6,15 @@ RUN_DIR="${RUN_DIR:-./run}"
 LLAMA_PID="$RUN_DIR/llama.pid"
 FLASK_PID="$RUN_DIR/flask.pid"
 
+notify() {
+  local summary="$1"
+  local body="${2:-}"
+  local icon="${3:-dialog-information}"
+  if command -v notify-send &>/dev/null; then
+    notify-send --urgency=normal --icon="$icon" "$summary" "$body" || true
+  fi
+}
+
 stop_pidfile() {
   local name="$1"
   local pidfile="$2"
@@ -52,3 +61,6 @@ stop_pidfile() {
 stop_pidfile "flask" "$FLASK_PID"
 stop_pidfile "llama" "$LLAMA_PID"
 echo "[stop_all] done."
+
+# ---- Ember Offline notification ----
+notify "🔥 Ember Offline" "All services stopped." "dialog-warning"

@@ -142,6 +142,25 @@ def delete_project(project_id: str) -> bool:
     
     return True
 
+def rename_project(project_id: str, new_name: str) -> Dict[str, Any]:
+    """Rename a project."""
+    _ensure_db()
+    now = time.time()
+    
+    conn = _get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "UPDATE projects SET name = ?, updated_at = ? WHERE id = ?",
+        (new_name, now, project_id)
+    )
+    conn.commit()
+    
+    cursor.execute("SELECT * FROM projects WHERE id = ?", (project_id,))
+    row = cursor.fetchone()
+    conn.close()
+    
+    return dict(row) if row else {}
+
 # ------- Chats -------
 
 def create_chat(project_id: str, name: str) -> Dict[str, Any]:

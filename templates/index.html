@@ -4,109 +4,149 @@
     <title>Project Ember</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: system-ui; background: linear-gradient(135deg, #0f1419, #1a202c); color: #e2e8f0; min-height: 100vh; }
+        body { font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace; background: #0a0c10; color: #e2e8f0; min-height: 100vh; }
 
-        /* Layout: sidebar + main column (content + input) */
         #app { display: flex; height: 100vh; }
-
         .main-container { display: flex; flex: 1; flex-direction: column; min-width: 0; }
 
-        /* Sidebar now fills full viewport height */
+        /* Sidebar */
         .sidebar {
             width: 250px;
             height: 100vh;
-            background: #111827;
-            border-right: 1px solid #2d2d44;
+            background: #0d1117;
+            border-right: 1px solid #1a2332;
             display: flex;
             flex-direction: column;
-            padding: 20px;
+            padding: 16px;
             overflow-y: auto;
         }
+        .sidebar h1 { font-size: 18px; margin-bottom: 16px; color: #06b6d4; font-weight: 700; }
+        .section { margin-bottom: 16px; }
+        .section-title { font-size: 10px; font-weight: bold; text-transform: uppercase; color: #4a5568; margin-bottom: 6px; letter-spacing: 1px; }
 
-        .sidebar h1 { font-size: 20px; margin-bottom: 20px; color: #06b6d4; }
-        .section { margin-bottom: 20px; }
-        .section-title { font-size: 11px; font-weight: bold; text-transform: uppercase; color: #64748b; margin-bottom: 8px; }
-        .btn { width: 100%; padding: 10px; background: linear-gradient(135deg, #06b6d4, #0891b2); border: none; color: white; border-radius: 6px; cursor: pointer; margin-bottom: 12px; font-weight: 600; }
-        .btn:hover { opacity: 0.9; }
-        .project-item { padding: 10px; margin-bottom: 6px; background: #1f2937; border: 1px solid #374151; border-radius: 6px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; color: #e2e8f0; }
-        .project-item:hover { background: #374151; border-color: #06b6d4; }
-        .project-item.active { background: #06b6d4; color: #0f1419; }
+        .btn { width: 100%; padding: 8px; background: #06b6d4; border: 1px solid #0891b2; color: #0a0c10; border-radius: 4px; cursor: pointer; margin-bottom: 10px; font-weight: 700; font-family: inherit; font-size: 12px; }
+        .btn:hover { background: #22d3ee; }
+
+        .project-item { padding: 8px; margin-bottom: 4px; background: #111827; border: 1px solid #1a2332; border-radius: 4px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; color: #94a3b8; font-size: 13px; }
+        .project-item:hover { background: #1a2332; color: #e2e8f0; }
+        .project-item.active { background: #164e63; border-color: #06b6d4; color: #06b6d4; }
         .project-name { flex: 1; }
-        .x-btn { background: #2d2d44; border: none; color: #94a3b8; width: 20px; height: 20px; cursor: pointer; border-radius: 3px; }
-        .chats-under-project { margin-left: 15px; margin-bottom: 10px; }
-        .chat-item { padding: 8px 10px; margin-bottom: 4px; background: #0f1419; border: 1px solid #2d2d44; border-radius: 4px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-size: 13px; }
-        .chat-item:hover { background: #1f2937; border-color: #06b6d4; }
-        .chat-item.active { background: #0891b2; color: white; }
+        .x-btn { background: none; border: none; color: #4a5568; width: 18px; height: 18px; cursor: pointer; font-size: 14px; }
+        .x-btn:hover { color: #f87171; }
+
+        .chats-under-project { margin-left: 12px; margin-bottom: 8px; }
+        .chat-item { padding: 6px 8px; margin-bottom: 3px; background: transparent; border: 1px solid #1a2332; border-radius: 3px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: #64748b; }
+        .chat-item:hover { background: #111827; color: #e2e8f0; }
+        .chat-item.active { background: #0e4458; border-color: #06b6d4; color: #22d3ee; }
         .chat-name { flex: 1; }
-        .add-chat-btn { padding: 6px 10px; background: #0891b2; border: none; color: white; border-radius: 3px; cursor: pointer; font-size: 12px; }
-        .tool-btn { padding: 10px; margin-bottom: 6px; background: #1f2937; border: 1px solid #374151; border-radius: 6px; cursor: pointer; color: #e2e8f0; text-align: left; }
-        .tool-btn:hover { background: #374151; border-color: #06b6d4; }
-        .tool-btn.active { background: #06b6d4; color: #0f1419; }
+        .add-chat-btn { padding: 4px 8px; background: transparent; border: 1px solid #1a2332; color: #4a5568; border-radius: 3px; cursor: pointer; font-size: 11px; font-family: inherit; }
+        .add-chat-btn:hover { border-color: #06b6d4; color: #06b6d4; }
 
+        .tool-btn { padding: 8px; margin-bottom: 4px; background: #111827; border: 1px solid #1a2332; border-radius: 4px; cursor: pointer; color: #94a3b8; text-align: left; font-family: inherit; font-size: 12px; width: 100%; }
+        .tool-btn:hover { background: #1a2332; color: #e2e8f0; }
+        .tool-btn.active { background: #164e63; border-color: #06b6d4; color: #06b6d4; }
+
+        /* Username setting */
+        .username-area { margin-top: auto; padding-top: 12px; border-top: 1px solid #1a2332; }
+        .username-area label { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: #4a5568; display: block; margin-bottom: 4px; }
+        .username-input { width: 100%; padding: 6px 8px; background: #111827; border: 1px solid #1a2332; border-radius: 4px; color: #a3e635; font-family: inherit; font-size: 12px; }
+        .username-input:focus { outline: none; border-color: #06b6d4; }
+
+        /* Main area */
         .main { flex: 1; display: flex; flex-direction: column; min-height: 0; }
-        .header { padding: 20px; border-bottom: 1px solid #2d2d44; background: #111827; }
-        .content { flex: 1; overflow: hidden; display: flex; flex-direction: column; padding: 20px; min-height: 0; }
-        .messages { flex: 1; overflow-y: auto; margin-bottom: 20px; display: flex; flex-direction: column; gap: 12px; padding-right: 10px; }
-        .msg { display: flex; }
-        .msg.user { justify-content: flex-end; }
-        .msg-box { max-width: 60%; padding: 12px 16px; border-radius: 12px; word-wrap: break-word; }
-        .msg.assistant .msg-box { background: #1f2937; }
-        .msg.user .msg-box { background: linear-gradient(135deg, #06b6d4, #0891b2); color: white; }
-        .welcome { display: flex; align-items: center; justify-content: center; flex: 1; text-align: center; color: #64748b; }
+        .header { padding: 12px 20px; border-bottom: 1px solid #1a2332; background: #0d1117; }
+        .header h2 { font-size: 14px; color: #e2e8f0; font-weight: 600; }
+        .header small { font-size: 11px; color: #4a5568; }
+        .content { flex: 1; overflow: hidden; display: flex; flex-direction: column; padding: 0; min-height: 0; }
+
+        /* Terminal-style messages */
+        .messages { flex: 1; overflow-y: auto; padding: 16px 20px; display: flex; flex-direction: column; gap: 2px; }
+        .messages::-webkit-scrollbar { width: 6px; }
+        .messages::-webkit-scrollbar-track { background: #0a0c10; }
+        .messages::-webkit-scrollbar-thumb { background: #1a2332; border-radius: 3px; }
+
+        .msg { display: flex; flex-direction: column; padding: 6px 0; }
+        .msg-header { font-size: 11px; margin-bottom: 3px; display: flex; align-items: center; gap: 8px; }
+        .msg-timestamp { color: #4a5568; }
+        .msg-author { font-weight: 700; }
+        .msg-content { padding: 4px 0 4px 20px; line-height: 1.5; font-size: 13px; white-space: pre-wrap; word-wrap: break-word; }
+
+        .msg.user .msg-header { justify-content: flex-end; }
+        .msg.user .msg-author { color: #a3e635; }
+        .msg.user .msg-content { text-align: right; color: #c9d1d9; padding-right: 0; }
+
+        .msg.assistant .msg-author { color: #06b6d4; }
+        .msg.assistant .msg-content { color: #94a3b8; }
+
+        .msg-thinking { color: #4a5568; font-style: italic; padding: 6px 0 6px 20px; font-size: 13px; }
+
+        .msg-error { color: #f87171; padding: 6px 0 6px 20px; font-size: 13px; }
+
+        .welcome { display: flex; align-items: center; justify-content: center; flex: 1; text-align: center; color: #4a5568; }
+        .welcome h3 { color: #06b6d4; margin-bottom: 8px; font-size: 16px; }
+        .welcome p { font-size: 12px; }
+
         .tool-frame { width: 100%; height: 100%; border: none; }
-        .empty { color: #64748b; font-size: 12px; padding: 8px; }
+        .empty { color: #4a5568; font-size: 11px; padding: 6px; }
 
-        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: none; align-items: center; justify-content: center; z-index: 9999; }
-        .modal.show { display: flex; }
-        .modal-box { background: #1f2937; padding: 24px; border-radius: 8px; width: 90%; max-width: 400px; }
-        .modal-title { font-size: 18px; font-weight: bold; margin-bottom: 16px; }
-        .form-group { margin-bottom: 16px; }
-        .form-group label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
-        .form-group input { width: 100%; padding: 10px; background: #111827; border: 1px solid #374151; border-radius: 4px; color: #e2e8f0; }
-        .modal-footer { display: flex; gap: 12px; margin-top: 20px; }
-        .modal-footer button { flex: 1; padding: 10px; border: none; border-radius: 4px; font-weight: 600; cursor: pointer; }
-        .btn-cancel { background: #374151; color: #e2e8f0; }
-        .btn-submit { background: linear-gradient(135deg, #06b6d4, #0891b2); color: white; }
-
-        /* Input area: keep height, widen input to fill */
+        /* Input area */
         .input-area-container {
-            padding: 15px 20px;
-            background: #111827;
-            border-top: 1px solid #2d2d44;
+            padding: 12px 20px;
+            background: #0d1117;
+            border-top: 1px solid #1a2332;
             display: flex;
             width: 100%;
         }
-
-        .input-box {
-            display: flex;
-            gap: 10px;
-            width: 100%;     /* fill the red box */
+        .input-box { display: flex; gap: 8px; width: 100%; min-width: 0; align-items: center; }
+        .input-prompt { color: #06b6d4; font-size: 13px; font-weight: 700; white-space: nowrap; }
+        .input-box textarea {
+            flex: 1;
             min-width: 0;
+            padding: 8px 10px;
+            background: transparent;
+            border: 1px solid #1a2332;
+            border-radius: 4px;
+            color: #a3e635;
+            font-size: 13px;
+            font-family: inherit;
+            resize: none;
+            overflow-y: hidden;
+            line-height: 1.4;
+            max-height: 52px;
         }
-
-        .input-box input {
-            flex: 1;         /* input expands, button stays same */
-            min-width: 0;
-            padding: 10px 12px;
-            background: #1f2937;
-            border: 1px solid #374151;
-            border-radius: 6px;
-            color: #e2e8f0;
-            font-size: 14px;
-        }
-
-        .input-box input:focus { outline: none; border-color: #06b6d4; }
-
+        .input-box textarea:focus { outline: none; border-color: #06b6d4; }
+        .input-box textarea.scrollable { overflow-y: auto; }
+        .input-box textarea.scrollable::-webkit-scrollbar { width: 6px; }
+        .input-box textarea.scrollable::-webkit-scrollbar-track { background: #0a0c10; }
+        .input-box textarea.scrollable::-webkit-scrollbar-thumb { background: #1a2332; border-radius: 3px; }
         .input-box button {
-            padding: 10px 20px;   /* unchanged */
-            background: linear-gradient(135deg, #06b6d4, #0891b2);
+            padding: 8px 16px;
+            background: #06b6d4;
             border: none;
-            color: white;
-            border-radius: 6px;
+            color: #0a0c10;
+            border-radius: 4px;
             cursor: pointer;
-            font-weight: 600;
-            white-space: nowrap;
+            font-weight: 700;
+            font-family: inherit;
+            font-size: 12px;
         }
+        .input-box button:hover { background: #22d3ee; }
+
+        /* Modals */
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: none; align-items: center; justify-content: center; z-index: 9999; }
+        .modal.show { display: flex; }
+        .modal-box { background: #111827; padding: 20px; border-radius: 6px; width: 90%; max-width: 380px; border: 1px solid #1a2332; }
+        .modal-title { font-size: 15px; font-weight: bold; margin-bottom: 14px; color: #06b6d4; }
+        .form-group { margin-bottom: 14px; }
+        .form-group label { display: block; font-size: 11px; font-weight: 600; margin-bottom: 4px; color: #4a5568; text-transform: uppercase; letter-spacing: 1px; }
+        .form-group input { width: 100%; padding: 8px 10px; background: #0a0c10; border: 1px solid #1a2332; border-radius: 4px; color: #e2e8f0; font-family: inherit; font-size: 13px; }
+        .form-group input:focus { outline: none; border-color: #06b6d4; }
+        .modal-footer { display: flex; gap: 10px; margin-top: 16px; }
+        .modal-footer button { flex: 1; padding: 8px; border: none; border-radius: 4px; font-weight: 600; cursor: pointer; font-family: inherit; font-size: 12px; }
+        .btn-cancel { background: #1a2332; color: #94a3b8; }
+        .btn-cancel:hover { background: #2d3748; }
+        .btn-submit { background: #06b6d4; color: #0a0c10; }
+        .btn-submit:hover { background: #22d3ee; }
     </style>
 </head>
 <body>
@@ -116,7 +156,7 @@
         <button class="btn" onclick="app.openProjectModal()">+ New Project</button>
 
         <div class="section">
-            <div class="section-title">Projects & Chats</div>
+            <div class="section-title">Projects &amp; Chats</div>
             <div id="projectsList"></div>
             <div class="empty" id="noProjects">No projects</div>
         </div>
@@ -126,6 +166,7 @@
             <button class="tool-btn" id="invBtn" onclick="app.showTool('inventory')">🎒 Scavenger Inventory</button>
             <button class="tool-btn" id="adminBtn" onclick="app.showTool('admin')">⚙️ Admin Console</button>
         </div>
+
     </div>
 
     <div class="main-container">
@@ -140,20 +181,25 @@
                     <iframe id="toolFrame" class="tool-frame"></iframe>
                 </div>
 
-                <div id="chatView" style="display:none; flex: 1; display: flex; flex-direction: column;">
+                <div id="chatView" style="display:none; flex: 1; flex-direction: column; min-height: 0; overflow: hidden;">
                     <div class="messages" id="messagesList"></div>
                 </div>
 
                 <div id="welcomeView" class="welcome" style="display:flex;">
-                    <div><h3>👋 Welcome to Project Ember</h3><p>Create a project or start typing to begin</p></div>
+                    <div>
+                        <h3>🔥 Project Ember</h3>
+                        <p>Create a project or start typing to begin</p>
+                    </div>
                 </div>
             </div>
         </div>
 
         <div class="input-area-container">
             <div class="input-box">
-                <input id="messageInput" type="text" placeholder="Type a message..." onkeyup="if(event.key==='Enter') app.handleInput()" />
-                <button onclick="app.handleInput()">→</button>
+                <span class="input-prompt" id="inputPrompt">user $</span>
+                <textarea id="messageInput" rows="1" placeholder="Type a message..." onkeydown="if(event.key==='Enter' && !event.shiftKey) { event.preventDefault(); app.handleInput(); }" oninput="this.style.height='auto'; this.style.height=Math.min(this.scrollHeight, 52)+'px'; this.classList.toggle('scrollable', this.scrollHeight > 52);"></textarea>
+                <button id="directToggle" onclick="app.toggleDirect()" style="font-size:10px; padding:8px 10px; opacity:0.5;" title="Direct mode — bypass submind routing">EAI</button>
+                <button onclick="app.handleInput()">SEND</button>
             </div>
         </div>
     </div>
@@ -173,23 +219,253 @@
     </div>
 </div>
 
+<div class="modal" id="switchModal">
+    <div class="modal-box">
+        <div class="modal-title">Switch to Chat?</div>
+        <p style="color:#94a3b8; font-size:12px; margin-bottom:12px;">You're currently in a tool view. Sending a message will switch you to chat. You might lose unsaved work.</p>
+        <div class="modal-footer">
+            <button class="btn-cancel" onclick="app.cancelSwitch()">Cancel</button>
+            <button class="btn-submit" onclick="app.confirmSwitch()">Switch &amp; Send</button>
+        </div>
+    </div>
+</div>
+
 <script>
 const app = {
     projects: [],
     currentProject: null,
     currentChat: null,
     currentTool: null,
+    busy: false,
+    username: 'user',
+    pendingMsg: null,
+    lastToolContext: null,
+    thinkingTimer: null,
+    thinkingPoller: null,
+    thinkingStart: null,
+    mode: 'deep',
+    forceGeneral: false,
+
+    // --- Utility ---
+
+    esc(str) {
+        const d = document.createElement('div');
+        d.textContent = str;
+        return d.innerHTML;
+    },
+
+    timestamp() {
+        const now = new Date();
+        const h = String(now.getHours()).padStart(2, '0');
+        const m = String(now.getMinutes()).padStart(2, '0');
+        const s = String(now.getSeconds()).padStart(2, '0');
+        return `${h}:${m}:${s}`;
+    },
+
+    setUsername(name) {
+        this.username = name.trim() || 'user';
+        document.getElementById('inputPrompt').textContent = this.username + ' $';
+        if (this.currentChat) this.renderMessages();
+        try { localStorage.setItem('ember_username', this.username); } catch(e) {}
+    },
+
+    loadUsername() {
+        try {
+            const saved = localStorage.getItem('ember_username');
+            if (saved) {
+                this.username = saved;
+                document.getElementById('inputPrompt').textContent = saved + ' $';
+            }
+        } catch(e) {}
+    },
+
+    toggleDirect() {
+        if (this.forceGeneral) {
+            if (!confirm('Turn off direct mode? Messages will be routed through subminds again.')) return;
+            this.forceGeneral = false;
+        } else {
+            this.forceGeneral = true;
+            // Flash a notice
+            const list = document.getElementById('messagesList');
+            if (list) {
+                const notice = document.createElement('div');
+                notice.innerHTML = '<div class="msg-thinking" style="color:#06b6d4; font-style:normal; font-size:11px;">— direct mode ON — talking to Eira only, subminds bypassed —</div>';
+                list.appendChild(notice);
+                list.scrollTop = list.scrollHeight;
+            }
+        }
+        const btn = document.getElementById('directToggle');
+        btn.style.opacity = this.forceGeneral ? '1' : '0.5';
+        btn.style.borderColor = this.forceGeneral ? '#06b6d4' : '#1a2332';
+        btn.title = this.forceGeneral ? 'Direct mode ON — subminds bypassed' : 'Direct mode — bypass submind routing';
+        try { localStorage.setItem('ember_direct', this.forceGeneral ? '1' : '0'); } catch(e) {}
+    },
+
+    loadDirectMode() {
+        try {
+            const saved = localStorage.getItem('ember_direct');
+            if (saved === '1') {
+                this.forceGeneral = true;
+                const btn = document.getElementById('directToggle');
+                btn.style.opacity = '1';
+                btn.style.borderColor = '#06b6d4';
+                btn.title = 'Direct mode ON — subminds bypassed';
+            }
+        } catch(e) {}
+    },
+
+    // --- Init ---
 
     async init() {
+        this.loadUsername();
+        this.loadDirectMode();
         await this.loadProjects();
+        this.restoreThinkingState();
     },
 
+    restoreThinkingState() {
+        try {
+            const saved = localStorage.getItem('ember_thinking');
+            console.log('[Ember] restoreThinkingState — saved:', saved);
+            if (!saved) return;
+            const state = JSON.parse(saved);
+            if (!state.active || !state.startTime || !state.chatId) {
+                console.log('[Ember] restoreThinkingState — invalid state, clearing');
+                localStorage.removeItem('ember_thinking');
+                return;
+            }
+
+            // Stale after 5 minutes
+            if (Date.now() - state.startTime > 300000) {
+                console.log('[Ember] restoreThinkingState — stale (>5min), clearing');
+                localStorage.removeItem('ember_thinking');
+                return;
+            }
+
+            this.thinkingStart = state.startTime;
+            const chatId = state.chatId;
+            console.log('[Ember] restoreThinkingState — checking chat', chatId);
+
+            // Check if she already responded
+            fetch(`/api/messages/history/${chatId}`).then(r => r.json()).then(data => {
+                const msgs = data.messages || [];
+                console.log('[Ember] restoreThinkingState — msgs:', msgs.length, 'last role:', msgs.length > 0 ? msgs[msgs.length-1].role : 'none');
+
+                if (msgs.length > 0 && msgs[msgs.length - 1].role === 'assistant') {
+                    console.log('[Ember] restoreThinkingState — already responded, clearing');
+                    localStorage.removeItem('ember_thinking');
+                    return;
+                }
+
+                // Still thinking — show indicator and poll for response
+                const chat = this.projects.flatMap(p => p.chats || []).find(c => c.id === chatId);
+                if (!chat) {
+                    console.log('[Ember] restoreThinkingState — chat not found in projects');
+                    localStorage.removeItem('ember_thinking');
+                    return;
+                }
+
+                console.log('[Ember] restoreThinkingState — restoring thinking UI');
+                const proj = this.projects.find(p => (p.chats || []).some(c => c.id === chatId));
+                if (proj) this.currentProject = proj;
+                this.currentChat = chat;
+                this.busy = true;
+                this.showView();
+
+                this.loadMessages().then(() => {
+                    const list = document.getElementById('messagesList');
+                    if (!list) return;
+
+                    const thinking = document.createElement('div');
+                    thinking.id = 'thinking';
+                    thinking.innerHTML = '<div class="msg-thinking">Eira is thinking... <span id="thinkTimer">00:00</span></div>';
+                    list.appendChild(thinking);
+                    list.scrollTop = list.scrollHeight;
+
+                    // Live timer from original start
+                    this.thinkingTimer = setInterval(() => {
+                        const el = document.getElementById('thinkTimer');
+                        if (!el) return;
+                        const elapsed = Math.floor((Date.now() - this.thinkingStart) / 1000);
+                        const mm = String(Math.floor(elapsed / 60)).padStart(2, '0');
+                        const ss = String(elapsed % 60).padStart(2, '0');
+                        el.textContent = `${mm}:${ss}`;
+                    }, 1000);
+
+                    // Poll every 3 seconds for her response
+                    this.thinkingPoller = setInterval(async () => {
+                        try {
+                            const r = await fetch(`/api/messages/history/${chatId}`);
+                            const d = await r.json();
+                            const m = d.messages || [];
+                            if (m.length > 0 && m[m.length - 1].role === 'assistant') {
+                                console.log('[Ember] poller — Eira responded!');
+                                if (this.thinkingTimer) { clearInterval(this.thinkingTimer); this.thinkingTimer = null; }
+                                if (this.thinkingPoller) { clearInterval(this.thinkingPoller); this.thinkingPoller = null; }
+                                localStorage.removeItem('ember_thinking');
+                                this.busy = false;
+                                const t = document.getElementById('thinking');
+                                if (t) t.remove();
+                                await this.loadMessages();
+                            }
+                        } catch(e) {}
+                    }, 3000);
+                });
+
+            }).catch((e) => {
+                console.warn('[Ember] restoreThinkingState fetch error:', e);
+                localStorage.removeItem('ember_thinking');
+            });
+        } catch(e) {
+            console.warn('Could not restore thinking state:', e);
+            localStorage.removeItem('ember_thinking');
+        }
+    },
+
+    // --- Data loading ---
+
     async loadProjects() {
-        const res = await fetch('/api/projects/list');
-        const data = await res.json();
-        this.projects = data.projects || [];
+        try {
+            const res = await fetch('/api/projects/list');
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const data = await res.json();
+            this.projects = data.projects || [];
+        } catch (e) {
+            console.warn('Could not load projects:', e);
+            this.projects = [];
+        }
         this.renderProjects();
     },
+
+    async loadChats() {
+        if (!this.currentProject) return;
+        try {
+            const res = await fetch(`/api/chats/list/${this.currentProject.id}`);
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const data = await res.json();
+            this.currentProject.chats = data.chats || [];
+        } catch (e) {
+            console.warn('Could not load chats:', e);
+            this.currentProject.chats = [];
+        }
+        this.renderProjects();
+    },
+
+    async loadMessages() {
+        if (!this.currentChat) return;
+        try {
+            const res = await fetch(`/api/messages/history/${this.currentChat.id}`);
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const data = await res.json();
+            this.currentChat.messages = data.messages || [];
+        } catch (e) {
+            console.warn('Could not load messages:', e);
+            this.currentChat.messages = [];
+        }
+        this.renderMessages();
+    },
+
+    // --- Rendering ---
 
     renderProjects() {
         const list = document.getElementById('projectsList');
@@ -209,7 +485,7 @@ const app = {
             html += `
                 <div>
                     <div class="project-item ${isActive ? 'active' : ''}" onclick="app.selectProject('${p.id}')">
-                        <span class="project-name">${p.name}</span>
+                        <span class="project-name" ondblclick="event.stopPropagation(); app.renameProject('${p.id}')">${this.esc(p.name)}</span>
                         <button class="x-btn" onclick="event.stopPropagation(); app.deleteProject('${p.id}')">×</button>
                     </div>
                     ${isActive ? this.renderChatsForProject(p.id) : ''}
@@ -225,7 +501,7 @@ const app = {
         if (!project || !project.chats) return '';
 
         let html = `<div class="chats-under-project">
-            <button class="add-chat-btn" onclick="app.openChatModal('${projectId}')">+ New Chat</button>`;
+            <button class="add-chat-btn" onclick="app.newChat()">+ New Chat</button>`;
 
         if (project.chats.length === 0) {
             html += '<div class="empty">No chats</div>';
@@ -234,8 +510,8 @@ const app = {
                 const isActive = this.currentChat?.id === c.id;
                 html += `
                     <div class="chat-item ${isActive ? 'active' : ''}" onclick="app.selectChat('${c.id}')">
-                        <span class="chat-name">${c.name}</span>
-                        <button class="x-btn" onclick="event.stopPropagation(); app.deleteChat('${c.id}')" style="width:16px;height:16px;font-size:11px;">×</button>
+                        <span class="chat-name" ondblclick="event.stopPropagation(); app.renameChat('${c.id}')">${this.esc(c.name)}</span>
+                        <button class="x-btn" onclick="event.stopPropagation(); app.deleteChat('${c.id}')">×</button>
                     </div>
                 `;
             }
@@ -244,20 +520,61 @@ const app = {
         return html;
     },
 
+    formatTime(epoch) {
+        if (!epoch) return '';
+        const d = new Date(epoch * 1000);
+        const h = String(d.getHours()).padStart(2, '0');
+        const m = String(d.getMinutes()).padStart(2, '0');
+        const s = String(d.getSeconds()).padStart(2, '0');
+        return `${h}:${m}:${s}`;
+    },
+
+    renderMessages() {
+        const list = document.getElementById('messagesList');
+        const msgs = this.currentChat?.messages || [];
+        list.innerHTML = msgs.map(m => {
+            const isUser = m.role === 'user';
+            const author = isUser ? this.esc(this.username) : 'Eira';
+            const ts = this.formatTime(m.created_at);
+
+            let content = m.content || '';
+            let thoughtLine = '';
+
+            // Extract our [thought for MM:SS] prefix (first line only)
+            if (!isUser && content.startsWith('[thought for ')) {
+                const nlIdx = content.indexOf('\n');
+                if (nlIdx !== -1) {
+                    const tag = content.substring(0, nlIdx);
+                    thoughtLine = `<div style="font-size:11px; color:#4a5568; margin-bottom:4px;">${this.esc(tag)}</div>`;
+                    content = content.substring(nlIdx + 1);
+                }
+            }
+
+            // Strip any additional [thought for ...] tags Eira echoed in her response
+            content = content.replace(/\[thought for \d{2}:\d{2}\]\n?/g, '').trim();
+
+            return `
+                <div class="msg ${isUser ? 'user' : 'assistant'}">
+                    <div class="msg-header">
+                        <span class="msg-timestamp">[${ts}]</span>
+                        <span class="msg-author">${author}</span>
+                    </div>
+                    ${thoughtLine}
+                    <div class="msg-content">${this.esc(content)}</div>
+                </div>
+            `;
+        }).join('');
+        setTimeout(() => list.scrollTop = list.scrollHeight, 50);
+    },
+
+    // --- Navigation ---
+
     async selectProject(id) {
         this.currentProject = this.projects.find(p => p.id === id);
         this.currentChat = null;
         this.currentTool = null;
         await this.loadChats();
         this.showView();
-    },
-
-    async loadChats() {
-        if (!this.currentProject) return;
-        const res = await fetch(`/api/chats/list/${this.currentProject.id}`);
-        const data = await res.json();
-        this.currentProject.chats = data.chats || [];
-        this.renderProjects();
     },
 
     async selectChat(id) {
@@ -269,83 +586,8 @@ const app = {
         if (this.currentChat) await this.loadMessages();
     },
 
-    async loadMessages() {
-        if (!this.currentChat) return;
-        const res = await fetch(`/api/messages/history/${this.currentChat.id}`);
-        const data = await res.json();
-        this.currentChat.messages = data.messages || [];
-        this.renderMessages();
-    },
-
-    renderMessages() {
-        const list = document.getElementById('messagesList');
-        const msgs = this.currentChat?.messages || [];
-        list.innerHTML = msgs.map(m => `
-            <div class="msg ${m.role}">
-                <div class="msg-box">${m.content}</div>
-            </div>
-        `).join('');
-        setTimeout(() => list.scrollTop = list.scrollHeight, 0);
-    },
-
-    async handleInput() {
-        const input = document.getElementById('messageInput');
-        const msg = input.value.trim();
-        if (!msg) return;
-
-        input.value = '';
-
-        if (!this.currentChat) {
-            if (!this.currentProject) {
-                const res = await fetch('/api/projects/create', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({name: 'General'})
-                });
-                const p = await res.json();
-                p.chats = [];
-                this.projects.push(p);
-                this.currentProject = p;
-            }
-
-            const res = await fetch('/api/chats/create', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({project_id: this.currentProject.id, name: 'Chat'})
-            });
-            const c = await res.json();
-            if (!this.currentProject.chats) this.currentProject.chats = [];
-            this.currentProject.chats.push(c);
-            this.currentChat = c;
-            this.renderProjects();
-            this.showView();
-        }
-
-        await fetch('/api/messages/add', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({chat_id: this.currentChat.id, role: 'user', content: msg})
-        });
-
-        const res = await fetch('/query', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({q: msg, chat_id: this.currentChat.id, history: this.currentChat.messages || []})
-        });
-        const data = await res.json();
-
-        await fetch('/api/messages/add', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({chat_id: this.currentChat.id, role: 'assistant', content: data.response || 'No response'})
-        });
-
-        await this.loadMessages();
-    },
-
     showTool(tool) {
         this.currentTool = tool;
-        this.currentProject = null;
         this.currentChat = null;
         this.showView();
 
@@ -369,52 +611,332 @@ const app = {
 
         if (this.currentChat) {
             document.getElementById('chatTitle').textContent = this.currentChat.name;
-            document.getElementById('projectTitle').textContent = this.currentProject?.name;
+            document.getElementById('projectTitle').textContent = this.currentProject?.name || '';
         }
 
         this.renderProjects();
     },
 
-    openProjectModal() { document.getElementById('projectModal').classList.add('show'); document.getElementById('projectName').focus(); },
-    closeProjectModal() { document.getElementById('projectModal').classList.remove('show'); document.getElementById('projectName').value = ''; },
+    // --- Switch confirmation (tool → chat) ---
+
+    cancelSwitch() {
+        this.pendingMsg = null;
+        this.lastToolContext = null;
+        document.getElementById('switchModal').classList.remove('show');
+        // Put the message back in the input
+        const input = document.getElementById('messageInput');
+        if (this.pendingMsg) input.value = this.pendingMsg;
+    },
+
+    async confirmSwitch() {
+        document.getElementById('switchModal').classList.remove('show');
+        const msg = this.pendingMsg;
+        const toolCtx = this.lastToolContext;
+        this.pendingMsg = null;
+        this.lastToolContext = null;
+
+        // Clear tool, switch to chat view
+        this.currentTool = null;
+        document.getElementById('invBtn').classList.remove('active');
+        document.getElementById('adminBtn').classList.remove('active');
+
+        // Now send the message with context
+        await this.sendMessage(msg, toolCtx);
+    },
+
+    // --- Chat input ---
+
+    async handleInput() {
+        if (this.busy) {
+            console.warn('[Ember] handleInput blocked — busy flag is true');
+            return;
+        }
+
+        const input = document.getElementById('messageInput');
+        const msg = input.value.trim();
+        if (!msg) return;
+
+        // If in a tool view, show confirmation first
+        if (this.currentTool) {
+            this.pendingMsg = msg;
+            this.lastToolContext = this.currentTool;
+            input.value = '';
+            document.getElementById('switchModal').classList.add('show');
+            return;
+        }
+
+        input.value = '';
+        input.style.height = 'auto';
+        await this.sendMessage(msg, null);
+    },
+
+    async sendMessage(msg, toolContext) {
+        this.busy = true;
+        console.log('[Ember] sendMessage:', msg, 'forceGeneral:', this.forceGeneral);
+
+        // Safety timeout — release busy after 3 minutes no matter what
+        const busyTimeout = setTimeout(() => {
+            console.warn('[Ember] busy timeout — force releasing');
+            this.busy = false;
+        }, 180000);
+
+        const ts = this.timestamp();
+
+        try {
+            // Auto-create project + chat if none selected
+            if (!this.currentChat) {
+                if (!this.currentProject) {
+                    const projRes = await fetch('/api/projects/create', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({name: 'General'})
+                    });
+                    if (!projRes.ok) throw new Error(`Create project failed: ${projRes.status}`);
+                    const p = await projRes.json();
+                    p.chats = [];
+                    this.projects.push(p);
+                    this.currentProject = p;
+                }
+                const chatRes = await fetch('/api/chats/create', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({project_id: this.currentProject.id, name: 'Chat'})
+                });
+                if (!chatRes.ok) throw new Error(`Create chat failed: ${chatRes.status}`);
+                const c = await chatRes.json();
+                if (!this.currentProject.chats) this.currentProject.chats = [];
+                this.currentProject.chats.push(c);
+                this.currentChat = c;
+                this.renderProjects();
+                this.showView();
+            }
+
+            // Show user message immediately
+            const list = document.getElementById('messagesList');
+            const userDiv = document.createElement('div');
+            userDiv.className = 'msg user';
+            userDiv.innerHTML = `
+                <div class="msg-header">
+                    <span class="msg-timestamp">[${ts}]</span>
+                    <span class="msg-author">${this.esc(this.username)}</span>
+                </div>
+                <div class="msg-content">${this.esc(msg)}</div>
+            `;
+            list.appendChild(userDiv);
+            list.scrollTop = list.scrollHeight;
+
+            // Save user message
+            await fetch('/api/messages/add', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({chat_id: this.currentChat.id, role: 'user', content: msg})
+            });
+
+            // Show thinking indicator with live timer
+            const thinking = document.createElement('div');
+            thinking.id = 'thinking';
+            thinking.innerHTML = '<div class="msg-thinking">Eira is thinking... <span id="thinkTimer">00:00</span></div>';
+            list.appendChild(thinking);
+            list.scrollTop = list.scrollHeight;
+
+            // Start thinking timer
+            this.thinkingStart = Date.now();
+            try { localStorage.setItem('ember_thinking', JSON.stringify({active: true, startTime: this.thinkingStart, chatId: this.currentChat.id})); } catch(e) {}
+            this.thinkingTimer = setInterval(() => {
+                const el = document.getElementById('thinkTimer');
+                if (!el) return;
+                const elapsed = Math.floor((Date.now() - this.thinkingStart) / 1000);
+                const mm = String(Math.floor(elapsed / 60)).padStart(2, '0');
+                const ss = String(elapsed % 60).padStart(2, '0');
+                el.textContent = `${mm}:${ss}`;
+            }, 1000);
+
+            // Load history for context
+            const histRes = await fetch(`/api/messages/history/${this.currentChat.id}`);
+            const histData = await histRes.json();
+            const history = (histData.messages || []).map(m => ({role: m.role, content: m.content}));
+
+            // Build query payload with optional tool context
+            const payload = {query: msg, history: history, mode: this.mode};
+            if (toolContext) payload.tool_context = toolContext;
+            if (this.forceGeneral) payload.force_general = true;
+
+            // Query EAI
+            const queryRes = await fetch('/query', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(payload)
+            });
+            const data = await queryRes.json();
+
+            // Stop thinking timer
+            if (this.thinkingTimer) { clearInterval(this.thinkingTimer); this.thinkingTimer = null; }
+            if (this.thinkingPoller) { clearInterval(this.thinkingPoller); this.thinkingPoller = null; }
+            try { localStorage.removeItem('ember_thinking'); } catch(e) {}
+            const elapsed = Math.floor((Date.now() - this.thinkingStart) / 1000);
+            const mm = String(Math.floor(elapsed / 60)).padStart(2, '0');
+            const ss = String(elapsed % 60).padStart(2, '0');
+
+            // Remove thinking indicator
+            const t = document.getElementById('thinking');
+            if (t) t.remove();
+
+            // Save and render assistant response (with thought time prefix)
+            const responseText = data.response || 'No response';
+            const thoughtPrefix = `[thought for ${mm}:${ss}]\n`;
+            await fetch('/api/messages/add', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({chat_id: this.currentChat.id, role: 'assistant', content: thoughtPrefix + responseText})
+            });
+
+            await this.loadMessages();
+        } catch (e) {
+            console.error('sendMessage error:', e);
+            if (this.thinkingTimer) { clearInterval(this.thinkingTimer); this.thinkingTimer = null; }
+            if (this.thinkingPoller) { clearInterval(this.thinkingPoller); this.thinkingPoller = null; }
+            try { localStorage.removeItem('ember_thinking'); } catch(ex) {}
+            const t = document.getElementById('thinking');
+            if (t) t.remove();
+            const list = document.getElementById('messagesList');
+            const errDiv = document.createElement('div');
+            errDiv.innerHTML = `<div class="msg-error">ERROR: ${this.esc(e.message)} — check that the server is running.</div>`;
+            list.appendChild(errDiv);
+        } finally {
+            clearTimeout(busyTimeout);
+            this.busy = false;
+            try { localStorage.removeItem('ember_thinking'); } catch(e) {}
+            console.log('[Ember] sendMessage complete, busy released');
+        }
+    },
+
+    // --- CRUD ---
+
+    async newChat() {
+        if (!this.currentProject) return;
+        try {
+            const res = await fetch('/api/chats/create', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({project_id: this.currentProject.id, name: 'Chat'})
+            });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const c = await res.json();
+            if (!this.currentProject.chats) this.currentProject.chats = [];
+            this.currentProject.chats.push(c);
+            this.currentChat = c;
+            this.renderProjects();
+            this.showView();
+        } catch (e) {
+            console.error('newChat error:', e);
+        }
+    },
+
+    openProjectModal() {
+        document.getElementById('projectModal').classList.add('show');
+        document.getElementById('projectName').focus();
+    },
+
+    closeProjectModal() {
+        document.getElementById('projectModal').classList.remove('show');
+        document.getElementById('projectName').value = '';
+    },
+
     async createProject() {
         const name = document.getElementById('projectName').value.trim();
         if (!name) return;
-        const res = await fetch('/api/projects/create', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({name})
-        });
-        const p = await res.json();
-        p.chats = [];
-        this.projects.push(p);
-        this.closeProjectModal();
-        await this.selectProject(p.id);
+        try {
+            const res = await fetch('/api/projects/create', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({name})
+            });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const p = await res.json();
+            p.chats = [];
+            this.projects.push(p);
+            this.closeProjectModal();
+            await this.selectProject(p.id);
+        } catch (e) {
+            console.error('createProject error:', e);
+        }
+    },
+
+    async renameProject(id) {
+        const project = this.projects.find(p => p.id === id);
+        if (!project) return;
+        const newName = prompt('Rename project:', project.name);
+        if (!newName || newName.trim() === '' || newName.trim() === project.name) return;
+        try {
+            const res = await fetch(`/api/projects/${id}/rename`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({name: newName.trim()})
+            });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const updated = await res.json();
+            project.name = updated.name || newName.trim();
+            if (this.currentProject?.id === id) this.currentProject.name = project.name;
+            this.renderProjects();
+            this.showView();
+        } catch (e) {
+            console.error('renameProject error:', e);
+        }
+    },
+
+    async renameChat(id) {
+        const chat = this.projects.flatMap(p => p.chats || []).find(c => c.id === id);
+        if (!chat) return;
+        const newName = prompt('Rename chat:', chat.name);
+        if (!newName || newName.trim() === '' || newName.trim() === chat.name) return;
+        try {
+            const res = await fetch(`/api/chats/${id}/rename`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({name: newName.trim()})
+            });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const updated = await res.json();
+            chat.name = updated.name || newName.trim();
+            if (this.currentChat?.id === id) this.currentChat.name = chat.name;
+            this.renderProjects();
+            this.showView();
+        } catch (e) {
+            console.error('renameChat error:', e);
+        }
     },
 
     async deleteProject(id) {
-        if (!confirm('Delete?')) return;
-        await fetch(`/api/projects/${id}`, {method: 'DELETE'});
-        this.projects = this.projects.filter(p => p.id !== id);
-        if (this.currentProject?.id === id) {
-            this.currentProject = null;
-            this.currentChat = null;
-            this.showView();
+        if (!confirm('Delete this project?')) return;
+        try {
+            await fetch(`/api/projects/${id}`, {method: 'DELETE'});
+            this.projects = this.projects.filter(p => p.id !== id);
+            if (this.currentProject?.id === id) {
+                this.currentProject = null;
+                this.currentChat = null;
+                this.showView();
+            }
+            this.renderProjects();
+        } catch (e) {
+            console.error('deleteProject error:', e);
         }
-        this.renderProjects();
     },
 
     async deleteChat(id) {
-        if (!confirm('Delete?')) return;
-        await fetch(`/api/chats/${id}`, {method: 'DELETE'});
-        if (this.currentProject?.chats) {
-            this.currentProject.chats = this.currentProject.chats.filter(c => c.id !== id);
+        if (!confirm('Delete this chat?')) return;
+        try {
+            await fetch(`/api/chats/${id}`, {method: 'DELETE'});
+            if (this.currentProject?.chats) {
+                this.currentProject.chats = this.currentProject.chats.filter(c => c.id !== id);
+            }
+            if (this.currentChat?.id === id) {
+                this.currentChat = null;
+                this.showView();
+            }
+            this.renderProjects();
+        } catch (e) {
+            console.error('deleteChat error:', e);
         }
-        if (this.currentChat?.id === id) {
-            this.currentChat = null;
-            this.showView();
-        }
-        this.renderProjects();
     }
 };
 

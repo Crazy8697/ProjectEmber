@@ -6,108 +6,128 @@
   <title>Project Ember Admin Console</title>
   <style>
     :root {
-      --bg: #0b0f1a;
-      --card: rgba(255,255,255,.06);
-      --card2: rgba(0,0,0,.35);
-      --border: rgba(255,255,255,.12);
-      --border2: rgba(255,255,255,.10);
-      --text: #e9eefc;
-      --muted: rgba(233,238,252,.75);
-      --muted2: rgba(233,238,252,.60);
-      --btn: rgba(255,255,255,.08);
-      --btnH: rgba(255,255,255,.12);
-      --danger: rgba(255,80,80,.10);
-      --dangerB: rgba(255,80,80,.28);
-      --ok: rgba(80,255,160,.12);
-      --okB: rgba(80,255,160,.28);
-      --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-      --ui: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Arial;
-      --r: 16px;
+      --bg: #0a0c10;
+      --card: #0d1117;
+      --border: #1a2332;
+      --border2: #1a2332;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --muted2: #4a5568;
+      --accent: #06b6d4;
+      --accentH: #22d3ee;
+      --green: #a3e635;
+      --red: #f87171;
+      --btn: #111827;
+      --btnH: #1a2332;
+      --danger: rgba(248,113,113,.10);
+      --dangerB: rgba(248,113,113,.30);
+      --ok: rgba(163,230,53,.10);
+      --okB: rgba(163,230,53,.30);
+      --mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+      --r: 6px;
     }
-    body { font-family: var(--ui); margin: 0; padding: 24px; background: var(--bg); color: var(--text); }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: var(--mono); margin: 0; padding: 20px; background: var(--bg); color: var(--text); font-size: 13px; }
     .wrap { max-width: 1100px; margin: 0 auto; }
-    .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--r); padding: 18px; box-shadow: 0 10px 30px rgba(0,0,0,.35); }
-    .titleRow { display:flex; align-items:flex-start; justify-content:space-between; gap: 12px; }
-    h1 { margin:0 0 6px; font-size: 22px; }
-    p { margin:0 0 12px; color: var(--muted); }
-    .pill { display:inline-block; font-size: 12px; padding: 3px 10px; border-radius: 999px; border: 1px solid var(--border); background: rgba(255,255,255,.05); color: var(--muted); }
-    .row { display:flex; gap: 12px; flex-wrap:wrap; align-items:center; }
-    .grid { display:grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    .subcard { background: rgba(255,255,255,.05); border: 1px solid var(--border2); border-radius: 14px; padding: 14px; }
-    .subcard h2 { margin:0 0 8px; font-size: 16px; }
-    .subcard p { margin:0 0 10px; color: var(--muted2); font-size: 13px; }
-    label { display:block; font-size: 12px; opacity:.85; margin: 10px 0 6px; }
+
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--r); padding: 16px; margin-bottom: 12px; }
+    .titleRow { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+    h1 { margin: 0 0 4px; font-size: 16px; color: var(--accent); }
+    p { margin: 0 0 10px; color: var(--muted2); font-size: 12px; }
+    .pill { font-size: 11px; padding: 2px 8px; border-radius: 4px; border: 1px solid var(--border); background: var(--btn); color: var(--muted2); }
+
+    .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+    .subcard { background: var(--bg); border: 1px solid var(--border); border-radius: var(--r); padding: 14px; }
+    .subcard h2 { margin: 0 0 6px; font-size: 14px; color: var(--accent); }
+    .subcard p { margin: 0 0 8px; color: var(--muted2); font-size: 11px; }
+
+    label { display: block; font-size: 11px; color: var(--muted2); margin: 8px 0 4px; text-transform: uppercase; letter-spacing: 0.5px; }
     input, textarea, select {
       width: 100%;
-      padding: 10px 12px;
-      border-radius: 12px;
-      border: 1px solid rgba(255,255,255,.18);
-      background: rgba(255,255,255,.06);
+      padding: 8px 10px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      background: var(--bg);
       color: var(--text);
-      font-family: var(--ui);
-      box-sizing: border-box;
+      font-family: var(--mono);
+      font-size: 13px;
     }
-    textarea { min-height: 76px; resize: vertical; }
+    input:focus, textarea:focus, select:focus { outline: none; border-color: var(--accent); }
+    textarea { min-height: 70px; resize: vertical; }
+
     button, a.btn {
-      cursor:pointer;
-      border: 1px solid rgba(255,255,255,.18);
+      cursor: pointer;
+      border: 1px solid var(--border);
       background: var(--btn);
       color: var(--text);
-      padding: 10px 12px;
-      border-radius: 12px;
+      padding: 8px 12px;
+      border-radius: 4px;
       font-weight: 600;
       text-decoration: none;
       display: inline-flex;
-      align-items:center;
-      gap: 8px;
-      font-size: 13px;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-family: var(--mono);
     }
-    button:hover, a.btn:hover { background: var(--btnH); }
-    button.danger { background: var(--danger); border-color: var(--dangerB); }
-    button.danger:hover { background: rgba(255,80,80,.16); }
-    button.good { background: var(--ok); border-color: var(--okB); }
-    button.good:hover { background: rgba(80,255,160,.18); }
+    button:hover, a.btn:hover { background: var(--btnH); color: var(--accentH); }
+    button.danger { background: var(--danger); border-color: var(--dangerB); color: var(--red); }
+    button.danger:hover { background: rgba(248,113,113,.18); }
+    button.good { background: var(--ok); border-color: var(--okB); color: var(--green); }
+    button.good:hover { background: rgba(163,230,53,.18); }
+
     .status {
-      margin-top: 12px;
-      padding: 12px;
-      border-radius: 12px;
-      background: var(--card2);
-      border: 1px solid var(--border2);
+      margin-top: 10px;
+      padding: 10px;
+      border-radius: 4px;
+      background: var(--bg);
+      border: 1px solid var(--border);
       white-space: pre-wrap;
       font-family: var(--mono);
       font-size: 12px;
-      overflow:auto;
+      overflow: auto;
       max-height: 340px;
+      color: var(--muted);
     }
-    .muted { color: var(--muted2); font-size: 12px; }
+    .muted { color: var(--muted2); font-size: 11px; }
+
     .table {
-      width:100%;
+      width: 100%;
       border-collapse: collapse;
       font-family: var(--mono);
       font-size: 12px;
-      margin-top: 10px;
+      margin-top: 8px;
     }
     .table th, .table td {
-      border-bottom: 1px solid rgba(255,255,255,.10);
-      padding: 8px 6px;
+      border-bottom: 1px solid var(--border);
+      padding: 6px;
       vertical-align: top;
     }
-    .table th { text-align:left; color: var(--muted); font-weight: 700; }
-    .table tr:hover td { background: rgba(255,255,255,.03); }
-    .k { color: var(--muted); }
-    .right { text-align:right; }
-    .smallRow { display:flex; gap: 8px; flex-wrap:wrap; align-items:center; }
+    .table th { text-align: left; color: var(--muted2); font-weight: 700; text-transform: uppercase; font-size: 10px; letter-spacing: 0.5px; }
+    .table tr:hover td { background: rgba(255,255,255,.02); }
+    .right { text-align: right; }
+
+    .smallRow { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
     .smallRow > * { flex: 1 1 auto; }
     .smallRow .fixed { flex: 0 0 auto; }
-    .split { display:grid; grid-template-columns: 1fr; gap: 12px; }
-    @media (min-width: 920px) {
-      .split { grid-template-columns: 1fr 1fr; }
-    }
-    details { border: 1px solid var(--border2); border-radius: 14px; background: rgba(255,255,255,.04); }
-    summary { cursor:pointer; padding: 10px 12px; user-select:none; color: var(--text); font-weight: 700; }
+
+    .split { display: grid; grid-template-columns: 1fr; gap: 12px; }
+    @media (min-width: 920px) { .split { grid-template-columns: 1fr 1fr; } }
+
+    details { border: 1px solid var(--border); border-radius: var(--r); background: rgba(255,255,255,.02); }
+    summary { cursor: pointer; padding: 8px 12px; user-select: none; color: var(--accent); font-weight: 700; font-size: 12px; }
     details > div { padding: 0 12px 12px; }
-    .hint { margin-top: 10px; font-size: 12px; color: var(--muted2); }
-    .badge { font-family: var(--mono); font-size: 11px; padding: 2px 6px; border-radius: 999px; border: 1px solid rgba(255,255,255,.16); background: rgba(255,255,255,.05); color: var(--muted); }
+
+    .hint { margin-top: 8px; font-size: 11px; color: var(--muted2); }
+    .badge { font-family: var(--mono); font-size: 10px; padding: 2px 6px; border-radius: 4px; border: 1px solid var(--border); background: var(--btn); color: var(--muted2); }
+
+    /* Username section */
+    .username-section { display: flex; gap: 8px; align-items: center; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
+    .username-section label { margin: 0; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; }
+    .username-section input { max-width: 200px; color: var(--green); }
+    .username-section button { white-space: nowrap; }
   </style>
 </head>
 <body>
@@ -115,7 +135,7 @@
     <div class="card">
       <div class="titleRow">
         <div>
-          <h1>Project Ember Admin Console</h1>
+          <h1>⚙️ Admin Console</h1>
           <p>Controls, status, and other responsible-adult nonsense.</p>
         </div>
         <div class="pill">/admin</div>
@@ -124,17 +144,26 @@
       <div class="row">
         <button id="btnStatus">Refresh status</button>
         <a class="btn" href="/control">legacy /control</a>
-        <a class="btn" href="/">back to chat</a>
+        <a class="btn" href="/">← back to chat</a>
       </div>
 
       <div id="statusOut" class="status">…</div>
+
+      <div class="username-section">
+        <label>Username:</label>
+        <input id="adminUsername" type="text" placeholder="user" value=""/>
+        <button id="btnSaveUsername" class="good">Save</button>
+      </div>
+
       <div class="hint">This page is intentionally boring. Boring is stable.</div>
     </div>
 
     <div style="height:12px"></div>
 
+    <div style="height:12px"></div>
+
     <div class="card">
-      <h1 style="font-size:18px; margin-bottom:8px;">Cache Inspector</h1>
+      <h1 style="font-size:14px; margin-bottom:6px;">Cache Inspector</h1>
       <p class="muted">Scavenger cache tables: <span class="badge">part_enrich_cache</span> and <span class="badge">web_search_cache</span>.</p>
 
       <div class="split">
@@ -142,18 +171,18 @@
           <h2>Part Enrich Cache</h2>
           <div class="smallRow">
             <input id="pecQuery" placeholder="mpn (exact or partial)"/>
-            <label class="fixed" style="display:flex;align-items:center;gap:6px;margin:0;">
+            <label class="fixed" style="display:flex;align-items:center;gap:6px;margin:0;text-transform:none;">
               <input id="pecLike" type="checkbox" style="width:auto;margin:0;"/> LIKE
             </label>
-            <label class="fixed" style="display:flex;align-items:center;gap:6px;margin:0;">
+            <label class="fixed" style="display:flex;align-items:center;gap:6px;margin:0;text-transform:none;">
               <input id="pecWithPayload" type="checkbox" style="width:auto;margin:0;"/> payload
             </label>
           </div>
-          <div class="row" style="margin-top:10px;">
+          <div class="row" style="margin-top:8px;">
             <button id="pecSearch">Search</button>
           </div>
 
-          <div class="smallRow" style="margin-top:10px;">
+          <div class="smallRow" style="margin-top:8px;">
             <input id="pecDeleteMpn" placeholder="mpn to delete"/>
             <button id="pecDeleteBtn" class="danger fixed">Delete MPN</button>
           </div>
@@ -166,19 +195,19 @@
           <h2>Web Search Cache</h2>
           <div class="smallRow">
             <input id="wscQuery" placeholder="query (exact or partial)"/>
-            <label class="fixed" style="display:flex;align-items:center;gap:6px;margin:0;">
+            <label class="fixed" style="display:flex;align-items:center;gap:6px;margin:0;text-transform:none;">
               <input id="wscLike" type="checkbox" style="width:auto;margin:0;"/> LIKE
             </label>
             <button id="wscSearch" class="fixed">Search</button>
           </div>
 
-          <div class="smallRow" style="margin-top:10px;">
+          <div class="smallRow" style="margin-top:8px;">
             <input id="wscDelQuery" placeholder="query to delete"/>
             <input id="wscDelRank" placeholder="rank (optional)"/>
             <button id="wscDelOne" class="danger fixed">Delete (query,rank)</button>
           </div>
 
-          <div class="row" style="margin-top:10px;">
+          <div class="row" style="margin-top:8px;">
             <button id="wscDelAll" class="danger">Delete all for query</button>
           </div>
 
@@ -301,7 +330,7 @@
                 <input id="catDelId" placeholder="id to delete"/>
                 <button id="catDelete" class="danger fixed">Delete</button>
               </div>
-              <div class="hint">If it's a parent with children, you might want to reparent first. SQLite will set children parent_id to NULL if foreign key enforcement is on and configured that way.</div>
+              <div class="hint">If it's a parent with children, you might want to reparent first.</div>
             </div>
           </details>
 
@@ -309,7 +338,7 @@
       </div>
     </div>
 
-    <div class="hint muted" style="margin-top:10px;">Admin Console running at <code>/admin</code> (embedded in Ember UI for convenience).</div>
+    <div class="hint muted" style="margin-top:8px;">Admin Console running at <code>/admin</code></div>
   </div>
 
 <script>
@@ -323,13 +352,28 @@ function show(el, x){
 }
 function esc(s){ return (s ?? '').toString(); }
 
+// Username save/load
+const adminUsernameInput = document.getElementById('adminUsername');
+try {
+  const saved = localStorage.getItem('ember_username');
+  if (saved) adminUsernameInput.value = saved;
+} catch(e) {}
+
+document.getElementById('btnSaveUsername').addEventListener('click', () => {
+  const name = adminUsernameInput.value.trim() || 'user';
+  adminUsernameInput.value = name;
+  try { localStorage.setItem('ember_username', name); } catch(e) {}
+  show(document.getElementById('statusOut'), 'Username saved: ' + name);
+});
+
+// Status
 const statusOut = document.getElementById('statusOut');
 document.getElementById('btnStatus').addEventListener('click', async () => {
   show(statusOut, await j('/api/admin/status'));
 });
 (async()=>{ show(statusOut, await j('/api/admin/status')); })();
 
-// Cache inspector (existing endpoints expected)
+// Cache inspector
 const pecOut = document.getElementById('pecOut');
 document.getElementById('pecSearch').addEventListener('click', async () => {
   const q = document.getElementById('pecQuery').value.trim();
