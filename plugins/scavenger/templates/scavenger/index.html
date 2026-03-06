@@ -1,0 +1,113 @@
+{% extends "scavenger/base.html" %}
+{% block content %}
+<style>
+  /* Inventory row highlighting */
+  tr.row-review td {
+    background: rgba(220, 38, 38, 0.18);
+    border-top: 1px solid rgba(220, 38, 38, 0.25);
+    border-bottom: 1px solid rgba(220, 38, 38, 0.25);
+  }
+  tr.row-lowconf td {
+    background: rgba(245, 158, 11, 0.14);
+    border-top: 1px solid rgba(245, 158, 11, 0.22);
+    border-bottom: 1px solid rgba(245, 158, 11, 0.22);
+  }
+  .badge {
+    display:inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 999px;
+    margin-left: 8px;
+    vertical-align: middle;
+    border: 1px solid rgba(255,255,255,.12);
+    opacity: .9;
+  }
+  .badge.review { background: rgba(220, 38, 38, 0.75); }
+  .badge.lowconf { background: rgba(245, 158, 11, 0.65); }
+</style>
+<section class="card">
+  <div class="row">
+    <h2>Inventory</h2>
+    <div class="muted">{{ shown }} shown / {{ total }} total</div>
+  </div>
+
+  <form class="filters" method="get" action="{{ url_for('scavenger.index') }}">
+    <input name="q" value="{{ q }}" placeholder="search everything… (mpn, value, notes, etc)"/>
+
+    <select name="category">
+      <option value="">All categories</option>
+      {% for c in categories %}
+        <option value="{{ c }}" {% if cat==c %}selected{% endif %}>{{ c }}</option>
+      {% endfor %}
+    </select>
+
+    <select name="location_bin">
+      <option value="">All locations</option>
+      {% for l in locations %}
+        <option value="{{ l }}" {% if loc==l %}selected{% endif %}>{{ l }}</option>
+      {% endfor %}
+    </select>
+
+    <button class="btn" type="submit">Apply</button>
+    <a class="btn ghost" href="{{ url_for('scavenger.index') }}">Reset</a>
+  </form>
+</section>
+
+<section class="card">
+  <div class="tableWrap">
+    <table>
+      <thead>
+        <tr>
+          <th>mpn</th>
+          <th>category</th>
+          <th>package</th>
+          <th>qty</th>
+          <th>location_bin</th>
+          <th>notes</th>
+          <th>actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in rows %}
+          {% set mpn = r.get('mpn','') %}
+          {% set needs_review_raw = (r.get('needs_review','') ~ '')|trim|lower %}
+          {% set is_review = needs_review_raw in ['1','true','yes','y','on'] %}
+          {% set conf_raw = (r.get('confidence','') ~ '')|trim %}
+          {% if conf_raw != '' %}
+            {% set conf = conf_raw|float %}
+          {% else %}
+            {% set conf = none %}
+          {% endif %}
+          {% set is_lowconf = (conf is not none) and (conf < 0.6) %}
+          <tr class="{% if is_review %}row-review{% elif is_lowconf %}row-lowconf{% endif %}">
+            <td>
+              <a href="{{ url_for('scavenger.part_detail', mpn=mpn) }}">{{ mpn }}</a>{% if is_review %}<span class="badge review">REVIEW</span>{% elif is_lowconf %}<span class="badge lowconf">LOW CONF</span>{% endif %}
+            </td>
+            <td>{{ r.get('category','') }}</td>
+            <td>{{ r.get('package','') }}</td>
+            <td class="num">{{ r.get('qty_on_hand','') }}</td>
+            <td>{{ r.get('location_bin','') }}</td>
+            <td class="notes">{{ r.get('notes','') }}</td>
+            <td>
+              <form method="post"
+                    action="{{ url_for('scavenger.delete_item', mpn=mpn) }}"
+                    onsubmit="return confirm('Delete ' + '{{ mpn }}' + '? This cannot be undone.');"
+                    style="display:inline;">
+                <button class="btn danger" type="submit"
+                        style="background:#dc2626; color:#fff; border:none;">
+                  Delete
+                </button>
+              </form>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="hint">
+    Tip: click an <code>mpn</code> to edit.
+  </div>
+</section>
+{% endblock %}

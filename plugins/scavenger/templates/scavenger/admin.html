@@ -1,0 +1,71 @@
+{% extends "scavenger/base.html" %}
+{% block content %}
+<section class="card">
+  <div class="row">
+    <h2>Admin Console</h2>
+    <div class="muted">local-only {% if token %}(token supplied){% endif %} • {{ now }}</div>
+  </div>
+
+  <div class="hint">
+    This page is intended for local maintenance: cache busting, health visibility, and log tailing.
+  </div>
+</section>
+
+<section class="card">
+  <h3>DB + Cache Stats</h3>
+  <div class="tableWrap">
+    <table>
+      <tbody>
+        <tr><th style="text-align:left;">db path</th><td><code>{{ db_path }}</code></td></tr>
+        <tr><th style="text-align:left;">db size</th><td>{{ db_size }} bytes</td></tr>
+        <tr><th style="text-align:left;">part_enrich_cache</th><td>{{ part_cache_count }}</td></tr>
+        <tr><th style="text-align:left;">web_search_cache</th><td>{{ search_cache_count }}</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3 style="margin-top:16px;">Health Snapshot</h3>
+  <div class="tableWrap">
+    <table>
+      <tbody>
+        <tr><th style="text-align:left;">OPENAI_MODEL</th><td><code>{{ health.openai_model }}</code></td></tr>
+        <tr><th style="text-align:left;">BRAVE_ENABLED</th><td><code>{{ health.brave_enabled }}</code></td></tr>
+        <tr><th style="text-align:left;">BRAVE_CACHE_ENABLED</th><td><code>{{ health.brave_cache_enabled }}</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="card">
+  <h3>Quick Actions</h3>
+
+  <form method="post" action="{{ url_for('scavenger.admin_cache_bust') }}">
+    {% if token %}<input type="hidden" name="token" value="{{ token }}"/>{% endif %}
+    <label class="muted" style="display:block;margin-bottom:6px;">Bust part cache by MPN (one per line or comma-separated)</label>
+    <textarea name="mpns" style="width:100%;min-height:90px;"></textarea>
+    <div style="margin-top:10px;display:flex;gap:10px;flex-wrap:wrap;">
+      <button class="btn" type="submit">Bust Cache</button>
+      <a class="btn ghost" href="{{ url_for('scavenger.admin_console', token=token, lines=log_lines) }}">Refresh</a>
+    </div>
+  </form>
+</section>
+
+<section class="card">
+  <div class="row">
+    <h3>Log Viewer</h3>
+    <div class="muted">{{ log_path }}</div>
+  </div>
+
+  <div class="row" style="margin:10px 0;">
+    <div class="muted">Showing last {{ log_lines }} lines.</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <a class="btn ghost" href="{{ url_for('scavenger.admin_console', token=token, lines=200) }}">200</a>
+      <a class="btn ghost" href="{{ url_for('scavenger.admin_console', token=token, lines=500) }}">500</a>
+      <a class="btn ghost" href="{{ url_for('scavenger.admin_console', token=token, lines=1000) }}">1000</a>
+      <a class="btn" href="{{ url_for('scavenger.admin_console', token=token, lines=log_lines) }}">Refresh</a>
+    </div>
+  </div>
+
+  <pre style="white-space:pre-wrap; background:rgba(0,0,0,.18); border:1px solid rgba(255,255,255,.08); padding:12px; border-radius:12px; max-height:520px; overflow:auto;">{{ log_tail }}</pre>
+</section>
+{% endblock %}

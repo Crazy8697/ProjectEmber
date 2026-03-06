@@ -10,8 +10,7 @@ import socket
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from flask import Flask, request, jsonify, render_template
-from werkzeug.middleware.dispatcher import DispatcherMiddleware
+from flask import Flask, request, jsonify, render_template, redirect
 from werkzeug.serving import run_simple
 
 APP_DIR = Path(__file__).resolve().parent
@@ -46,13 +45,11 @@ _load_dotenv(APP_DIR / ".env")
 # ----------------------------
 ember = Flask(__name__, static_folder="static", template_folder="templates")
 
-# ----------------------------
+# Register the scavenger inventory blueprint
+from plugins.scavenger import init_scavenger
+init_scavenger(ember)
 
-@ember.route("/")
-def index():
-    """Serve the main frontend."""
-    from flask import send_file
-    return send_file('templates/index.html', mimetype='text/html')
+# ----------------------------
 
 def _load_memory() -> Dict[str, str]:
     try:
@@ -678,9 +675,6 @@ def api_categories_delete():
         return jsonify({"ok": True, "deleted": deleted, "children_detached": int(child_count) if (child_count and force) else 0})
     except Exception as e:
         return jsonify({"ok": False, "error": f"{type(e).__name__}: {e}"}), 500
-from tools_registry import tools_by_group
-
-
 
 from tools_registry import tools_by_group, get_tool
 
@@ -1037,43 +1031,8 @@ def api_inventory_delete(mpn):
 
     return jsonify({"ok": True, "deleted": mpn})
 
-def _load_scavenger_app(scavenger_dir: str):
-    """Load Scavenger Inventory's Flask module reliably (no 'app' collisions)."""
-    import importlib.util
-    import os
-    import sys
-    import types
-
-    scavenger_dir = os.path.abspath(scavenger_dir)
-    pkg_dir = os.path.join(scavenger_dir, "app")
-    app_py = os.path.join(pkg_dir, "app.py")
-    if not os.path.isdir(pkg_dir) or not os.path.isfile(app_py):
-        raise FileNotFoundError(f"Scavenger app not found at: {app_py}")
-
-    # Purge any cached 'app' modules.
-    for k in list(sys.modules.keys()):
-        if k == "app" or k.startswith("app."):
-            sys.modules.pop(k, None)
-
-    # Create synthetic package 'app'
-    pkg = types.ModuleType("app")
-    pkg.__path__ = [pkg_dir]  # type: ignore[attr-defined]
-    sys.modules["app"] = pkg
-
-    spec = importlib.util.spec_from_file_location("app.app", app_py)
-    if spec is None or spec.loader is None:
-        raise ImportError(f"Could not create import spec for: {app_py}")
-    mod = importlib.util.module_from_spec(spec)
-    sys.modules["app.app"] = mod
-    spec.loader.exec_module(mod)
-    return mod
-
 def build_wsgi_app():
-    scavenger_mod = _load_scavenger_app(SCAVENGER_DIR)
-    scavenger_flask = getattr(scavenger_mod, "app", None) or getattr(scavenger_mod, "application", None)
-    if scavenger_flask is None:
-        raise RuntimeError("Ember: scavenger module imported, but no Flask app found (expected .app)")
-    return DispatcherMiddleware(ember, {SCAVENGER_MOUNT_PATH: scavenger_flask})
+    return ember
 
 def main():
     application = build_wsgi_app()
@@ -1211,11 +1170,6 @@ def chat_app():
     """Serve the chat app frontend."""
     from flask import send_file
     return send_file('templates/index.html', mimetype='text/html')
-
-@ember.route("/scavenger")
-def scavenger():
-    """Serve the scavenger inventory page."""
-    return redirect("/")
 
 @ember.get("/inventory-page")
 def inventory_page():

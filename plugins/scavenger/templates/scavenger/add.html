@@ -1,0 +1,127 @@
+{% extends "scavenger/base.html" %}
+{% block content %}
+<section class="card">
+  <div class="row">
+    <h2>Add Part</h2>
+    <div class="muted">New row in inventory.csv</div>
+  </div>
+
+  <style>
+    .enrichBox { border:1px solid #2a2a2a; border-radius:10px; padding:12px; margin:14px 0 18px; }
+    .enrichRow { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+    .hidden { display:none !important; }
+    .spinner {
+      width:16px; height:16px; border-radius:999px;
+      border:2px solid rgba(255,255,255,0.25);
+      border-top-color: rgba(255,255,255,0.9);
+      animation: spin 0.8s linear infinite;
+      display:inline-block;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    table.enrichTable { width:100%; border-collapse:collapse; margin-top:10px; }
+    table.enrichTable th, table.enrichTable td {
+      border-bottom:1px solid #2a2a2a;
+      padding:6px 8px;
+      font-size:0.95rem;
+    }
+    table.enrichTable th { text-align:left; }
+    .queueList { margin-top:10px; display:flex; flex-direction:column; gap:8px; }
+    .queueItem {
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:10px;
+      padding:8px;
+      border:1px solid #2a2a2a;
+      border-radius:10px;
+    }
+    .small { font-size:0.9rem; opacity:0.85; }
+  </style>
+
+  <div id="appData" class="hidden" data-headers='{{ headers|tojson|e }}'></div>
+
+  <div class="enrichBox">
+    <div class="row" style="margin-bottom:12px;">
+      <strong>Enrich (multi-add)</strong>
+      <span class="muted">Paste MPNs, enrich, then queue + add.</span>
+    </div>
+
+    <div class="enrichRow" style="margin-bottom:8px;">
+      <textarea id="mpnList" rows="3" style="flex:1; min-width:280px;"
+        placeholder="s9014, b647, a1013&#10;or one per line"></textarea>
+
+      <button type="button" class="btn" id="enrichBtn">Enrich list</button>
+
+      <span id="thinking" class="hidden" style="align-items:center; gap:8px;">
+        <span class="spinner"></span>
+        <span class="muted">Thinking…</span>
+      </span>
+    </div>
+
+    <div style="margin-bottom:12px;">
+      <div class="label">Hints (optional)</div>
+      <input id="hints" placeholder="Context, e.g. pulled from PSU, likely TO-92, etc." />
+    </div>
+
+    <div id="enrichMsg" class="muted small"></div>
+    <div id="enrichResults" class="hidden"></div>
+
+    <div id="queueBox" class="hidden" style="margin-top:12px;">
+      <div class="row" style="margin-bottom:12px;">
+        <strong>Waiting to be added</strong>
+        <span class="muted small">Will POST to /scavenger/add one-by-one.</span>
+      </div>
+
+      <div class="enrichRow">
+        <button type="button" class="btn" id="addQueuedBtn">Add queued</button>
+        <button type="button" class="btn ghost" id="clearQueueBtn">Clear queue</button>
+
+        <span id="addQueuedThinking" class="hidden" style="align-items:center; gap:8px;">
+          <span class="spinner"></span>
+          <span class="muted">Adding…</span>
+        </span>
+      </div>
+
+      <div id="queueList" class="queueList"></div>
+    </div>
+  </div>
+
+  <div style="display:flex; gap:10px; align-items:center; margin-bottom:15px;">
+    <strong>Lookup:</strong>
+    <select id="lookupSource">
+      <option value="ari">Ari (Structured JSON)</option>
+      <option value="chatgpt">ChatGPT</option>
+      <option value="mouser">Mouser</option>
+      <option value="digikey">DigiKey</option>
+      <option value="alldatasheet">AllDatasheet</option>
+    </select>
+    <button type="button" class="btn ghost" id="lookupBtn">Go</button>
+  </div>
+
+  <div style="margin-bottom:20px;">
+    <div class="label">Paste JSON from Ari here:</div>
+    <textarea id="jsonInput" rows="6" placeholder="Paste structured JSON here"></textarea>
+    <button type="button" class="btn ghost" style="margin-top:8px;" id="applyJsonBtn">Apply JSON</button>
+  </div>
+
+  <form class="formGrid" method="post" action="{{ url_for('scavenger.add_submit') }}">
+    {% for h in headers %}
+      <label>
+        <div class="label">{{ h }}</div>
+        {% if h == "notes" %}
+          <textarea name="{{ h }}" rows="3"></textarea>
+        {% else %}
+          <input name="{{ h }}" />
+        {% endif %}
+      </label>
+    {% endfor %}
+
+    <div class="actions">
+      <button class="btn" type="submit">Add</button>
+      <a class="btn ghost" href="{{ url_for('scavenger.index') }}">Back</a>
+    </div>
+  </form>
+
+  <script src="{{ url_for('scavenger.static', filename='add.js') }}?v=ui-20260224_1545"></script>
+</section>
+{% endblock %}

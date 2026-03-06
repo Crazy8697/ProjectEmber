@@ -1,0 +1,270 @@
+:root { font-family: system-ui, sans-serif; }
+
+*,
+*::before,
+*::after { box-sizing: border-box; }
+
+/* Keep the page from ever doing side-scroll gymnastics */
+body {
+  margin: 0;
+  background: #0b0c10;
+  color: #e6e6e6;
+  overflow-x: hidden;
+}
+
+a { color: #9ad1ff; text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* --- Top bar --- */
+.topbar {
+  position: sticky; top: 0;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 16px;
+  background: #11131a; border-bottom: 1px solid #22263a;
+}
+
+.brand { display: flex; gap: 10px; align-items: center; }
+
+.logo {
+  width: 40px; height: 40px; border-radius: 10px;
+  display: grid; place-items: center;
+  background: #1b1f2e; border: 1px solid #2a3150;
+  font-weight: 700;
+}
+
+.title { font-weight: 700; }
+.subtitle { font-size: 12px; opacity: .7; }
+
+.nav { display: flex; gap: 10px; align-items: center; }
+
+.btn {
+  background: #2a74ff; border: 1px solid #2a74ff;
+  color: white; padding: 8px 12px; border-radius: 10px;
+  cursor: pointer; font-weight: 600;
+}
+
+a.btn { display: inline-flex; align-items: center; justify-content: center; }
+a.btn:hover { text-decoration: none; }
+
+.btn.ghost {
+  background: transparent; border: 1px solid #2a3150;
+  color: #e6e6e6;
+}
+
+/* Pill buttons + active state (used in top nav) */
+.pill { border-radius: 999px; padding: 8px 14px; line-height: 1; }
+.btn.ghost.pill.active {
+  background: #0f1220;
+  border-color: #2a74ff;
+  color: #e6e6e6;
+}
+
+/* --- Layout --- */
+.wrap {
+  max-width: 1200px;
+  margin: 18px auto;
+  padding: 0 14px;
+  display: grid;
+  gap: 14px;
+}
+
+/*
+  CRITICAL: prevents "wide child makes the whole card/page wider"
+  This is the silent bastard that breaks scrolling containment.
+*/
+.card { min-width: 0; }
+
+.card {
+  background: #11131a;
+  border: 1px solid #22263a;
+  border-radius: 14px;
+  padding: 14px;
+}
+
+.row { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.muted { opacity: .7; font-size: 13px; }
+
+/* --- Filters --- */
+.filters {
+  display: grid;
+  grid-template-columns: 1fr 220px 220px auto auto;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+input, select, textarea {
+  width: 100%;
+  background: #0b0c10;
+  color: #e6e6e6;
+  border: 1px solid #2a3150;
+  border-radius: 10px;
+  padding: 9px 10px;
+}
+
+textarea { resize: vertical; }
+
+/* --- Inventory table (scoped) --- */
+.tableWrap {
+  overflow: auto;
+  border-radius: 12px;
+  border: 1px solid #22263a;
+}
+
+.tableWrap table {
+  border-collapse: collapse;
+  width: 100%;
+  min-width: 900px;
+}
+
+.tableWrap th,
+.tableWrap td {
+  padding: 10px;
+  border-bottom: 1px solid #1d2133;
+  vertical-align: top;
+}
+
+.tableWrap th {
+  text-align: left;
+  font-size: 13px;
+  opacity: .8;
+  background: #0f1220;
+  position: sticky;
+  top: 0;
+}
+
+td.num { text-align: right; }
+td.notes { max-width: 520px; white-space: pre-wrap; }
+.hint { margin-top: 10px; font-size: 13px; opacity: .75; }
+
+/* --- Forms --- */
+.formGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.label { font-size: 12px; opacity: .75; margin-bottom: 6px; }
+.actions { grid-column: 1 / -1; display: flex; gap: 10px; }
+
+/* --- Flash messages --- */
+.flashbox { display: grid; gap: 8px; }
+.flash {
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid #2a3150;
+  background: #0f1220;
+}
+.flash.ok { border-color: #2a74ff; }
+.flash.error { border-color: #ff4d4d; }
+
+/* --- Modal --- */
+.modal {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.65);
+  display: none;
+  place-items: center;
+  padding: 16px;
+}
+.modal[aria-hidden="false"] { display: grid; }
+
+.modalCard {
+  width: min(980px, 100%);
+  background: #11131a;
+  border: 1px solid #22263a;
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.modalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 14px;
+  border-bottom: 1px solid #22263a;
+}
+
+.output { margin: 0; padding: 14px; max-height: 70vh; overflow: auto; }
+
+/* -------------------------------------------------------
+   Add page: Enrich preview containment + scrollbar
+   ------------------------------------------------------- */
+
+/* The preview box should NEVER widen the page.
+   If it needs more width, it scrolls inside itself. */
+#enrichResults {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;      /* inner horizontal scroll */
+  overflow-y: auto;
+  display: block;
+  position: relative;
+  border-radius: 12px;
+  border: 1px solid #22263a;
+  background: #0f1220;
+  padding: 8px;
+  padding-bottom: 14px;  /* room for scrollbar */
+}
+
+/* Firefox/Linux can hide overlay scrollbars; make it visible-ish */
+#enrichResults {
+  scrollbar-width: auto;
+  scrollbar-color: #2a3150 #0f1220;
+}
+
+/* Override add.html inline width:100% rule for enrichTable */
+#enrichResults table.enrichTable {
+  border-collapse: collapse !important;
+  width: max-content !important;  /* natural width based on content */
+  min-width: 100% !important;     /* at least fill container */
+}
+
+/* Default: keep most columns from wrapping so overflow actually happens */
+#enrichResults table.enrichTable th,
+#enrichResults table.enrichTable td {
+  border-bottom: 1px solid #1d2133;
+  padding: 8px 10px;
+  vertical-align: top;
+  font-size: 0.95rem;
+  white-space: nowrap;
+}
+
+/* Sticky header inside preview scroll box */
+#enrichResults table.enrichTable th {
+  text-align: left;
+  font-size: 13px;
+  opacity: .85;
+  background: #0f1220;
+  position: sticky;
+  top: 0;
+}
+
+/* Checkbox column */
+#enrichResults table.enrichTable td:first-child {
+  width: 44px;
+  padding-left: 12px;
+  vertical-align: middle;
+}
+
+/* Make preview checkboxes easy to hit */
+input.previewCheck {
+  width: 16px !important;
+  height: 16px !important;
+}
+
+/* Allow Description column to wrap so rows don't become absurdly wide
+   Note: columns are: [checkbox], mpn, manufacturer, description => description is #4 */
+#enrichResults table.enrichTable td:nth-child(4),
+#enrichResults table.enrichTable th:nth-child(4) {
+  white-space: normal;
+  min-width: 360px;
+}
+
+/* Inline edits in preview */
+.inlineEdit {
+  background: #0b0c10;
+  color: #e6e6e6;
+  border: 1px solid #2a3150;
+  border-radius: 10px;
+  padding: 6px 8px;
+}
