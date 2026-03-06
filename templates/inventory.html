@@ -1,106 +1,60 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Scavenger Inventory — Project Ember</title>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Scavenger Inventory</title>
   <style>
     :root {
-      --bg: #0b0f1a;
-      --card: rgba(255,255,255,.06);
-      --card2: rgba(0,0,0,.35);
-      --border: rgba(255,255,255,.12);
-      --border2: rgba(255,255,255,.10);
-      --text: #e9eefc;
-      --muted: rgba(233,238,252,.75);
-      --muted2: rgba(233,238,252,.60);
-      --btn: rgba(255,255,255,.08);
-      --btnH: rgba(255,255,255,.12);
-      --danger: rgba(255,80,80,.10);
-      --dangerB: rgba(255,80,80,.28);
-      --ok: rgba(80,255,160,.12);
-      --okB: rgba(80,255,160,.28);
-      --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-      --ui: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Arial;
-      --r: 16px;
+      --bg:     #0e1117;
+      --card:   #161b22;
+      --border: rgba(255,255,255,.08);
+      --border2:rgba(255,255,255,.12);
+      --text:   #e9eefc;
+      --muted:  #8b949e;
+      --muted2: #6e7681;
+      --accent: #ff6a00;
+      --mono:   'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
     }
-    body { font-family: var(--ui); margin: 0; padding: 24px; background: var(--bg); color: var(--text); }
-    .wrap { max-width: 1100px; margin: 0 auto; }
-    .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--r); padding: 18px; box-shadow: 0 10px 30px rgba(0,0,0,.35); }
-    .titleRow { display:flex; align-items:flex-start; justify-content:space-between; gap: 12px; }
-    h1 { margin:0 0 6px; font-size: 22px; }
-    p { margin:0 0 12px; color: var(--muted); }
-    .pill { display:inline-block; font-size: 12px; padding: 3px 10px; border-radius: 999px; border: 1px solid var(--border); background: rgba(255,255,255,.05); color: var(--muted); }
-    .row { display:flex; gap: 12px; flex-wrap:wrap; align-items:center; }
-    .grid { display:grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    .subcard { background: rgba(255,255,255,.05); border: 1px solid var(--border2); border-radius: 14px; padding: 14px; }
-    .subcard h2 { margin:0 0 8px; font-size: 16px; }
-    .subcard p { margin:0 0 10px; color: var(--muted2); font-size: 13px; }
-    label { display:block; font-size: 12px; opacity:.85; margin: 10px 0 6px; }
-    input, textarea, select {
-      width: 100%;
-      padding: 10px 12px;
-      border-radius: 12px;
-      border: 1px solid rgba(255,255,255,.18);
-      background: rgba(255,255,255,.06);
-      color: var(--text);
-      font-family: var(--ui);
-      box-sizing: border-box;
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+    .wrap { max-width: 1100px; margin: 0 auto; padding: 20px 16px; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 20px; margin-bottom: 12px; }
+    h1 { font-size: 22px; margin-bottom: 4px; }
+    p.muted { color: var(--muted); font-size: 13px; margin-bottom: 8px; }
+    .titleRow { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+    .pill { font-family: var(--mono); font-size: 11px; background: rgba(255,255,255,.06); border: 1px solid var(--border2); padding: 3px 10px; border-radius: 999px; color: var(--muted); }
+    .row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+    .smallRow { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; align-items: center; }
+    .btn, button { font-size: 13px; padding: 7px 14px; border-radius: 10px; border: 1px solid var(--border2); background: rgba(255,255,255,.06); color: var(--text); cursor: pointer; text-decoration: none; transition: background .15s; }
+    .btn:hover, button:hover { background: rgba(255,255,255,.12); }
+    input, select, textarea {
+      font-size: 13px; padding: 7px 10px; border-radius: 10px;
+      border: 1px solid var(--border2); background: rgba(255,255,255,.06);
+      color: var(--text); width: 100%;
     }
-    textarea { min-height: 76px; resize: vertical; }
-    button, a.btn {
-      cursor:pointer;
-      border: 1px solid rgba(255,255,255,.18);
-      background: var(--btn);
-      color: var(--text);
-      padding: 10px 12px;
-      border-radius: 12px;
-      font-weight: 600;
-      text-decoration: none;
-      display: inline-flex;
-      align-items:center;
-      gap: 8px;
-      font-size: 13px;
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: rgba(255,255,255,.30);
+      background: rgba(255,255,255,.09);
     }
-    button:hover, a.btn:hover { background: var(--btnH); }
-    button.danger { background: var(--danger); border-color: var(--dangerB); }
-    button.danger:hover { background: rgba(255,80,80,.16); }
-    button.good { background: var(--ok); border-color: var(--okB); }
-    button.good:hover { background: rgba(80,255,160,.18); }
-    .status {
-      margin-top: 12px;
-      padding: 12px;
-      border-radius: 12px;
-      background: var(--card2);
-      border: 1px solid var(--border2);
-      white-space: pre-wrap;
-      font-family: var(--mono);
-      font-size: 12px;
-      overflow:auto;
-      max-height: 340px;
+    select option {
+      background: #1a1f2e;
+      color: #e9eefc;
     }
-    .muted { color: var(--muted2); font-size: 12px; }
-    .table {
-      width:100%;
-      border-collapse: collapse;
-      font-family: var(--mono);
-      font-size: 12px;
-      margin-top: 10px;
-    }
-    .table th, .table td {
-      border-bottom: 1px solid rgba(255,255,255,.10);
-      padding: 8px 6px;
-      vertical-align: top;
-    }
-    .table th { text-align:left; color: var(--muted); font-weight: 700; }
-    .table tr:hover td { background: rgba(255,255,255,.03); }
-    .k { color: var(--muted); }
-    .right { text-align:right; }
-    .smallRow { display:flex; gap: 8px; flex-wrap:wrap; align-items:center; }
-    .smallRow > * { flex: 1 1 auto; }
-    .smallRow .fixed { flex: 0 0 auto; }
-    .split { display:grid; grid-template-columns: 1fr; gap: 12px; }
-    @media (min-width: 920px) {
+    textarea { min-height: 60px; resize: vertical; font-family: var(--mono); }
+    label { display: block; font-size: 12px; color: var(--muted); margin: 8px 0 3px; }
+    .grid { display: grid; grid-template-columns: 1fr; gap: 6px; }
+    table { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 12px; color: var(--text); }
+    th { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--border2); color: var(--muted); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .5px; }
+    td { padding: 5px 8px; border-bottom: 1px solid var(--border); color: var(--text); }
+    tr:hover td { background: rgba(255,255,255,.04); }
+    tr { cursor: pointer; }
+    pre { white-space: pre-wrap; word-break: break-all; font-family: var(--mono); font-size: 12px; color: var(--text); background: rgba(0,0,0,.25); padding: 8px; border-radius: 8px; margin-top: 6px; max-height: 200px; overflow: auto; }
+    .ok { color: #3fb950; }
+    .err { color: #f85149; }
+    .split { display: grid; grid-template-columns: 1fr; gap: 12px; }
+    @media (min-width: 700px) {
       .split { grid-template-columns: 1fr 1fr; }
     }
     details { border: 1px solid var(--border2); border-radius: 14px; background: rgba(255,255,255,.04); }
@@ -140,33 +94,29 @@
 
       <div class="smallRow">
         <input id="invSearch" placeholder="search (all fields)"/>
-        <select id="invCatFilter">
-          <option value="">All categories</option>
-        </select>
-        <select id="invLocFilter">
-          <option value="">All locations</option>
-        </select>
-        <button id="invRefresh" class="fixed">Refresh</button>
+        <select id="invCatFilter"><option value="">All Categories</option></select>
+        <select id="invLocFilter"><option value="">All Locations</option></select>
+        <button id="invRefresh">↻ Refresh</button>
+        <span id="invCount" class="badge"></span>
       </div>
 
-      <div id="invCount" class="hint" style="margin-top:6px;"></div>
       <div id="invTable"></div>
     </div>
 
     <div style="height:12px"></div>
 
-    <!-- Add / Edit card -->
+    <!-- Editor / Add card -->
     <div class="card">
-      <h1 style="font-size:18px; margin-bottom:8px;">Add / Edit Part</h1>
-
-      <details id="editDetails" open>
-        <summary>Add / Edit Form</summary>
+      <div class="split">
         <div>
-          <label>MPN (manufacturer part number — required)</label>
-          <input id="fMpn" placeholder="e.g. LM358"/>
+          <h1 style="font-size:18px; margin-bottom:8px;">Add / Edit Part</h1>
+          <p class="muted">Fill in fields below. If the MPN already exists, quantities merge automatically.</p>
+
+          <label>MPN <span style="color:var(--accent)">*</span></label>
+          <input id="fMpn" placeholder="e.g. LM358N"/>
 
           <label>Manufacturer</label>
-          <input id="fManufacturer" placeholder="Texas Instruments"/>
+          <input id="fManufacturer" placeholder="Texas Instruments, ON Semi…"/>
 
           <label>Description</label>
           <input id="fDesc" placeholder="Op-amp, dual, DIP-8"/>
@@ -195,111 +145,115 @@
           <input id="fDatasheet" placeholder="https://…"/>
 
           <label>Notes</label>
-          <textarea id="fNotes" placeholder="optional — known issues, datasheet URL, etc."></textarea>
+          <textarea id="fNotes" placeholder="Any notes…"></textarea>
 
-          <label style="display:flex;align-items:center;gap:8px;margin-top:10px;">
-            <input id="fNeedsReview" type="checkbox" style="width:auto;margin:0;"/>
-            Needs review
+          <label style="display:flex; align-items:center; gap:6px; margin-top:10px;">
+            <input type="checkbox" id="fNeedsReview" style="width:auto;"/> Needs Review
           </label>
 
-          <div class="row" style="margin-top:10px;">
-            <button id="btnSave" class="good">💾 Save</button>
-            <button id="btnClear" type="button">Clear form</button>
+          <div class="row" style="margin-top:12px;">
+            <button id="btnSave">💾 Save</button>
+            <button id="btnClear">🧹 Clear</button>
+            <button id="btnDelete" style="border-color:#f85149;">🗑 Delete</button>
           </div>
-          <div class="hint">If MPN already exists, qty will be <em>added</em> (numeric) or replaced (non-numeric), notes will be appended, and non-empty fields will be updated.</div>
-          <div id="editOut" class="status" style="display:none;"></div>
         </div>
-      </details>
 
-      <div style="height:8px"></div>
-
-      <details>
-        <summary>Delete Part</summary>
         <div>
-          <div class="smallRow" style="margin-top:8px;">
-            <input id="delMpn" placeholder="MPN to delete"/>
-            <button id="btnDel" class="danger fixed">🗑 Delete</button>
+          <h1 style="font-size:18px; margin-bottom:8px;">Enrich (AI)</h1>
+          <p class="muted">Auto-fill fields from OpenAI + Brave search.</p>
+
+          <label>Hints (optional context for the model)</label>
+          <textarea id="fHints" placeholder="e.g. 'This is a TO-92 transistor from a grab bag'"></textarea>
+
+          <div class="row" style="margin-top:10px;">
+            <button id="btnEnrich">🤖 Enrich</button>
+            <button id="btnEnrichApply" disabled>✅ Apply to form</button>
           </div>
-          <div class="hint">Deletion is permanent. Unlike your confidence.</div>
-          <div id="delOut" class="status" style="display:none;"></div>
+
+          <details style="margin-top:12px;">
+            <summary>Enrich result</summary>
+            <div>
+              <pre id="enrichOut">—</pre>
+            </div>
+          </details>
+
+          <details style="margin-top:8px;">
+            <summary>Last save result</summary>
+            <div>
+              <pre id="editOut">—</pre>
+            </div>
+          </details>
         </div>
-      </details>
+      </div>
     </div>
 
-    <div class="hint muted" style="margin-top:10px;">Native Ember-themed inventory page — no iframe, no theme mismatch.</div>
   </div>
 
 <script>
-async function j(url, opts) {
-  const r = await fetch(url, opts);
-  const t = await r.text();
-  try { return JSON.parse(t); } catch { return { raw: t, status: r.status }; }
-}
-function show(el, x) {
-  el.style.display = '';
-  el.textContent = (typeof x === 'string') ? x : JSON.stringify(x, null, 2);
-}
-function esc(s) { return (s ?? '').toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+const API = '';  // same origin
 
-// Keep dropdowns in sync with data
-let _categories = [];
-let _locations = [];
+async function j(url, opts) {
+  const r = await fetch(API + url, opts);
+  return r.json();
+}
+
+function show(el, data) {
+  el.style.display = 'block';
+  if (typeof data === 'string') { el.textContent = data; return; }
+  el.textContent = JSON.stringify(data, null, 2);
+  el.className = data.ok ? 'ok' : 'err';
+}
 
 function syncDropdowns(categories, locations) {
-  _categories = categories || [];
-  _locations = locations || [];
-
   const catSel = document.getElementById('invCatFilter');
   const locSel = document.getElementById('invLocFilter');
-  const catVal = catSel.value;
-  const locVal = locSel.value;
+  const catList = document.getElementById('catList');
+  const locList = document.getElementById('locList');
 
-  catSel.innerHTML = '<option value="">All categories</option>' +
-    _categories.map(c => `<option value="${esc(c)}"${c===catVal?' selected':''}>${esc(c)}</option>`).join('');
-  locSel.innerHTML = '<option value="">All locations</option>' +
-    _locations.map(l => `<option value="${esc(l)}"${l===locVal?' selected':''}>${esc(l)}</option>`).join('');
+  const curCat = catSel.value;
+  const curLoc = locSel.value;
 
-  // Populate datalists for the edit form
-  document.getElementById('catList').innerHTML =
-    _categories.map(c => `<option value="${esc(c)}"/>`).join('');
-  document.getElementById('locList').innerHTML =
-    _locations.map(l => `<option value="${esc(l)}"/>`).join('');
+  catSel.innerHTML = '<option value="">All Categories</option>';
+  locSel.innerHTML = '<option value="">All Locations</option>';
+  catList.innerHTML = '';
+  locList.innerHTML = '';
+
+  (categories || []).forEach(c => {
+    catSel.innerHTML += `<option value="${c}">${c}</option>`;
+    catList.innerHTML += `<option value="${c}">`;
+  });
+  (locations || []).forEach(l => {
+    locSel.innerHTML += `<option value="${l}">${l}</option>`;
+    locList.innerHTML += `<option value="${l}">`;
+  });
+
+  catSel.value = curCat;
+  locSel.value = curLoc;
 }
 
-const invTable = document.getElementById('invTable');
-const invCount = document.getElementById('invCount');
-
 function renderTable(headers, rows) {
-  if (!Array.isArray(rows) || rows.length === 0) {
-    invTable.innerHTML = '<p class="muted" style="margin-top:10px;">No items found.</p>';
-    return;
-  }
+  const el = document.getElementById('invTable');
+  if (!rows.length) { el.innerHTML = '<p class="muted">No items.</p>'; return; }
 
-  // Always show these columns first (if present), then any extras
-  const priority = ['mpn','description','category','location_bin','qty_on_hand','notes'];
-  const extra = headers.filter(h => !priority.includes(h) && h !== 'needs_review');
-  const cols = priority.filter(h => headers.includes(h)).concat(extra);
+  const show_cols = headers.filter(h => !['notes','datasheet_url','needs_review','confidence','suggested_bin','avg_cost','polarity_or_channel','voltage_rating_v','rating_context','current_rating_a','power_rating_w'].includes(h));
 
-  let html = `<div style="overflow-x:auto"><table class="table"><thead><tr>`;
-  for (const h of cols) html += `<th>${esc(h)}</th>`;
-  html += `<th class="right">actions</th></tr></thead><tbody>`;
+  let html = '<table><thead><tr>';
+  show_cols.forEach(h => html += `<th>${h}</th>`);
+  html += '<th></th></tr></thead><tbody>';
 
-  for (const r of rows) {
-    const mpn = esc(r.mpn || '');
-    // Encode full row as JSON in data attribute for easy form population
-    const rowJson = esc(JSON.stringify(r));
-    html += `<tr data-mpn="${mpn}" data-row="${rowJson}">`;
-    for (const h of cols) html += `<td>${esc(r[h] || '')}</td>`;
-    html += `<td class="right">
-      <button class="invRow" data-action="load" data-mpn="${mpn}">load</button>
-      <button class="invRow danger" data-action="del" data-mpn="${mpn}">del</button>
-    </td></tr>`;
-  }
-  html += `</tbody></table></div>`;
-  invTable.innerHTML = html;
+  rows.forEach(r => {
+    const safe = JSON.stringify(r).replace(/"/g, '&quot;');
+    html += `<tr data-row="${safe}">`;
+    show_cols.forEach(h => html += `<td>${(r[h]||'').substring(0,40)}</td>`);
+    html += `<td><button class="rowBtn" data-action="load" data-mpn="${r.mpn||''}">✏️</button></td>`;
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  el.innerHTML = html;
 
-  invTable.querySelectorAll('button.invRow').forEach(btn => {
-    btn.addEventListener('click', async () => {
+  el.querySelectorAll('.rowBtn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
       const action = btn.getAttribute('data-action');
       const mpn = btn.getAttribute('data-mpn');
       if (action === 'load') {
@@ -317,29 +271,25 @@ function renderTable(headers, rows) {
         document.getElementById('fDatasheet').value = row.datasheet_url || '';
         document.getElementById('fNotes').value = row.notes || '';
         const nr = (row.needs_review || '').toLowerCase();
-        document.getElementById('fNeedsReview').checked = nr === 'true' || nr === '1' || nr === 'yes';
-        document.getElementById('delMpn').value = row.mpn || '';
-        // Open the Add/Edit details if collapsed
-        const det = document.getElementById('editDetails');
-        if (det) det.open = true;
-      } else if (action === 'del') {
-        document.getElementById('delMpn').value = mpn;
-        await doDelete();
+        document.getElementById('fNeedsReview').checked = ['1','true','yes','y','on'].includes(nr);
       }
     });
   });
 }
 
+const invCount = document.getElementById('invCount');
+const invTable = document.getElementById('invTable');
+
 async function refreshInventory() {
   const q = document.getElementById('invSearch').value.trim();
-  const category = document.getElementById('invCatFilter').value;
-  const location_bin = document.getElementById('invLocFilter').value;
-  const url = new URL('/api/inventory/list', window.location.origin);
-  if (q) url.searchParams.set('q', q);
-  if (category) url.searchParams.set('category', category);
-  if (location_bin) url.searchParams.set('location_bin', location_bin);
-  const resp = await j(url.toString());
-  if (resp && resp.ok) {
+  const cat = document.getElementById('invCatFilter').value;
+  const loc = document.getElementById('invLocFilter').value;
+  let url = '/api/inventory/list?limit=500';
+  if (q) url += '&q=' + encodeURIComponent(q);
+  if (cat) url += '&category=' + encodeURIComponent(cat);
+  if (loc) url += '&location_bin=' + encodeURIComponent(loc);
+  const resp = await j(url);
+  if (resp.ok) {
     syncDropdowns(resp.categories, resp.locations);
     renderTable(resp.headers || [], resp.rows || []);
     invCount.textContent = `${resp.shown} of ${resp.total} items`;
@@ -385,29 +335,58 @@ document.getElementById('btnSave').addEventListener('click', async () => {
 document.getElementById('btnClear').addEventListener('click', () => {
   ['fMpn','fManufacturer','fDesc','fCat','fPackage','fLoc','fSuggestedBin','fQty','fAvgCost','fDatasheet','fNotes'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('fNeedsReview').checked = false;
-  document.getElementById('editOut').style.display = 'none';
 });
 
-// Delete
-async function doDelete() {
-  const mpn = document.getElementById('delMpn').value.trim();
-  if (!mpn) return show(document.getElementById('delOut'), {ok:false, error:'MPN required'});
-  if (!confirm(`Delete part "${mpn}"? This cannot be undone.`)) return;
-  const resp = await j(`/api/inventory/delete/${encodeURIComponent(mpn)}`, {method:'POST'});
-  show(document.getElementById('delOut'), resp);
-  if (resp && resp.ok) {
-    document.getElementById('delMpn').value = '';
-    await refreshInventory();
+document.getElementById('btnDelete').addEventListener('click', async () => {
+  const mpn = document.getElementById('fMpn').value.trim();
+  if (!mpn) return show(document.getElementById('editOut'), {ok:false, error:'MPN is required'});
+  if (!confirm(`Delete ${mpn}?`)) return;
+  const resp = await j('/api/inventory/delete/' + encodeURIComponent(mpn), { method: 'POST' });
+  show(document.getElementById('editOut'), resp);
+  await refreshInventory();
+});
+
+// Enrich
+let lastEnrichResult = null;
+document.getElementById('btnEnrich').addEventListener('click', async () => {
+  const mpn = document.getElementById('fMpn').value.trim();
+  if (!mpn) return show(document.getElementById('enrichOut'), {ok:false, error:'MPN is required'});
+  const hints = document.getElementById('fHints').value.trim();
+  const resp = await j('/inventory/api/enrich/batch', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ items: [mpn], hints }),
+  });
+  show(document.getElementById('enrichOut'), resp);
+  if (resp.results && resp.results.length) {
+    lastEnrichResult = resp.results[0].row || null;
+    document.getElementById('btnEnrichApply').disabled = !lastEnrichResult;
   }
-}
-document.getElementById('btnDel').addEventListener('click', doDelete);
+});
+
+document.getElementById('btnEnrichApply').addEventListener('click', () => {
+  if (!lastEnrichResult) return;
+  const r = lastEnrichResult;
+  if (r.mpn) document.getElementById('fMpn').value = r.mpn;
+  if (r.manufacturer) document.getElementById('fManufacturer').value = r.manufacturer;
+  if (r.description) document.getElementById('fDesc').value = r.description;
+  if (r.category) document.getElementById('fCat').value = r.category;
+  if (r.package) document.getElementById('fPackage').value = r.package;
+  if (r.location_bin) document.getElementById('fLoc').value = r.location_bin;
+  if (r.qty_on_hand) document.getElementById('fQty').value = r.qty_on_hand;
+  if (r.avg_cost) document.getElementById('fAvgCost').value = r.avg_cost;
+  if (r.datasheet_url) document.getElementById('fDatasheet').value = r.datasheet_url;
+  if (r.notes) document.getElementById('fNotes').value = r.notes;
+  const nr = (r.needs_review || '').toLowerCase();
+  document.getElementById('fNeedsReview').checked = ['1','true','yes','y','on'].includes(nr);
+});
 
 // Push to GitHub
+const pushOut = document.getElementById('pushOut');
 document.getElementById('btnPush').addEventListener('click', async () => {
-  const pushOut = document.getElementById('pushOut');
-  pushOut.style.display = '';
+  pushOut.style.display = 'block';
   pushOut.textContent = 'Pushing…';
-  const resp = await j('/inventory/push', {method:'POST'});
+  const resp = await j('/inventory/push', { method: 'POST' });
   pushOut.textContent = JSON.stringify(resp, null, 2);
 });
 
