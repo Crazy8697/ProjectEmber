@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>{{ title or "Scavenger Inventory" }}</title>
+  <link rel="stylesheet" href="{{ url_for('scavenger.static', filename='style.css') }}?v=20260223_1140"/>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <a href="https://darkrelay.net" target="_blank" rel="noreferrer" class="btn ghost" style="text-decoration:none; padding:6px 10px;"><div class="logo">Ω</div></a>
+      <div>
+        <div class="title">Scavenger Inventory</div>
+        <div class="subtitle">local warehouse brain</div>
+      </div>
+    </div>
+
+    {% set ep = request.endpoint %}    <nav class="nav">
+      <a class="btn ghost pill {{ 'active' if ep == 'scavenger.index' else '' }}" href="{{ url_for('scavenger.index') }}">Inventory</a>
+      <a class="btn ghost pill {{ 'active' if ep == 'scavenger.add_form' else '' }}" href="{{ url_for('scavenger.add_form') }}">Add Part</a>
+      <a class="btn ghost pill {{ 'active' if ep == 'scavenger.admin_console' else '' }}" href="{{ url_for('scavenger.admin_console') }}" title="Admin / Settings">Admin</a>
+      <button id="pushBtn" type="button" class="btn ghost pill">Push to GitHub</button>
+    </nav>
+  </header>
+
+  <main class="wrap">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="flashbox">
+          {% for category, message in messages %}
+            <div class="flash {{ category }}">{{ message }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+  </main>
+
+  <div class="modal" id="pushModal" aria-hidden="true">
+    <div class="modalCard">
+      <div class="modalHeader">
+        <div>Push output</div>
+        <button class="btn ghost pill" id="pushClose" type="button">Close</button>
+      </div>
+      <pre class="output" id="pushOutput"></pre>
+    </div>
+  </div>
+
+  <script src="{{ url_for('scavenger.static', filename='app.js') }}"></script>
+</body>
+</html>

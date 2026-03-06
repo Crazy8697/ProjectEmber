@@ -24,7 +24,7 @@ TOOLS: List[Tool] = [
         kind="iframe",
         description="Local parts inventory.",
         group="Tools",
-        iframe_src="/inventory-page",
+        iframe_src="/scavenger",
         hint="Native Ember-themed inventory page.",
     ),
     Tool(
