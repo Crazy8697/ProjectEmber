@@ -54,7 +54,7 @@ init_scavenger(ember)
 # ----------------------------
 # Memory persistence
 # ----------------------------
-MEM_DIR = Path.home() / ".local" / "share" / "projectember" / "memory"
+MEM_DIR = Path(os.environ.get("EIRA_MEMORY_DIR", "/home/eira/.local/share/projectember/memory"))
 MEM_PATH = MEM_DIR / "memory.json"
 
 def _load_memory() -> Dict[str, str]:
