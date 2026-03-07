@@ -69,7 +69,7 @@
         .msg-header { font-size: 11px; margin-bottom: 3px; display: flex; align-items: center; gap: 8px; }
         .msg-timestamp { color: #4a5568; }
         .msg-author { font-weight: 700; }
-        .msg-content { padding: 4px 0 4px 20px; line-height: 1.5; font-size: 13px; white-space: pre-wrap; word-wrap: break-word; }
+        .msg-content { padding: 4px 0 4px 20px; line-height: 1.5; font-size: 13px; white-space: pre-wrap; word-wrap: break-word; overflow: visible; height: auto; max-height: none; }
 
         .msg.user .msg-header { justify-content: flex-end; }
         .msg.user .msg-author { color: #a3e635; }
@@ -88,6 +88,38 @@
 
         .tool-frame { width: 100%; height: 100%; border: none; }
         .empty { color: #4a5568; font-size: 11px; padding: 6px; }
+
+        /* Token counter */
+        .token-bar {
+            display: none;
+            align-items: center;
+            gap: 14px;
+            padding: 4px 20px;
+            background: #0a0c10;
+            border-bottom: 1px solid #1a2332;
+            font-size: 11px;
+            color: #4a5568;
+            font-family: inherit;
+        }
+        .token-bar.visible { display: flex; }
+        .token-stat { display: flex; align-items: center; gap: 4px; }
+        .token-stat span { color: #94a3b8; }
+        .token-bar-fill-wrap {
+            flex: 1;
+            height: 3px;
+            background: #1a2332;
+            border-radius: 2px;
+            overflow: hidden;
+            max-width: 120px;
+        }
+        .token-bar-fill {
+            height: 100%;
+            border-radius: 2px;
+            background: #06b6d4;
+            transition: width 0.3s ease;
+        }
+        .token-bar-fill.warn { background: #f59e0b; }
+        .token-bar-fill.danger { background: #ef4444; }
 
         /* Input area */
         .input-area-container {
@@ -176,12 +208,23 @@
                 <small id="projectTitle"></small>
             </div>
 
+            <div class="token-bar" id="tokenBar">
+                <div class="token-stat">CTX <span id="tokTotal">0</span></div>
+                <div class="token-stat">IN <span id="tokIn">0</span></div>
+                <div class="token-stat">OUT <span id="tokOut">0</span></div>
+                <div class="token-stat">LIMIT <span id="tokLimit">4096</span></div>
+                <div class="token-bar-fill-wrap">
+                    <div class="token-bar-fill" id="tokFill" style="width:0%"></div>
+                </div>
+                <div class="token-stat"><span id="tokPct">0%</span></div>
+            </div>
+
             <div class="content">
                 <div id="toolView" style="display:none; width:100%; height:100%;">
                     <iframe id="toolFrame" class="tool-frame"></iframe>
                 </div>
 
-                <div id="chatView" style="display:none; flex: 1; flex-direction: column; min-height: 0; overflow: hidden;">
+                <div id="chatView" style="display:none; flex: 1; flex-direction: column; min-height: 0; overflow: visible;">
                     <div class="messages" id="messagesList"></div>
                 </div>
 
@@ -245,6 +288,34 @@ const app = {
     thinkingStart: null,
     mode: 'deep',
     forceGeneral: false,
+    contextLimit: 3072,
+
+    // --- Token counter ---
+
+    estimateTokens(text) {
+        // ~4 chars per token is a reasonable estimate for English
+        return Math.ceil((text || '').length / 4);
+    },
+
+    updateTokenBar(inputText, outputText, historyMessages) {
+        const historyText = (historyMessages || []).map(m => m.content || '').join(' ');
+        const tokIn = this.estimateTokens(inputText) + this.estimateTokens(historyText);
+        const tokOut = this.estimateTokens(outputText);
+        const tokTotal = tokIn + tokOut;
+        const pct = Math.min(100, Math.round((tokTotal / this.contextLimit) * 100));
+
+        document.getElementById('tokTotal').textContent = tokTotal;
+        document.getElementById('tokIn').textContent = tokIn;
+        document.getElementById('tokOut').textContent = tokOut;
+        document.getElementById('tokLimit').textContent = this.contextLimit;
+        document.getElementById('tokPct').textContent = pct + '%';
+
+        const fill = document.getElementById('tokFill');
+        fill.style.width = pct + '%';
+        fill.className = 'token-bar-fill' + (pct >= 80 ? ' danger' : pct >= 60 ? ' warn' : '');
+
+        document.getElementById('tokenBar').classList.add('visible');
+    },
 
     // --- Utility ---
 
@@ -608,6 +679,7 @@ const app = {
         document.getElementById('toolView').style.display = this.currentTool ? 'block' : 'none';
         document.getElementById('chatView').style.display = this.currentChat ? 'flex' : 'none';
         document.getElementById('header').style.display = this.currentChat ? 'block' : 'none';
+        if (!this.currentChat) document.getElementById('tokenBar').classList.remove('visible');
 
         if (this.currentChat) {
             document.getElementById('chatTitle').textContent = this.currentChat.name;
@@ -775,6 +847,9 @@ const app = {
             try { localStorage.removeItem('ember_thinking'); } catch(e) {}
             const elapsed = Math.floor((Date.now() - this.thinkingStart) / 1000);
             const mm = String(Math.floor(elapsed / 60)).padStart(2, '0');
+
+            // Update token counter
+            this.updateTokenBar(msg, data.response || '', history);
             const ss = String(elapsed % 60).padStart(2, '0');
 
             // Remove thinking indicator

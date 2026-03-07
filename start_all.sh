@@ -88,7 +88,7 @@ if is_pid_running "$LLAMA_PID"; then
   echo "[start_all] llama already running (pid $(cat "$LLAMA_PID"))"
 else
   echo "[start_all] starting llama server..."
-  nohup python3 -m llama_cpp.server --model "$MODEL" --host "$LLAMA_HOST" --port "$LLAMA_PORT" >"$LLAMA_LOG" 2>&1 &
+  nohup python3 -m llama_cpp.server --model "$MODEL" --host "$LLAMA_HOST" --port "$LLAMA_PORT" --n_ctx 3072 >"$LLAMA_LOG" 2>&1 &
   echo $! > "$LLAMA_PID"
   echo "[start_all] llama pid $(cat "$LLAMA_PID") (log: $LLAMA_LOG)"
 
@@ -115,5 +115,3 @@ echo "[start_all] done."
 echo "[start_all] UI:    http://${FLASK_HOST}:${FLASK_PORT}"
 echo "[start_all] llama: http://${LLAMA_HOST}:${LLAMA_PORT}"
 
-# ---- Ember Online notification ----
-notify "🔥 Ember Online" "UI ready at http://${FLASK_HOST}:${FLASK_PORT}" "dialog-information"

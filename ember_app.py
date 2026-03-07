@@ -113,10 +113,30 @@ def _llama_completion(prompt: str, mode: str) -> str:
         "stop": ["User:", "EAI:", "\nUser:", "\nEAI:", "Human:", "\nHuman:"],
     }
 
-    r = requests.post(f"{LLAMA_SERVER_URL}/v1/completions", json=payload, timeout=LLAMA_TIMEOUT_S)
-    r.raise_for_status()
-    data = r.json()
-    return (data.get("choices", [{}])[0].get("text") or "").strip()
+    try:
+        r = requests.post(f"{LLAMA_SERVER_URL}/v1/completions", json=payload, timeout=LLAMA_TIMEOUT_S)
+    except requests.exceptions.ConnectionError:
+        raise RuntimeError(f"Cannot reach LLM backend at {LLAMA_SERVER_URL} — is llama server running?")
+    except requests.exceptions.Timeout:
+        raise RuntimeError(f"LLM backend timed out after {LLAMA_TIMEOUT_S}s")
+
+    if not r.ok:
+        raise RuntimeError(f"LLM backend returned HTTP {r.status_code}: {r.text[:300]}")
+
+    try:
+        data = r.json()
+    except Exception:
+        raise RuntimeError(f"LLM backend returned non-JSON: {r.text[:300]}")
+
+    choices = data.get("choices") or []
+    if not choices:
+        raise RuntimeError(f"LLM backend returned empty choices array. Full response: {str(data)[:300]}")
+
+    text = (choices[0].get("text") or "").strip()
+    if not text:
+        raise RuntimeError(f"LLM backend returned empty text in choices[0]. Full response: {str(data)[:300]}")
+
+    return text
 
 def _build_prompt(query: str, history: List[Dict[str, str]], system_prompt: str) -> str:
     lines: List[str] = []
