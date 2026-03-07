@@ -64,7 +64,7 @@ static/               # CSS, JS, favicon
 ## Requirements
 
 ### Hardware
-- 64GB system RAM recommended
+- 16GB system RAM (model runs on GPU; system RAM used for OS + Flask only)
 - 6GB+ VRAM (NVIDIA GPU)
 - x86_64 Linux
 

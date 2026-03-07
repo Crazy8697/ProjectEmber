@@ -1,23 +1,49 @@
-
 # Project Ember – Worklist
 
 ## Current Status
-- Local AI host working
+- Mistral 7B Q4_K_M running via llama.cpp at 3072 token context (GPU-accelerated)
+- Flask UI running at 0.0.0.0:5000
+- Persistent memory system (key/value, eira-owned)
+- Submind routing (keto submind active)
 - Scavenger Inventory tool mounted inside Ember UI
-- GitHub repository connected and pushing
-- GitHub push button implemented
-- Basic tool iframe host functioning
+- Token context bar in UI (CTX / IN / OUT / LIMIT / %)
+- Query error handling (real errors, no silent failures)
+- Start/Stop desktop launchers with KDE notifications
+- Nutrition DB seeded
+- GitHub repository connected, README added, master branch current
 
 ---
 
 # Priority Worklist
 
-## 1. Inventory System Improvements
+## 1. Auto-Summary / Rolling Memory
+**Next up.**
+
+Goal: prevent context overflow gracefully
+
+Plan:
+- 60% context → display warning in token bar
+- 80% context → trigger rolling summary
+- Summary preserves: active goal, project state, decisions, constraints, file paths, unresolved issues, next steps
+- Show progress UI during summarization (similar to Claude compaction screen)
+- List what was saved to memory after summary completes
+- Rule: summarize aggressively, memorize selectively
+
+---
+
+## 2. Auto-Scroll
+**Next up (parallel with auto-summary).**
+
+Chat view should scroll to latest message automatically after each response.
+
+---
+
+## 3. Inventory System Improvements
 - Fix remaining layout quirks in embedded inventory UI
 - Ensure Add / Inventory / Admin navigation works reliably in iframe
-- Add part auto‑capitalization for part numbers
+- Add part auto-capitalization for part numbers
 - Improve part lookup / enrichment pipeline
-- Validate multi‑add enrichment flow
+- Validate multi-add enrichment flow
 - Add category normalization
 - Add location/bin management UI
 - Add bulk edit capability
@@ -25,11 +51,10 @@
 
 ---
 
-## 2. Admin Console
+## 4. Admin Console
 Goal: central control panel for the entire Ember system
 
 Planned features:
-
 - Cache refresh button
 - Inventory reindex
 - Model restart
@@ -42,42 +67,27 @@ Planned features:
 
 ---
 
-## 3. AI Integration
-Primary architecture:
+## 5. AI Architecture
+Current:
+- Main brain: Mistral 7B Instruct v0.3 Q4_K_M (llama.cpp)
+- Submind routing via submind_router.py
+- Active subminds: keto
 
-Main brain:
-- DistilGPT‑2 (Ember)
-
-Sub‑models:
-- GPT‑Neo 1.3B
-- T5
-
-Responsibilities:
-
-Ember:
-- User interaction
-- Decision routing
-- Response synthesis
-
-Sub‑models:
-- Structured tasks
-- Data lookup
-- Reasoning jobs
+Planned subminds:
+- Electronics / component lookup
+- Code generation
+- Circuit design assistance
 
 Future additions:
-
-- Tool‑calling layer
+- Tool-calling layer
 - Local knowledge store
 - Component datasheet retrieval
-- Circuit design assistance
-- Code generation improvements
 
 ---
 
-## 4. Inventory + AI Integration
+## 6. Inventory + AI Integration
 
 Planned capabilities:
-
 - Ask Ember about inventory parts
 - Auto categorize parts
 - Datasheet enrichment
@@ -86,12 +96,7 @@ Planned capabilities:
 - Auto generate descriptions
 - AI assisted part entry
 
-Example:
-User enters:
-"S9014"
-
-System returns:
-
+Example — user enters "S9014", system returns:
 - Manufacturer options
 - Package
 - Ratings
@@ -101,10 +106,9 @@ System returns:
 
 ---
 
-## 5. UI Improvements
+## 7. UI Improvements
 
 Planned:
-
 - Tool plugin system
 - Consistent top bar across tools
 - Better iframe host system
@@ -114,25 +118,16 @@ Planned:
 
 ---
 
-## 6. Plugin System
+## 8. Plugin System
 
 Goal: allow tools to mount inside Ember easily
 
 Plugin format:
+- name, id, description, type (iframe/native), route
 
-Tool definition
-- name
-- id
-- description
-- type (iframe/native)
-- route
+Current plugins: Inventory, Admin Console
 
-Examples:
-
-Inventory  
-Admin Console  
-Future tools:
-
+Future plugins:
 - Circuit Builder
 - Datasheet Browser
 - Component Comparator
@@ -140,34 +135,27 @@ Future tools:
 
 ---
 
-## 7. GitHub Integration
+## 9. GitHub Integration
 
 Current:
-- Manual git push button
+- Manual git push via terminal
+- README in place
 
 Planned:
-
-- commit message UI
-- branch switching
-- commit history viewer
-- diff viewer
-- repo health checks
+- Commit message UI in admin panel
+- Branch switching
+- Commit history viewer
+- Diff viewer
+- Repo health checks
 
 ---
 
-## 8. Future Tools
+## 10. Future Tools
 
-### Circuit Builder
-Interactive electronics design
-
-### Datasheet Browser
-Search local and remote datasheets
-
-### Component Comparator
-Compare parts side by side
-
-### Knowledge Base
-Technical notes + personal documentation
+- Circuit Builder — interactive electronics design
+- Datasheet Browser — search local and remote datasheets
+- Component Comparator — compare parts side by side
+- Knowledge Base — technical notes + personal documentation
 
 ---
 
@@ -195,26 +183,23 @@ Technical notes + personal documentation
 # Repository Maintenance Tasks
 
 Recommended periodic actions:
-
-- prune branches
-- clean unused models
-- backup inventory CSV
-- export knowledge base
-- tag stable versions
+- Prune branches
+- Clean unused models from ai_models/
+- Backup inventory CSV
+- Export knowledge base
+- Tag stable versions
 
 ---
 
 # Notes
 
 Project Ember is intended to function as a **local engineering brain**, combining:
-
 - AI reasoning
-- electronics inventory
-- technical knowledge
-- tool plugins
+- Electronics inventory
+- Technical knowledge
+- Tool plugins
 
 The system is designed to remain:
-
-- local‑first
-- modular
-- extensible
+- Local-first
+- Modular
+- Extensible
