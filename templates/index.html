@@ -224,7 +224,7 @@
                     <iframe id="toolFrame" class="tool-frame"></iframe>
                 </div>
 
-                <div id="chatView" style="display:none; flex: 1; flex-direction: column; min-height: 0; overflow: visible;">
+                <div id="chatView" style="display:none; flex: 1; flex-direction: column; min-height: 0; overflow: hidden;">
                     <div class="messages" id="messagesList"></div>
                 </div>
 
@@ -635,7 +635,7 @@ const app = {
                 </div>
             `;
         }).join('');
-        setTimeout(() => list.scrollTop = list.scrollHeight, 50);
+        setTimeout(() => list.scrollTop = list.scrollHeight, 100);
     },
 
     // --- Navigation ---
