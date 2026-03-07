@@ -829,6 +829,88 @@ def query():
         return jsonify({"response": f"Error: {type(e).__name__}: {e}"}), 200
 
 
+@ember.post("/api/summarize")
+def api_summarize():
+    """
+    Auto-summary endpoint. Called by frontend when context hits 80%.
+    - Summarizes history
+    - Saves key facts to Eira's memory
+    - Archives current chat (renamed to Archive: {name})
+    - Creates new chat in same project
+    - Seeds new chat with memory list message + divider message
+    Returns: new_chat_id, summary, saved_memories
+    """
+    from chat_storage import archive_chat, create_chat, add_message, get_chat, get_chat_history
+
+    data = request.get_json(force=True, silent=True) or {}
+    chat_id = (data.get("chat_id") or "").strip()
+    chat_name = (data.get("chat_name") or "Chat").strip()
+    project_id = (data.get("project_id") or "").strip()
+    history = data.get("history") or []
+
+    if not chat_id or not project_id:
+        return jsonify({"error": "chat_id and project_id required"}), 400
+
+    # Build summary prompt
+    history_text = "\n".join(
+        f"{'User' if m.get('role') == 'user' else 'Eira'}: {(m.get('content') or '').strip()}"
+        for m in history
+        if m.get("content", "").strip()
+    )
+
+    summary_prompt = f"""You are Eira, a local AI assistant. You are about to compact a conversation context.
+
+Review the conversation below and produce a structured summary. Then save the most important facts to memory using [MEMORY_SAVE: key | value] tags.
+
+Save:
+- The active goal or task
+- Any file paths, project names, or system details mentioned
+- Key decisions made
+- Unresolved issues or next steps
+- Any user preferences stated
+
+After the memory tags, write a short message (2-4 sentences) for the user listing what you saved. Be specific. Use plain language, no fluff.
+
+Conversation:
+{history_text}
+
+Respond with [MEMORY_SAVE: ...] tags first, then your message to the user."""
+
+    try:
+        raw_response = _llama_completion(summary_prompt, mode="deep")
+    except Exception as e:
+        return jsonify({"error": f"LLM error: {e}"}), 500
+
+    # Extract memory saves and strip tags from response
+    import re
+    saved_memories = []
+    save_pattern = re.compile(r'\[MEMORY_SAVE:\s*([^|]+?)\s*\|\s*(.+?)\s*\]')
+    for match in save_pattern.finditer(raw_response):
+        saved_memories.append({"key": match.group(1).strip(), "value": match.group(2).strip()})
+
+    # Actually persist the memories
+    clean_response = _process_memory_commands(raw_response)
+
+    # Archive current chat
+    archive_chat(chat_id, f"Archive: {chat_name}")
+
+    # Create new chat in same project
+    new_chat = create_chat(project_id, chat_name)
+    new_chat_id = new_chat["id"]
+
+    # Seed new chat: memory list message first, then divider
+    memory_lines = "\n".join(f"  • {m['key']}: {m['value']}" for m in saved_memories) if saved_memories else "  (nothing new saved)"
+    memory_msg = f"I've compacted our context. Here's what I saved to memory:\n{memory_lines}"
+    add_message(new_chat_id, "assistant", memory_msg)
+    add_message(new_chat_id, "system", "────────── 🔥 Context compacted ──────────")
+
+    return jsonify({
+        "new_chat_id": new_chat_id,
+        "summary": clean_response,
+        "saved_memories": saved_memories,
+    })
+
+
 @ember.get("/health")
 def health():
     return jsonify({"status": "ok", "llama_server": LLAMA_SERVER_URL})

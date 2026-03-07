@@ -45,9 +45,17 @@ def _ensure_db():
             name TEXT NOT NULL,
             created_at REAL NOT NULL,
             updated_at REAL NOT NULL,
+            is_archived INTEGER NOT NULL DEFAULT 0,
             FOREIGN KEY (project_id) REFERENCES projects(id)
         )
     """)
+
+    # Migration: add is_archived if it doesn't exist yet (existing DBs)
+    try:
+        cursor.execute("ALTER TABLE chats ADD COLUMN is_archived INTEGER NOT NULL DEFAULT 0")
+        conn.commit()
+    except sqlite3.OperationalError:
+        pass  # Column already exists
     
     # Messages table
     cursor.execute("""
@@ -247,6 +255,36 @@ def rename_chat(chat_id: str, new_name: str) -> Dict[str, Any]:
     conn.close()
     
     return dict(row) if row else {}
+
+def archive_chat(chat_id: str, new_name: str) -> Dict[str, Any]:
+    """Mark a chat as archived and rename it."""
+    _ensure_db()
+    now = time.time()
+
+    conn = _get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "UPDATE chats SET name = ?, is_archived = 1, updated_at = ? WHERE id = ?",
+        (new_name, now, chat_id)
+    )
+    conn.commit()
+    cursor.execute("SELECT * FROM chats WHERE id = ?", (chat_id,))
+    row = cursor.fetchone()
+    conn.close()
+    return dict(row) if row else {}
+
+def has_archived_chats(project_id: str) -> bool:
+    """Return True if this project has at least one archived chat."""
+    _ensure_db()
+    conn = _get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT COUNT(*) FROM chats WHERE project_id = ? AND is_archived = 1",
+        (project_id,)
+    )
+    count = cursor.fetchone()[0]
+    conn.close()
+    return count > 0
 
 # ------- Messages -------
 

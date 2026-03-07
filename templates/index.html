@@ -38,6 +38,17 @@
         .chat-item { padding: 6px 8px; margin-bottom: 3px; background: transparent; border: 1px solid #1a2332; border-radius: 3px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: #64748b; }
         .chat-item:hover { background: #111827; color: #e2e8f0; }
         .chat-item.active { background: #0e4458; border-color: #06b6d4; color: #22d3ee; }
+        .chat-item.archived { opacity: 0.5; font-style: italic; }
+        .archived-label { font-size: 10px; color: #374151; padding: 4px 8px 2px; text-transform: uppercase; letter-spacing: 0.05em; }
+
+        /* Compaction progress overlay */
+        #compactOverlay { display: none; position: absolute; inset: 0; background: rgba(10,12,16,0.92); z-index: 100; flex-direction: column; align-items: center; justify-content: center; gap: 16px; }
+        #compactOverlay.visible { display: flex; }
+        .compact-title { color: #06b6d4; font-size: 14px; letter-spacing: 0.05em; }
+        .compact-bar-wrap { width: 260px; height: 4px; background: #1a2332; border-radius: 2px; overflow: hidden; }
+        .compact-bar-fill { height: 100%; background: #06b6d4; border-radius: 2px; animation: compactPulse 1.2s ease-in-out infinite; }
+        @keyframes compactPulse { 0%,100% { width: 30%; margin-left: 0; } 50% { width: 60%; margin-left: 40%; } }
+        .compact-status { color: #4a5568; font-size: 11px; }
         .chat-name { flex: 1; }
         .add-chat-btn { padding: 4px 8px; background: transparent; border: 1px solid #1a2332; color: #4a5568; border-radius: 3px; cursor: pointer; font-size: 11px; font-family: inherit; }
         .add-chat-btn:hover { border-color: #06b6d4; color: #06b6d4; }
@@ -224,7 +235,13 @@
                     <iframe id="toolFrame" class="tool-frame"></iframe>
                 </div>
 
-                <div id="chatView" style="display:none; flex: 1; flex-direction: column; min-height: 0; overflow: hidden;">
+                <div id="chatView" style="display:none; flex: 1; flex-direction: column; min-height: 0; overflow: hidden; position: relative;">
+                    <!-- Compaction progress overlay -->
+                    <div id="compactOverlay">
+                        <div class="compact-title">🔥 Compacting context...</div>
+                        <div class="compact-bar-wrap"><div class="compact-bar-fill"></div></div>
+                        <div class="compact-status" id="compactStatus">Summarizing conversation</div>
+                    </div>
                     <div class="messages" id="messagesList"></div>
                 </div>
 
@@ -315,6 +332,69 @@ const app = {
         fill.className = 'token-bar-fill' + (pct >= 80 ? ' danger' : pct >= 60 ? ' warn' : '');
 
         document.getElementById('tokenBar').classList.add('visible');
+
+        // Trigger auto-summary at 80%
+        if (pct >= 80 && !this.summarizing) {
+            this.autoSummarize(historyMessages);
+        }
+    },
+
+    summarizing: false,
+
+    async autoSummarize(historyMessages) {
+        if (this.summarizing || !this.currentChat || !this.currentProject) return;
+        this.summarizing = true;
+
+        const overlay = document.getElementById('compactOverlay');
+        const status = document.getElementById('compactStatus');
+        overlay.classList.add('visible');
+        status.textContent = 'Summarizing conversation...';
+
+        try {
+            // Wait for llama to finish cleanup from previous /query response
+            await new Promise(r => setTimeout(r, 3000));
+
+            const res = await fetch('/api/summarize', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    chat_id: this.currentChat.id,
+                    chat_name: this.currentChat.name,
+                    project_id: this.currentProject.id,
+                    history: historyMessages || [],
+                })
+            });
+
+            if (!res.ok) throw new Error('Summarize request failed');
+            const data = await res.json();
+
+            status.textContent = 'Switching to new chat...';
+
+            // Update local chat as archived
+            const archivedChat = this.currentProject.chats?.find(c => c.id === this.currentChat.id);
+            if (archivedChat) {
+                archivedChat.is_archived = 1;
+                archivedChat.name = `Archive: ${archivedChat.name}`;
+            }
+
+            // Add new chat to project and switch to it
+            const newChat = { id: data.new_chat_id, name: this.currentChat.name, project_id: this.currentProject.id, is_archived: 0, messages: [] };
+            if (!this.currentProject.chats) this.currentProject.chats = [];
+            this.currentProject.chats.unshift(newChat);
+            this.currentChat = newChat;
+
+            // Load messages for new chat (memory msg + divider already seeded server-side)
+            await this.loadMessages();
+            this.showView();
+
+        } catch (e) {
+            console.error('[Ember] autoSummarize failed:', e);
+            status.textContent = 'Compaction failed — see console';
+            setTimeout(() => overlay.classList.remove('visible'), 3000);
+        } finally {
+            overlay.classList.remove('visible');
+            this.summarizing = false;
+        }
     },
 
     // --- Utility ---
@@ -571,13 +651,16 @@ const app = {
         const project = this.projects.find(p => p.id === projectId);
         if (!project || !project.chats) return '';
 
+        const activeChats = project.chats.filter(c => !c.is_archived);
+        const archivedChats = project.chats.filter(c => c.is_archived);
+
         let html = `<div class="chats-under-project">
             <button class="add-chat-btn" onclick="app.newChat()">+ New Chat</button>`;
 
-        if (project.chats.length === 0) {
+        if (activeChats.length === 0) {
             html += '<div class="empty">No chats</div>';
         } else {
-            for (const c of project.chats) {
+            for (const c of activeChats) {
                 const isActive = this.currentChat?.id === c.id;
                 html += `
                     <div class="chat-item ${isActive ? 'active' : ''}" onclick="app.selectChat('${c.id}')">
@@ -587,6 +670,20 @@ const app = {
                 `;
             }
         }
+
+        if (archivedChats.length > 0) {
+            html += `<div class="archived-label">▾ Archived</div>`;
+            for (const c of archivedChats) {
+                const isActive = this.currentChat?.id === c.id;
+                html += `
+                    <div class="chat-item archived ${isActive ? 'active' : ''}" onclick="app.selectChat('${c.id}')">
+                        <span class="chat-name">${this.esc(c.name)}</span>
+                        <button class="x-btn" onclick="event.stopPropagation(); app.deleteChat('${c.id}')">×</button>
+                    </div>
+                `;
+            }
+        }
+
         html += '</div>';
         return html;
     },
@@ -610,6 +707,11 @@ const app = {
 
             let content = m.content || '';
             let thoughtLine = '';
+
+            // System divider (context compaction marker)
+            if (m.role === 'system') {
+                return `<div style="text-align:center; color:#1e3a4a; font-size:11px; padding:10px 0; user-select:none;">${this.esc(content)}</div>`;
+            }
 
             // Extract our [thought for MM:SS] prefix (first line only)
             if (!isUser && content.startsWith('[thought for ')) {
@@ -680,10 +782,20 @@ const app = {
         document.getElementById('chatView').style.display = this.currentChat ? 'flex' : 'none';
         document.getElementById('header').style.display = this.currentChat ? 'block' : 'none';
         if (!this.currentChat) document.getElementById('tokenBar').classList.remove('visible');
+        else document.getElementById('tokenBar').classList.add('visible');
 
         if (this.currentChat) {
             document.getElementById('chatTitle').textContent = this.currentChat.name;
             document.getElementById('projectTitle').textContent = this.currentProject?.name || '';
+
+            // Lock input for archived chats
+            const input = document.getElementById('messageInput');
+            const sendBtn = document.querySelector('.input-box button:last-child');
+            const isArchived = !!this.currentChat.is_archived;
+            input.disabled = isArchived;
+            input.placeholder = isArchived ? '— archived chat, read only —' : 'Type a message...';
+            input.style.opacity = isArchived ? '0.4' : '1';
+            if (sendBtn) sendBtn.disabled = isArchived;
         }
 
         this.renderProjects();
