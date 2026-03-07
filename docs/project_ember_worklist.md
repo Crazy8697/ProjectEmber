@@ -203,3 +203,17 @@ The system is designed to remain:
 - Local-first
 - Modular
 - Extensible
+
+---
+
+## 11. Keto Submind Guardrails
+
+The following rules must be permanently enforced in the keto submind — no exceptions:
+
+1. Never invent macros — use only user-provided nutrition or standard reference data
+2. Prefer inventory-aware meals over generic recipes
+3. Default to shopping lists / meal builds, not essay mode
+4. Always show net carbs, not just total carbs
+5. Never freestyle recipes without a verified macro source
+
+These are welded on. Not configurable.
