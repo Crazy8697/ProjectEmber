@@ -91,7 +91,7 @@ DEFAULT_MODE = os.environ.get("EMBER_MODE", "medium").lower()
 MODE_PRESETS = {
     "quick":  {"temperature": 0.15, "n_predict": 160, "top_p": 0.9},
     "medium": {"temperature": 0.25, "n_predict": 320, "top_p": 0.95},
-    "deep":   {"temperature": 0.35, "n_predict": 640, "top_p": 0.95},
+    "deep":   {"temperature": 0.55, "n_predict": 640, "top_p": 0.95},
 }
 
 def _mode_settings(mode: str) -> Dict[str, Any]:

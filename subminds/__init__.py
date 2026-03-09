@@ -80,10 +80,11 @@ def orchestrate(
     """
     from submind_router import detect_submind
     from eai_core import (
-        EAI_SYSTEM_PROMPT,
+        build_eai_system_prompt,
         EAI_BRIEF_TEMPLATE,
         EAI_VALIDATION_TEMPLATE,
     )
+    EAI_SYSTEM_PROMPT = build_eai_system_prompt()
 
     steps = []
 
