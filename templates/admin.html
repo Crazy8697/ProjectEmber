@@ -343,6 +343,31 @@
         grid-template-columns: 1fr 1fr;
       }
     }
+
+    /* ===== MOBILE RESPONSIVE ===== */
+    @media (max-width: 768px) {
+      body { padding: 10px 12px 20px; }
+    }
+
+    @media (max-width: 480px) {
+      body { padding: 8px 8px 16px; }
+      .stack { gap: 10px; }
+      .card { padding: 12px; }
+      .subcard { padding: 10px; }
+      h1 { font-size: 14px; }
+      h2 { font-size: 13px; }
+      /* Ensure smallRow items wrap tightly and never overflow */
+      .smallRow { gap: 6px; }
+      .smallRow > * { flex: 1 1 120px; min-width: 0; }
+      .smallRow .fixed { flex: 0 0 auto; }
+      button, a.btn { padding: 8px 10px; font-size: 12px; }
+      /* Status panes: keep horizontal scroll, limit height on mobile */
+      .status { max-height: 260px; font-size: 11px; }
+      /* Row wraps */
+      .row { gap: 6px; }
+      /* Tables inside status areas scroll inside the status box */
+      .table { min-width: 500px; }
+    }
   </style>
 </head>
 <body>

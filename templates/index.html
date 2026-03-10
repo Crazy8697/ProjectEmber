@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
     <title>Project Ember</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -240,9 +241,97 @@
         *::-webkit-scrollbar-thumb:hover {
             background: #2a3b57;
         }
+
+        /* ===== MOBILE RESPONSIVE ===== */
+
+        /* Mobile hamburger button — hidden on desktop */
+        .mobile-menu-btn {
+            display: none;
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            z-index: 200;
+            background: #0d1117;
+            border: 1px solid #1a2332;
+            color: #06b6d4;
+            font-size: 18px;
+            padding: 6px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            line-height: 1;
+            font-family: inherit;
+            font-weight: 700;
+        }
+        .mobile-menu-btn:hover { background: #1a2332; color: #22d3ee; }
+
+        /* Translucent backdrop behind open sidebar on mobile */
+        .sidebar-backdrop {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.6);
+            z-index: 150;
+        }
+        .sidebar-backdrop.visible { display: block; }
+
+        @media (max-width: 768px) {
+            /* Show hamburger */
+            .mobile-menu-btn { display: flex; align-items: center; }
+
+            /* Sidebar becomes a fixed left-edge drawer */
+            .sidebar {
+                position: fixed;
+                left: -260px;
+                top: 0;
+                height: 100%;
+                z-index: 160;
+                width: 250px;
+                transition: left 0.22s ease;
+                box-shadow: none;
+            }
+            .sidebar.mobile-open {
+                left: 0;
+                box-shadow: 4px 0 24px rgba(0,0,0,0.55);
+            }
+
+            /* Main container fills full width since sidebar is out of flow */
+            .main-container { width: 100%; }
+
+            /* Reserve space at top-left for the hamburger button */
+            .header { padding-left: 52px; }
+
+            /* Tighten input area */
+            .input-area-container { padding: 8px 12px; }
+
+            /* Token bar wraps gracefully */
+            .token-bar {
+                flex-wrap: wrap;
+                gap: 6px 10px;
+                padding: 4px 12px;
+            }
+            .token-bar-fill-wrap { max-width: 80px; }
+
+            /* Tighten chat message padding */
+            .messages { padding: 10px 12px; }
+        }
+
+        @media (max-width: 480px) {
+            .header { padding: 8px 12px 8px 52px; }
+            .header h2 { font-size: 13px; }
+            .header small { font-size: 10px; }
+            .input-area-container { padding: 6px 8px; }
+            .input-box { gap: 6px; }
+            .input-box textarea { font-size: 12px; }
+            .input-box button { padding: 8px 10px; font-size: 11px; }
+            .input-prompt { font-size: 11px; }
+            .token-bar { font-size: 10px; padding: 3px 8px; }
+            .msg-content { font-size: 12px; }
+        }
     </style>
 </head>
 <body>
+<button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Open menu">☰</button>
+<div class="sidebar-backdrop" id="sidebarBackdrop"></div>
 <div id="app">
     <div class="sidebar">
         <h1>🔥 Ember</h1>
@@ -1182,6 +1271,42 @@ const app = {
 };
 
 app.init();
+
+// ===== Mobile sidebar toggle =====
+(function() {
+    var btn      = document.getElementById('mobileMenuBtn');
+    var backdrop = document.getElementById('sidebarBackdrop');
+    var sidebar  = document.querySelector('.sidebar');
+
+    function openSidebar() {
+        sidebar.classList.add('mobile-open');
+        backdrop.classList.add('visible');
+    }
+    function closeSidebar() {
+        sidebar.classList.remove('mobile-open');
+        backdrop.classList.remove('visible');
+    }
+
+    btn.addEventListener('click', openSidebar);
+    backdrop.addEventListener('click', closeSidebar);
+
+    // Close when static tool buttons are clicked
+    document.querySelectorAll('.tool-btn').forEach(function(b) {
+        b.addEventListener('click', closeSidebar);
+    });
+
+    // Close when dynamically-rendered project/chat items are clicked (delegation)
+    sidebar.addEventListener('click', function(e) {
+        var t = e.target;
+        if (t.closest('.project-item') || t.closest('.chat-item') || t.closest('.add-chat-btn')) {
+            // Short delay lets the click handler on the item finish before the sidebar animates away
+            setTimeout(closeSidebar, 80);
+        }
+    });
+
+    // Expose so other code can call it if needed
+    window.closeMobileSidebar = closeSidebar;
+})();
 </script>
 </body>
 </html>
