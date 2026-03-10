@@ -364,3 +364,44 @@ section::-webkit-scrollbar-thumb:hover,
 div::-webkit-scrollbar-thumb:hover {
   background: #2a3b57;
 }
+
+/* ===== MOBILE RESPONSIVE ===== */
+
+@media (max-width: 768px) {
+  /* Topbar: let nav wrap below brand on narrow screens */
+  .topbar {
+    flex-wrap: wrap;
+    gap: 8px 12px;
+    padding: 10px 12px;
+  }
+  .nav {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  /* Wrap padding */
+  .wrap { padding: 0 10px; margin: 12px auto; }
+
+  /* Filters: stack to single column */
+  .filters {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  /* Form grid: single column on mobile */
+  .formGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .topbar { padding: 8px 10px; }
+  .logo { width: 32px; height: 32px; font-size: 14px; }
+  .title { font-size: 13px; }
+  .subtitle { font-size: 11px; }
+  .wrap { padding: 0 8px; margin: 8px auto; gap: 10px; }
+  .card { padding: 10px; border-radius: 10px; }
+  .pill { padding: 6px 10px; font-size: 13px; }
+  /* Keep buttons tappable */
+  .btn { padding: 8px 10px; }
+}

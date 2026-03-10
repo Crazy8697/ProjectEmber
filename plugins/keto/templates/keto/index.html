@@ -252,6 +252,29 @@
       .grid4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
       .metrics { grid-template-columns: repeat(4, minmax(0, 1fr)); }
     }
+
+    /* ===== MOBILE RESPONSIVE ===== */
+    @media (max-width: 768px) {
+      body { padding: 10px 12px 20px; }
+    }
+
+    @media (max-width: 480px) {
+      body { padding: 8px 8px 16px; }
+      .wrap { gap: 10px; }
+      .card { padding: 12px; }
+      .subcard { padding: 10px; }
+      h1 { font-size: 14px; }
+      h2 { font-size: 13px; }
+      .metric { padding: 10px; }
+      .metric .value { font-size: 16px; }
+      .metric .sub { font-size: 10px; }
+      /* Shrink the notes column so it doesn't dominate on phone */
+      .table td.notes, .table th.notes { min-width: 120px; }
+      /* Toolbar stacks */
+      .toolbar { gap: 6px; }
+      .toolbar .grow { min-width: 0; }
+      button, a.btn { padding: 8px 10px; font-size: 12px; }
+    }
   </style>
 </head>
 <body>
