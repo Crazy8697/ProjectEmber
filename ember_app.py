@@ -47,7 +47,9 @@ ember = Flask(__name__, static_folder="static", template_folder="templates")
 
 # Register the scavenger inventory blueprint
 from plugins.scavenger import init_scavenger
+from plugins.keto import init_keto
 init_scavenger(ember)
+init_keto(ember)
 
 # ----------------------------
 
