@@ -190,6 +190,56 @@
         .btn-cancel:hover { background: #2d3748; }
         .btn-submit { background: #06b6d4; color: #0a0c10; }
         .btn-submit:hover { background: #22d3ee; }
+
+        * {
+            scrollbar-width: thin;
+            scrollbar-color: #1f2a3d #0a0c10;
+        }
+
+        *::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+
+        *::-webkit-scrollbar-track {
+            background: #0a0c10;
+            border-radius: 8px;
+        }
+
+        *::-webkit-scrollbar-thumb {
+            background: #1f2a3d;
+            border: 2px solid #0a0c10;
+            border-radius: 8px;
+        }
+
+        *::-webkit-scrollbar-thumb:hover {
+            background: #2a3b57;
+        }
+
+        * {
+            scrollbar-width: thin;
+            scrollbar-color: #1f2a3d #0a0c10;
+        }
+
+        *::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+
+        *::-webkit-scrollbar-track {
+            background: #0a0c10;
+            border-radius: 8px;
+        }
+
+        *::-webkit-scrollbar-thumb {
+            background: #1f2a3d;
+            border: 2px solid #0a0c10;
+            border-radius: 8px;
+        }
+
+        *::-webkit-scrollbar-thumb:hover {
+            background: #2a3b57;
+        }
     </style>
 </head>
 <body>
@@ -207,6 +257,7 @@
         <div class="section">
             <div class="section-title">Tools</div>
             <button class="tool-btn" id="invBtn" onclick="app.showTool('inventory')">🎒 Scavenger Inventory</button>
+            <button class="tool-btn" id="ketoBtn" onclick="app.showTool('keto')">🥩 Keto Dashboard</button>
             <button class="tool-btn" id="adminBtn" onclick="app.showTool('admin')">⚙️ Admin Console</button>
         </div>
 
@@ -765,13 +816,16 @@ const app = {
         this.showView();
 
         document.getElementById('invBtn').classList.toggle('active', tool === 'inventory');
+        document.getElementById('ketoBtn').classList.toggle('active', tool === 'keto');
         document.getElementById('adminBtn').classList.toggle('active', tool === 'admin');
 
         const frame = document.getElementById('toolFrame');
         if (tool === 'inventory') {
-            frame.src = '/inventory-page';
+            frame.src = '/inventory-page?v=' + Date.now();
+        } else if (tool === 'keto') {
+            frame.src = '/keto/?v=' + Date.now();
         } else if (tool === 'admin') {
-            frame.src = '/admin';
+            frame.src = '/admin?v=' + Date.now();
         }
     },
 

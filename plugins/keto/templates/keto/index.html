@@ -1,0 +1,532 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Keto Dashboard</title>
+  <style>
+    :root {
+      --bg: #0a0c10;
+      --card: #0d1117;
+      --border: #1a2332;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --muted2: #4a5568;
+      --accent: #06b6d4;
+      --accentH: #22d3ee;
+      --green: #a3e635;
+      --red: #f87171;
+      --yellow: #facc15;
+      --btn: #111827;
+      --btnH: #1a2332;
+      --mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+      --r: 6px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      min-height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 13px;
+    }
+
+    body { padding: 18px 20px 28px; }
+
+    * {
+      scrollbar-width: thin;
+      scrollbar-color: #1f2a3d #0a0c10;
+    }
+
+    *::-webkit-scrollbar {
+      width: 10px;
+      height: 10px;
+    }
+
+    *::-webkit-scrollbar-track {
+      background: #0a0c10;
+      border-radius: 8px;
+    }
+
+    *::-webkit-scrollbar-thumb {
+      background: #1f2a3d;
+      border: 2px solid #0a0c10;
+      border-radius: 8px;
+    }
+
+    *::-webkit-scrollbar-thumb:hover {
+      background: #2a3b57;
+    }
+
+
+    .wrap {
+      width: 100%;
+      max-width: none;
+      margin: 0;
+      display: grid;
+      gap: 16px;
+    }
+
+    .card, .subcard {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+    }
+
+    .card { padding: 18px; }
+    .subcard { padding: 16px; min-width: 0; }
+
+    .titleRow, .row, .toolbar, .smallRow {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .titleRow {
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    h1 {
+      margin: 0 0 4px;
+      font-size: 16px;
+      color: var(--accent);
+    }
+
+    h2 {
+      margin: 0 0 6px;
+      font-size: 14px;
+      color: var(--accent);
+    }
+
+    p { margin: 0 0 10px; color: var(--muted2); font-size: 12px; }
+
+    .pill, .badge {
+      font-size: 10px;
+      padding: 2px 8px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      background: var(--btn);
+      color: var(--muted2);
+    }
+
+    input, button, select, textarea {
+      font-family: var(--mono);
+      font-size: 13px;
+    }
+
+    input, select {
+      width: 100%;
+      min-width: 0;
+      padding: 10px 12px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    input:focus, select:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    button, a.btn {
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: var(--btn);
+      color: var(--text);
+      padding: 9px 12px;
+      border-radius: 4px;
+      font-weight: 600;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    button:hover, a.btn:hover {
+      background: var(--btnH);
+      color: var(--accentH);
+    }
+
+    .grid4, .grid3, .grid2 {
+      display: grid;
+      gap: 16px;
+      grid-template-columns: 1fr;
+    }
+
+    .metrics {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: repeat(1, minmax(0, 1fr));
+    }
+
+    .metric {
+      background: rgba(255,255,255,.02);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 14px;
+    }
+
+    .metric .label {
+      color: var(--muted2);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      margin-bottom: 8px;
+    }
+
+    .metric .value {
+      font-size: 20px;
+      color: var(--text);
+      line-height: 1.15;
+    }
+
+    .metric .sub {
+      margin-top: 6px;
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .good { color: var(--green); }
+    .bad { color: var(--red); }
+    .warn { color: var(--yellow); }
+
+    .tableWrap, .status {
+      margin-top: 10px;
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      overflow: auto;
+      background: var(--bg);
+      width: 100%;
+      min-width: 0;
+    }
+
+    .table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+
+    .table th, .table td {
+      border-bottom: 1px solid var(--border);
+      padding: 9px 8px;
+      text-align: left;
+      vertical-align: top;
+      white-space: nowrap;
+    }
+
+    .table th {
+      color: var(--muted2);
+      font-weight: 700;
+      text-transform: uppercase;
+      font-size: 10px;
+      letter-spacing: 0.5px;
+      background: rgba(255,255,255,.02);
+      position: sticky;
+      top: 0;
+    }
+
+    .table td.notes, .table th.notes {
+      white-space: normal;
+      min-width: 220px;
+    }
+
+    .muted { color: var(--muted2); font-size: 11px; }
+    .empty {
+      padding: 18px;
+      color: var(--muted2);
+      font-size: 12px;
+    }
+
+    .toolbar .grow { flex: 1 1 220px; min-width: 180px; }
+
+    @media (min-width: 900px) {
+      .grid2 { grid-template-columns: 1fr 1fr; }
+      .grid3 { grid-template-columns: 1fr 1fr 1fr; }
+      .grid4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+      .metrics { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <div class="titleRow">
+        <div>
+          <h1>🥩 Keto Dashboard</h1>
+          <p>Daily summary, totals, and event timeline without the spreadsheet goblin routine.</p>
+        </div>
+        <div class="pill">/keto</div>
+      </div>
+
+      <div class="toolbar">
+        <input id="dateInput" class="grow" type="date"/>
+        <button id="loadBtn">Load Day</button>
+        <button id="todayBtn">Today</button>
+      </div>
+    </div>
+
+    <div class="grid4 metrics" id="topMetrics">
+      <div class="metric">
+        <div class="label">Calories</div>
+        <div class="value" id="mCalories">--</div>
+        <div class="sub" id="mCaloriesSub">target --</div>
+      </div>
+      <div class="metric">
+        <div class="label">Protein</div>
+        <div class="value" id="mProtein">--</div>
+        <div class="sub" id="mProteinSub">target --</div>
+      </div>
+      <div class="metric">
+        <div class="label">Fat</div>
+        <div class="value" id="mFat">--</div>
+        <div class="sub" id="mFatSub">target --</div>
+      </div>
+      <div class="metric">
+        <div class="label">Net Carbs</div>
+        <div class="value" id="mCarbs">--</div>
+        <div class="sub" id="mCarbsSub">target --</div>
+      </div>
+    </div>
+
+    <div class="grid2">
+      <div class="card">
+        <h2>Daily Totals</h2>
+        <p>What happened today, numerically. A rare moment where numbers are less annoying than feelings.</p>
+        <div class="tableWrap">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Metric</th>
+                <th>Total</th>
+                <th>Target</th>
+                <th>Diff</th>
+              </tr>
+            </thead>
+            <tbody id="totalsBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Electrolytes + Water</h2>
+        <p>Hydration and mineral tracking. Meat machine support values.</p>
+        <div class="tableWrap">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Metric</th>
+                <th>Total</th>
+                <th>Target</th>
+                <th>Diff</th>
+              </tr>
+            </thead>
+            <tbody id="electrolytesBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="titleRow">
+        <div>
+          <h2>Event Log</h2>
+          <p>Chronological events for the selected day.</p>
+        </div>
+        <div class="badge" id="eventCount">0 events</div>
+      </div>
+
+      <div class="tableWrap">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Time</th>
+              <th>Type</th>
+              <th>Label</th>
+              <th>Calories</th>
+              <th>Protein</th>
+              <th>Fat</th>
+              <th>Net Carbs</th>
+              <th>Water</th>
+              <th>Sodium</th>
+              <th>Potassium</th>
+              <th>Magnesium</th>
+              <th class="notes">Notes</th>
+            </tr>
+          </thead>
+          <tbody id="eventsBody"></tbody>
+        </table>
+      </div>
+      <div id="eventsEmpty" class="empty" style="display:none;">No events for this date yet.</div>
+    </div>
+
+    <div class="card">
+      <h2>API Status</h2>
+      <div id="statusOut" class="status empty">Loading…</div>
+    </div>
+  </div>
+
+<script>
+function fmt(n, suffix = "") {
+  const num = Number(n || 0);
+  return `${num.toFixed(1)}${suffix}`;
+}
+
+function diffClass(value, inverse = false) {
+  const n = Number(value || 0);
+  if (n === 0) return "";
+  if (!inverse) return n > 0 ? "bad" : "good";
+  return n > 0 ? "good" : "bad";
+}
+
+function metricSub(total, target, suffix = "", inverse = false) {
+  const diff = Number(total || 0) - Number(target || 0);
+  const cls = diffClass(diff, inverse);
+  const sign = diff > 0 ? "+" : "";
+  return `target ${fmt(target, suffix)} · <span class="${cls}">${sign}${fmt(diff, suffix)}</span>`;
+}
+
+function setToday() {
+  const now = new Date();
+  const yyyy = now.getFullYear();
+  const mm = String(now.getMonth() + 1).padStart(2, "0");
+  const dd = String(now.getDate()).padStart(2, "0");
+  document.getElementById("dateInput").value = `${yyyy}-${mm}-${dd}`;
+}
+
+function eventTime(ts) {
+  if (!ts) return "";
+  const parts = String(ts).split("T");
+  return parts[1] ? parts[1].slice(0, 5) : ts;
+}
+
+async function loadDay() {
+  const date = document.getElementById("dateInput").value;
+  const statusOut = document.getElementById("statusOut");
+  if (!date) {
+    statusOut.textContent = "Pick a date first.";
+    return;
+  }
+
+  statusOut.textContent = "Loading…";
+
+  try {
+    const res = await fetch(`/keto/api/day?date=${encodeURIComponent(date)}`);
+    const data = await res.json();
+    if (!data.ok) {
+      statusOut.textContent = JSON.stringify(data, null, 2);
+      return;
+    }
+
+    renderDay(data);
+    statusOut.textContent = JSON.stringify(data, null, 2);
+  } catch (err) {
+    statusOut.textContent = String(err);
+  }
+}
+
+function renderDay(data) {
+  const totals = data.totals || {};
+  const targets = data.targets || {};
+  const diffs = data.differences || {};
+  const events = data.events || [];
+
+  document.getElementById("mCalories").textContent = fmt(totals.calories);
+  document.getElementById("mProtein").textContent = fmt(totals.protein_g, "g");
+  document.getElementById("mFat").textContent = fmt(totals.fat_g, "g");
+  document.getElementById("mCarbs").textContent = fmt(totals.net_carbs_g, "g");
+
+  document.getElementById("mCaloriesSub").innerHTML = metricSub(totals.calories, targets.calories_target);
+  document.getElementById("mProteinSub").innerHTML = metricSub(totals.protein_g, targets.protein_target_g, "g", true);
+  document.getElementById("mFatSub").innerHTML = metricSub(totals.fat_g, targets.fat_target_g, "g", true);
+  document.getElementById("mCarbsSub").innerHTML = metricSub(totals.net_carbs_g, targets.net_carbs_target_g, "g", false);
+
+  const totalsRows = [
+    ["Calories", totals.calories, targets.calories_target, diffs.calories, ""],
+    ["Protein", totals.protein_g, targets.protein_target_g, diffs.protein_g, "g"],
+    ["Fat", totals.fat_g, targets.fat_target_g, diffs.fat_g, "g"],
+    ["Net Carbs", totals.net_carbs_g, targets.net_carbs_target_g, diffs.net_carbs_g, "g"],
+  ];
+
+  const electrolyteRows = [
+    ["Water", totals.water_ml, targets.water_target_ml, diffs.water_ml, " mL"],
+    ["Sodium", totals.sodium_mg, targets.sodium_target_mg, diffs.sodium_mg, " mg"],
+    ["Potassium", totals.potassium_mg, targets.potassium_target_mg, diffs.potassium_mg, " mg"],
+    ["Magnesium", totals.magnesium_mg, targets.magnesium_target_mg, diffs.magnesium_mg, " mg"],
+  ];
+
+  renderRows(document.getElementById("totalsBody"), totalsRows, {
+    inversePositive: new Set(["Protein", "Fat"]),
+  });
+  renderRows(document.getElementById("electrolytesBody"), electrolyteRows, {
+    inversePositive: new Set(["Water", "Sodium", "Potassium", "Magnesium"]),
+  });
+
+  document.getElementById("eventCount").textContent = `${events.length} event${events.length === 1 ? "" : "s"}`;
+
+  const eventsBody = document.getElementById("eventsBody");
+  const eventsEmpty = document.getElementById("eventsEmpty");
+  eventsBody.innerHTML = "";
+
+  if (!events.length) {
+    eventsEmpty.style.display = "block";
+    return;
+  }
+
+  eventsEmpty.style.display = "none";
+
+  for (const ev of events) {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${eventTime(ev.event_timestamp)}</td>
+      <td>${ev.event_type ?? ""}</td>
+      <td>${ev.label ?? ""}</td>
+      <td>${fmt(ev.calories)}</td>
+      <td>${fmt(ev.protein_g, "g")}</td>
+      <td>${fmt(ev.fat_g, "g")}</td>
+      <td>${fmt(ev.net_carbs_g, "g")}</td>
+      <td>${fmt(ev.water_ml, " mL")}</td>
+      <td>${fmt(ev.sodium_mg, " mg")}</td>
+      <td>${fmt(ev.potassium_mg, " mg")}</td>
+      <td>${fmt(ev.magnesium_mg, " mg")}</td>
+      <td class="notes">${ev.notes ?? ""}</td>
+    `;
+    eventsBody.appendChild(tr);
+  }
+}
+
+function renderRows(tbody, rows, options = {}) {
+  const inversePositive = options.inversePositive || new Set();
+  tbody.innerHTML = "";
+
+  for (const [label, total, target, diff, suffix] of rows) {
+    const tr = document.createElement("tr");
+    const cls = diffClass(diff, inversePositive.has(label));
+    const sign = Number(diff || 0) > 0 ? "+" : "";
+    tr.innerHTML = `
+      <td>${label}</td>
+      <td>${fmt(total, suffix)}</td>
+      <td>${fmt(target, suffix)}</td>
+      <td class="${cls}">${sign}${fmt(diff, suffix)}</td>
+    `;
+    tbody.appendChild(tr);
+  }
+}
+
+document.getElementById("todayBtn").addEventListener("click", () => {
+  setToday();
+  loadDay();
+});
+document.getElementById("loadBtn").addEventListener("click", loadDay);
+
+setToday();
+loadDay();
+</script>
+</body>
+</html>

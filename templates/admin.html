@@ -26,43 +26,167 @@
       --mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
       --r: 6px;
     }
+
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: var(--mono); margin: 0; padding: 20px; background: var(--bg); color: var(--text); font-size: 13px; }
-    .wrap { max-width: 1100px; margin: 0 auto; }
 
-    .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--r); padding: 16px; margin-bottom: 12px; }
-    .titleRow { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
-    h1 { margin: 0 0 4px; font-size: 16px; color: var(--accent); }
-    p { margin: 0 0 10px; color: var(--muted2); font-size: 12px; }
-    .pill { font-size: 11px; padding: 2px 8px; border-radius: 4px; border: 1px solid var(--border); background: var(--btn); color: var(--muted2); }
+    html, body {
+      min-height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 13px;
+    }
 
-    .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    body {
+      padding: 18px 20px 28px;
+    }
 
-    .subcard { background: var(--bg); border: 1px solid var(--border); border-radius: var(--r); padding: 14px; }
-    .subcard h2 { margin: 0 0 6px; font-size: 14px; color: var(--accent); }
-    .subcard p { margin: 0 0 8px; color: var(--muted2); font-size: 11px; }
+    * {
+      scrollbar-width: thin;
+      scrollbar-color: #1f2a3d #0a0c10;
+    }
 
-    label { display: block; font-size: 11px; color: var(--muted2); margin: 8px 0 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+    *::-webkit-scrollbar {
+      width: 10px;
+      height: 10px;
+    }
+
+    *::-webkit-scrollbar-track {
+      background: #0a0c10;
+      border-radius: 8px;
+    }
+
+    *::-webkit-scrollbar-thumb {
+      background: #1f2a3d;
+      border: 2px solid #0a0c10;
+      border-radius: 8px;
+    }
+
+    *::-webkit-scrollbar-thumb:hover {
+      background: #2a3b57;
+    }
+
+
+    .wrap {
+      width: 100%;
+      max-width: none;
+      margin: 0;
+    }
+
+    .stack {
+      display: grid;
+      gap: 16px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 18px;
+      width: 100%;
+      min-width: 0;
+    }
+
+    .titleRow {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    h1 {
+      margin: 0 0 4px;
+      font-size: 16px;
+      color: var(--accent);
+    }
+
+    h2 {
+      margin: 0 0 6px;
+      font-size: 14px;
+      color: var(--accent);
+    }
+
+    p {
+      margin: 0 0 10px;
+      color: var(--muted2);
+      font-size: 12px;
+    }
+
+    .pill,
+    .badge {
+      font-size: 10px;
+      padding: 2px 8px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      background: var(--btn);
+      color: var(--muted2);
+    }
+
+    .row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .grid2 {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 16px;
+    }
+
+    .split {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 16px;
+    }
+
+    .subcard {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 16px;
+      min-width: 0;
+    }
+
+    label {
+      display: block;
+      font-size: 11px;
+      color: var(--muted2);
+      margin: 8px 0 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
     input, textarea, select {
       width: 100%;
-      padding: 8px 10px;
+      padding: 10px 12px;
       border-radius: 4px;
       border: 1px solid var(--border);
       background: var(--bg);
       color: var(--text);
       font-family: var(--mono);
       font-size: 13px;
+      min-width: 0;
     }
-    input:focus, textarea:focus, select:focus { outline: none; border-color: var(--accent); }
-    textarea { min-height: 70px; resize: vertical; }
+
+    input:focus, textarea:focus, select:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    textarea {
+      min-height: 86px;
+      resize: vertical;
+    }
 
     button, a.btn {
       cursor: pointer;
       border: 1px solid var(--border);
       background: var(--btn);
       color: var(--text);
-      padding: 8px 12px;
+      padding: 9px 12px;
       border-radius: 4px;
       font-weight: 600;
       text-decoration: none;
@@ -72,15 +196,35 @@
       font-size: 12px;
       font-family: var(--mono);
     }
-    button:hover, a.btn:hover { background: var(--btnH); color: var(--accentH); }
-    button.danger { background: var(--danger); border-color: var(--dangerB); color: var(--red); }
-    button.danger:hover { background: rgba(248,113,113,.18); }
-    button.good { background: var(--ok); border-color: var(--okB); color: var(--green); }
-    button.good:hover { background: rgba(163,230,53,.18); }
+
+    button:hover, a.btn:hover {
+      background: var(--btnH);
+      color: var(--accentH);
+    }
+
+    button.danger {
+      background: var(--danger);
+      border-color: var(--dangerB);
+      color: var(--red);
+    }
+
+    button.danger:hover {
+      background: rgba(248,113,113,.18);
+    }
+
+    button.good {
+      background: var(--ok);
+      border-color: var(--okB);
+      color: var(--green);
+    }
+
+    button.good:hover {
+      background: rgba(163,230,53,.18);
+    }
 
     .status {
       margin-top: 10px;
-      padding: 10px;
+      padding: 12px;
       border-radius: 4px;
       background: var(--bg);
       border: 1px solid var(--border);
@@ -88,10 +232,15 @@
       font-family: var(--mono);
       font-size: 12px;
       overflow: auto;
-      max-height: 340px;
+      max-height: 420px;
       color: var(--muted);
+      width: 100%;
     }
-    .muted { color: var(--muted2); font-size: 11px; }
+
+    .muted {
+      color: var(--muted2);
+      font-size: 11px;
+    }
 
     .table {
       width: 100%;
@@ -100,245 +249,305 @@
       font-size: 12px;
       margin-top: 8px;
     }
+
     .table th, .table td {
       border-bottom: 1px solid var(--border);
-      padding: 6px;
+      padding: 8px 6px;
       vertical-align: top;
+      text-align: left;
     }
-    .table th { text-align: left; color: var(--muted2); font-weight: 700; text-transform: uppercase; font-size: 10px; letter-spacing: 0.5px; }
-    .table tr:hover td { background: rgba(255,255,255,.02); }
-    .right { text-align: right; }
 
-    .smallRow { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-    .smallRow > * { flex: 1 1 auto; }
-    .smallRow .fixed { flex: 0 0 auto; }
+    .table th {
+      color: var(--muted2);
+      font-weight: 700;
+      text-transform: uppercase;
+      font-size: 10px;
+      letter-spacing: 0.5px;
+    }
 
-    .split { display: grid; grid-template-columns: 1fr; gap: 12px; }
-    @media (min-width: 920px) { .split { grid-template-columns: 1fr 1fr; } }
+    .table tr:hover td {
+      background: rgba(255,255,255,.02);
+    }
 
-    details { border: 1px solid var(--border); border-radius: var(--r); background: rgba(255,255,255,.02); }
-    summary { cursor: pointer; padding: 8px 12px; user-select: none; color: var(--accent); font-weight: 700; font-size: 12px; }
-    details > div { padding: 0 12px 12px; }
+    .right {
+      text-align: right;
+    }
 
-    .hint { margin-top: 8px; font-size: 11px; color: var(--muted2); }
-    .badge { font-family: var(--mono); font-size: 10px; padding: 2px 6px; border-radius: 4px; border: 1px solid var(--border); background: var(--btn); color: var(--muted2); }
+    .smallRow {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
 
-    /* Username section */
-    .username-section { display: flex; gap: 8px; align-items: center; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
-    .username-section label { margin: 0; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; }
-    .username-section input { max-width: 200px; color: var(--green); }
-    .username-section button { white-space: nowrap; }
+    .smallRow > * {
+      flex: 1 1 180px;
+      min-width: 0;
+    }
+
+    .smallRow .fixed {
+      flex: 0 0 auto;
+    }
+
+    details {
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      background: rgba(255,255,255,.02);
+    }
+
+    summary {
+      cursor: pointer;
+      padding: 10px 12px;
+      user-select: none;
+      color: var(--accent);
+      font-weight: 700;
+      font-size: 12px;
+    }
+
+    details > div {
+      padding: 0 12px 12px;
+    }
+
+    .hint {
+      margin-top: 8px;
+      font-size: 11px;
+      color: var(--muted2);
+    }
+
+    .username-section {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
+    }
+
+    .username-section label {
+      margin: 0;
+      white-space: nowrap;
+    }
+
+    .username-section input {
+      max-width: 220px;
+      color: var(--green);
+    }
+
+    @media (min-width: 980px) {
+      .split {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .grid2 {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
   </style>
 </head>
 <body>
   <div class="wrap">
-    <div class="card">
-      <div class="titleRow">
-        <div>
-          <h1>⚙️ Admin Console</h1>
-          <p>Controls, status, and other responsible-adult nonsense.</p>
+    <div class="stack">
+      <div class="card">
+        <div class="titleRow">
+          <div>
+            <h1>⚙️ Admin Console</h1>
+            <p>Controls, status, and other responsible-adult nonsense.</p>
+          </div>
+          <div class="pill">/admin</div>
         </div>
-        <div class="pill">/admin</div>
+
+        <div class="row">
+          <button id="btnStatus">Refresh status</button>
+          <a class="btn" href="/control">legacy /control</a>
+          <a class="btn" href="/">← back to chat</a>
+        </div>
+
+        <div id="statusOut" class="status">…</div>
+
+        <div class="username-section">
+          <label>Username:</label>
+          <input id="adminUsername" type="text" placeholder="user" value=""/>
+          <button id="btnSaveUsername" class="good">Save</button>
+        </div>
+
+        <div class="hint">This page is intentionally boring. Boring is stable.</div>
       </div>
 
-      <div class="row">
-        <button id="btnStatus">Refresh status</button>
-        <a class="btn" href="/control">legacy /control</a>
-        <a class="btn" href="/">← back to chat</a>
+      <div class="card">
+        <h1 style="font-size:14px; margin-bottom:6px;">Cache Inspector</h1>
+        <p class="muted">Scavenger cache tables: <span class="badge">part_enrich_cache</span> and <span class="badge">web_search_cache</span>.</p>
+
+        <div class="split">
+          <div class="subcard">
+            <h2>Part Enrich Cache</h2>
+            <div class="smallRow">
+              <input id="pecQuery" placeholder="mpn (exact or partial)"/>
+              <label class="fixed" style="display:flex;align-items:center;gap:6px;margin:0;text-transform:none;">
+                <input id="pecLike" type="checkbox" style="width:auto;margin:0;"/> LIKE
+              </label>
+              <label class="fixed" style="display:flex;align-items:center;gap:6px;margin:0;text-transform:none;">
+                <input id="pecWithPayload" type="checkbox" style="width:auto;margin:0;"/> payload
+              </label>
+            </div>
+            <div class="row" style="margin-top:8px;">
+              <button id="pecSearch">Search</button>
+            </div>
+
+            <div class="smallRow" style="margin-top:8px;">
+              <input id="pecDeleteMpn" placeholder="mpn to delete"/>
+              <button id="pecDeleteBtn" class="danger fixed">Delete MPN</button>
+            </div>
+
+            <div id="pecOut" class="status">…</div>
+            <div class="hint">Tip: leave MPN blank and hit Search to see newest rows.</div>
+          </div>
+
+          <div class="subcard">
+            <h2>Web Search Cache</h2>
+            <div class="smallRow">
+              <input id="wscQuery" placeholder="query (exact or partial)"/>
+              <label class="fixed" style="display:flex;align-items:center;gap:6px;margin:0;text-transform:none;">
+                <input id="wscLike" type="checkbox" style="width:auto;margin:0;"/> LIKE
+              </label>
+              <button id="wscSearch" class="fixed">Search</button>
+            </div>
+
+            <div class="smallRow" style="margin-top:8px;">
+              <input id="wscDelQuery" placeholder="query to delete"/>
+              <input id="wscDelRank" placeholder="rank (optional)"/>
+              <button id="wscDelOne" class="danger fixed">Delete (query,rank)</button>
+            </div>
+
+            <div class="row" style="margin-top:8px;">
+              <button id="wscDelAll" class="danger">Delete all for query</button>
+            </div>
+
+            <div id="wscOut" class="status">…</div>
+            <div class="hint">Tip: rank is required unless deleting all for the query.</div>
+          </div>
+        </div>
       </div>
 
-      <div id="statusOut" class="status">…</div>
+      <div class="card">
+        <div class="grid2">
+          <div class="subcard">
+            <h2>Bin Manager</h2>
+            <p class="muted">CRUD for <span class="badge">bins</span> (id, code, name, description).</p>
 
-      <div class="username-section">
-        <label>Username:</label>
-        <input id="adminUsername" type="text" placeholder="user" value=""/>
-        <button id="btnSaveUsername" class="good">Save</button>
+            <details open>
+              <summary>List / Search</summary>
+              <div>
+                <div class="smallRow">
+                  <input id="binsFilter" placeholder="filter (code/name contains)"/>
+                  <button id="binsRefresh" class="fixed">Refresh</button>
+                </div>
+                <div id="binsOut" class="status">…</div>
+              </div>
+            </details>
+
+            <details>
+              <summary>Add / Update</summary>
+              <div>
+                <label>id (blank = create new)</label>
+                <input id="binId" placeholder=""/>
+
+                <label>code (unique, required)</label>
+                <input id="binCode" placeholder="B12"/>
+
+                <label>name</label>
+                <input id="binName" placeholder="Drawer B12"/>
+
+                <label>description</label>
+                <textarea id="binDesc" placeholder="optional"></textarea>
+
+                <div class="row">
+                  <button id="binSave" class="good">Save</button>
+                  <button id="binClear" type="button">Clear form</button>
+                </div>
+                <div class="hint">Click a row in the list to load it into the form.</div>
+              </div>
+            </details>
+
+            <details>
+              <summary>Delete</summary>
+              <div>
+                <div class="smallRow">
+                  <input id="binDelId" placeholder="id to delete"/>
+                  <button id="binDelete" class="danger fixed">Delete</button>
+                </div>
+                <div class="hint">Deletion is permanent. Unlike your confidence.</div>
+              </div>
+            </details>
+          </div>
+
+          <div class="subcard">
+            <h2>Category Manager</h2>
+            <p class="muted">CRUD for <span class="badge">categories</span> (id, slug, name, parent_id).</p>
+
+            <details open>
+              <summary>Tree</summary>
+              <div>
+                <div class="row">
+                  <button id="catTree" class="fixed">Refresh tree</button>
+                </div>
+                <div id="catTreeOut" class="status">…</div>
+              </div>
+            </details>
+
+            <details>
+              <summary>List / Search</summary>
+              <div>
+                <div class="smallRow">
+                  <input id="catsFilter" placeholder="filter (slug/name contains)"/>
+                  <button id="catsRefresh" class="fixed">Refresh</button>
+                </div>
+                <div id="catsOut" class="status">…</div>
+                <div class="hint">Click a row in the list to load it into the form.</div>
+              </div>
+            </details>
+
+            <details>
+              <summary>Add / Update</summary>
+              <div>
+                <label>id (blank = create new)</label>
+                <input id="catId" placeholder=""/>
+
+                <label>slug (unique, required)</label>
+                <input id="catSlug" placeholder="resistors"/>
+
+                <label>name (required)</label>
+                <input id="catName" placeholder="Resistors"/>
+
+                <label>description</label>
+                <textarea id="catDesc" placeholder="optional"></textarea>
+
+                <label>parent_id (optional)</label>
+                <input id="catParent" placeholder="e.g. 1"/>
+
+                <div class="row">
+                  <button id="catSave" class="good">Save</button>
+                  <button id="catClear" type="button">Clear form</button>
+                </div>
+              </div>
+            </details>
+
+            <details>
+              <summary>Delete</summary>
+              <div>
+                <div class="smallRow">
+                  <input id="catDelId" placeholder="id to delete"/>
+                  <button id="catDelete" class="danger fixed">Delete</button>
+                </div>
+                <div class="hint">If it's a parent with children, you might want to reparent first.</div>
+              </div>
+            </details>
+          </div>
+        </div>
       </div>
 
-      <div class="hint">This page is intentionally boring. Boring is stable.</div>
+      <div class="hint muted">Admin Console running at <code>/admin</code></div>
     </div>
-
-    <div style="height:12px"></div>
-
-    <div style="height:12px"></div>
-
-    <div class="card">
-      <h1 style="font-size:14px; margin-bottom:6px;">Cache Inspector</h1>
-      <p class="muted">Scavenger cache tables: <span class="badge">part_enrich_cache</span> and <span class="badge">web_search_cache</span>.</p>
-
-      <div class="split">
-        <div class="subcard">
-          <h2>Part Enrich Cache</h2>
-          <div class="smallRow">
-            <input id="pecQuery" placeholder="mpn (exact or partial)"/>
-            <label class="fixed" style="display:flex;align-items:center;gap:6px;margin:0;text-transform:none;">
-              <input id="pecLike" type="checkbox" style="width:auto;margin:0;"/> LIKE
-            </label>
-            <label class="fixed" style="display:flex;align-items:center;gap:6px;margin:0;text-transform:none;">
-              <input id="pecWithPayload" type="checkbox" style="width:auto;margin:0;"/> payload
-            </label>
-          </div>
-          <div class="row" style="margin-top:8px;">
-            <button id="pecSearch">Search</button>
-          </div>
-
-          <div class="smallRow" style="margin-top:8px;">
-            <input id="pecDeleteMpn" placeholder="mpn to delete"/>
-            <button id="pecDeleteBtn" class="danger fixed">Delete MPN</button>
-          </div>
-
-          <div id="pecOut" class="status">…</div>
-          <div class="hint">Tip: leave MPN blank and hit Search to see newest rows.</div>
-        </div>
-
-        <div class="subcard">
-          <h2>Web Search Cache</h2>
-          <div class="smallRow">
-            <input id="wscQuery" placeholder="query (exact or partial)"/>
-            <label class="fixed" style="display:flex;align-items:center;gap:6px;margin:0;text-transform:none;">
-              <input id="wscLike" type="checkbox" style="width:auto;margin:0;"/> LIKE
-            </label>
-            <button id="wscSearch" class="fixed">Search</button>
-          </div>
-
-          <div class="smallRow" style="margin-top:8px;">
-            <input id="wscDelQuery" placeholder="query to delete"/>
-            <input id="wscDelRank" placeholder="rank (optional)"/>
-            <button id="wscDelOne" class="danger fixed">Delete (query,rank)</button>
-          </div>
-
-          <div class="row" style="margin-top:8px;">
-            <button id="wscDelAll" class="danger">Delete all for query</button>
-          </div>
-
-          <div id="wscOut" class="status">…</div>
-          <div class="hint">Tip: rank is required unless deleting all for the query.</div>
-        </div>
-      </div>
-    </div>
-
-    <div style="height:12px"></div>
-
-    <div class="card">
-      <div class="grid">
-        <div class="subcard">
-          <h2>Bin Manager</h2>
-          <p class="muted">CRUD for <span class="badge">bins</span> (id, code, name, description).</p>
-
-          <details open>
-            <summary>List / Search</summary>
-            <div>
-              <div class="smallRow">
-                <input id="binsFilter" placeholder="filter (code/name contains)"/>
-                <button id="binsRefresh" class="fixed">Refresh</button>
-              </div>
-              <div id="binsOut" class="status">…</div>
-            </div>
-          </details>
-
-          <details>
-            <summary>Add / Update</summary>
-            <div>
-              <label>id (blank = create new)</label>
-              <input id="binId" placeholder=""/>
-
-              <label>code (unique, required)</label>
-              <input id="binCode" placeholder="B12"/>
-
-              <label>name</label>
-              <input id="binName" placeholder="Drawer B12"/>
-
-              <label>description</label>
-              <textarea id="binDesc" placeholder="optional"></textarea>
-
-              <div class="row">
-                <button id="binSave" class="good">Save</button>
-                <button id="binClear" type="button">Clear form</button>
-              </div>
-              <div class="hint">Click a row in the list to load it into the form.</div>
-            </div>
-          </details>
-
-          <details>
-            <summary>Delete</summary>
-            <div>
-              <div class="smallRow">
-                <input id="binDelId" placeholder="id to delete"/>
-                <button id="binDelete" class="danger fixed">Delete</button>
-              </div>
-              <div class="hint">Deletion is permanent. Unlike your confidence.</div>
-            </div>
-          </details>
-
-        </div>
-
-        <div class="subcard">
-          <h2>Category Manager</h2>
-          <p class="muted">CRUD for <span class="badge">categories</span> (id, slug, name, parent_id).</p>
-
-          <details open>
-            <summary>Tree</summary>
-            <div>
-              <div class="row">
-                <button id="catTree" class="fixed">Refresh tree</button>
-              </div>
-              <div id="catTreeOut" class="status">…</div>
-            </div>
-          </details>
-
-          <details>
-            <summary>List / Search</summary>
-            <div>
-              <div class="smallRow">
-                <input id="catsFilter" placeholder="filter (slug/name contains)"/>
-                <button id="catsRefresh" class="fixed">Refresh</button>
-              </div>
-              <div id="catsOut" class="status">…</div>
-              <div class="hint">Click a row in the list to load it into the form.</div>
-            </div>
-          </details>
-
-          <details>
-            <summary>Add / Update</summary>
-            <div>
-              <label>id (blank = create new)</label>
-              <input id="catId" placeholder=""/>
-
-              <label>slug (unique, required)</label>
-              <input id="catSlug" placeholder="resistors"/>
-
-              <label>name (required)</label>
-              <input id="catName" placeholder="Resistors"/>
-
-              <label>description</label>
-              <textarea id="catDesc" placeholder="optional"></textarea>
-
-              <label>parent_id (optional)</label>
-              <input id="catParent" placeholder="e.g. 1"/>
-
-              <div class="row">
-                <button id="catSave" class="good">Save</button>
-                <button id="catClear" type="button">Clear form</button>
-              </div>
-            </div>
-          </details>
-
-          <details>
-            <summary>Delete</summary>
-            <div>
-              <div class="smallRow">
-                <input id="catDelId" placeholder="id to delete"/>
-                <button id="catDelete" class="danger fixed">Delete</button>
-              </div>
-              <div class="hint">If it's a parent with children, you might want to reparent first.</div>
-            </div>
-          </details>
-
-        </div>
-      </div>
-    </div>
-
-    <div class="hint muted" style="margin-top:8px;">Admin Console running at <code>/admin</code></div>
   </div>
 
 <script>
@@ -352,7 +561,6 @@ function show(el, x){
 }
 function esc(s){ return (s ?? '').toString(); }
 
-// Username save/load
 const adminUsernameInput = document.getElementById('adminUsername');
 try {
   const saved = localStorage.getItem('ember_username');
@@ -366,14 +574,12 @@ document.getElementById('btnSaveUsername').addEventListener('click', () => {
   show(document.getElementById('statusOut'), 'Username saved: ' + name);
 });
 
-// Status
 const statusOut = document.getElementById('statusOut');
 document.getElementById('btnStatus').addEventListener('click', async () => {
   show(statusOut, await j('/api/admin/status'));
 });
 (async()=>{ show(statusOut, await j('/api/admin/status')); })();
 
-// Cache inspector
 const pecOut = document.getElementById('pecOut');
 document.getElementById('pecSearch').addEventListener('click', async () => {
   const q = document.getElementById('pecQuery').value.trim();
@@ -414,7 +620,6 @@ document.getElementById('wscDelAll').addEventListener('click', async () => {
   show(wscOut, await j('/api/cache/web/delete_all', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({query, all_for_query: true})}));
 });
 
-// Bins CRUD
 const binsOut = document.getElementById('binsOut');
 function renderBins(rows){
   if (!Array.isArray(rows)) return show(binsOut, rows);
@@ -436,7 +641,7 @@ function renderBins(rows){
   binsOut.innerHTML = html;
 
   binsOut.querySelectorAll('button.btnRow').forEach(btn => {
-    btn.addEventListener('click', async (ev) => {
+    btn.addEventListener('click', async () => {
       const action = btn.getAttribute('data-action');
       const id = btn.getAttribute('data-id');
       if (action === 'load') {
@@ -490,7 +695,6 @@ async function doBinDelete(){
 }
 document.getElementById('binDelete').addEventListener('click', doBinDelete);
 
-// Categories CRUD
 const catsOut = document.getElementById('catsOut');
 const catTreeOut = document.getElementById('catTreeOut');
 
@@ -600,7 +804,6 @@ async function refreshTree(){
 }
 document.getElementById('catTree').addEventListener('click', refreshTree);
 
-// initial loads
 (async()=>{
   try { await refreshBins(); } catch (e) { show(binsOut, {ok:false, error:String(e)}); }
   try { await refreshCats(); } catch (e) { show(catsOut, {ok:false, error:String(e)}); }
