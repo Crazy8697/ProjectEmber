@@ -153,6 +153,99 @@ def add_event(
         return int(cur.lastrowid)
 
 
+def get_event_by_id(event_id: int) -> dict | None:
+    with get_connection() as conn:
+        row = conn.execute(
+            """
+            SELECT *
+            FROM events
+            WHERE id = ?
+            """,
+            (event_id,),
+        ).fetchone()
+        return dict(row) if row is not None else None
+
+
+def update_event(
+    *,
+    event_id: int,
+    event_timestamp: str,
+    event_date: str,
+    event_type: str,
+    label: str,
+    calories: float = 0,
+    protein_g: float = 0,
+    fat_g: float = 0,
+    net_carbs_g: float = 0,
+    water_ml: float = 0,
+    sodium_mg: float = 0,
+    potassium_mg: float = 0,
+    magnesium_mg: float = 0,
+    source: str = "manual",
+    source_id: str | None = None,
+    notes: str | None = None,
+) -> bool:
+    if event_type not in ALLOWED_EVENT_TYPES:
+        raise ValueError(f"Invalid event_type: {event_type}")
+
+    with get_connection() as conn:
+        cur = conn.execute(
+            """
+            UPDATE events
+            SET
+                event_timestamp = ?,
+                event_date = ?,
+                event_type = ?,
+                label = ?,
+                calories = ?,
+                protein_g = ?,
+                fat_g = ?,
+                net_carbs_g = ?,
+                water_ml = ?,
+                sodium_mg = ?,
+                potassium_mg = ?,
+                magnesium_mg = ?,
+                source = ?,
+                source_id = ?,
+                notes = ?
+            WHERE id = ?
+            """,
+            (
+                event_timestamp,
+                event_date,
+                event_type,
+                label,
+                calories,
+                protein_g,
+                fat_g,
+                net_carbs_g,
+                water_ml,
+                sodium_mg,
+                potassium_mg,
+                magnesium_mg,
+                source,
+                source_id,
+                notes,
+                event_id,
+            ),
+        )
+        conn.commit()
+        return cur.rowcount > 0
+
+
+def delete_event(event_id: int) -> bool:
+    with get_connection() as conn:
+        cur = conn.execute(
+            """
+            DELETE FROM events
+            WHERE id = ?
+            """,
+            (event_id,),
+        )
+        conn.commit()
+        return cur.rowcount > 0
+
+
 def list_events_for_date(event_date: str) -> list[dict]:
     with get_connection() as conn:
         rows = conn.execute(

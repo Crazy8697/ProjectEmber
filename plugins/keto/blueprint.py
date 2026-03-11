@@ -1,6 +1,14 @@
 from flask import Blueprint, jsonify, render_template, request
 
-from .db import add_event, get_day_summary, get_targets, list_events_for_date
+from .db import (
+    add_event,
+    delete_event,
+    get_day_summary,
+    get_event_by_id,
+    get_targets,
+    list_events_for_date,
+    update_event,
+)
 
 keto_bp = Blueprint(
     "keto",
@@ -55,6 +63,15 @@ def keto_list_events():
     return jsonify({"ok": True, "events": rows, "date": event_date})
 
 
+@keto_bp.get("/api/events/<int:event_id>")
+def keto_get_event(event_id: int):
+    row = get_event_by_id(event_id)
+    if row is None:
+      return jsonify({"ok": False, "error": "Event not found"}), 404
+
+    return jsonify({"ok": True, "event": row})
+
+
 @keto_bp.post("/api/events")
 def keto_add_event():
     data = request.get_json(silent=True) or {}
@@ -86,6 +103,52 @@ def keto_add_event():
         return jsonify({"ok": False, "error": str(e)}), 400
 
     return jsonify({"ok": True, "event_id": event_id}), 201
+
+
+@keto_bp.put("/api/events/<int:event_id>")
+def keto_update_event(event_id: int):
+    data = request.get_json(silent=True) or {}
+
+    required_fields = ["event_timestamp", "event_date", "event_type", "label"]
+    missing = [field for field in required_fields if not str(data.get(field, "")).strip()]
+    if missing:
+        return jsonify({"ok": False, "error": f"Missing required fields: {', '.join(missing)}"}), 400
+
+    try:
+        updated = update_event(
+            event_id=event_id,
+            event_timestamp=str(data["event_timestamp"]).strip(),
+            event_date=str(data["event_date"]).strip(),
+            event_type=str(data["event_type"]).strip(),
+            label=str(data["label"]).strip(),
+            calories=float(data.get("calories", 0) or 0),
+            protein_g=float(data.get("protein_g", 0) or 0),
+            fat_g=float(data.get("fat_g", 0) or 0),
+            net_carbs_g=float(data.get("net_carbs_g", 0) or 0),
+            water_ml=float(data.get("water_ml", 0) or 0),
+            sodium_mg=float(data.get("sodium_mg", 0) or 0),
+            potassium_mg=float(data.get("potassium_mg", 0) or 0),
+            magnesium_mg=float(data.get("magnesium_mg", 0) or 0),
+            source=str(data.get("source", "manual")).strip() or "manual",
+            source_id=(str(data["source_id"]).strip() if data.get("source_id") is not None else None),
+            notes=(str(data["notes"]).strip() if data.get("notes") is not None else None),
+        )
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+
+    if not updated:
+        return jsonify({"ok": False, "error": "Event not found"}), 404
+
+    return jsonify({"ok": True, "event_id": event_id})
+
+
+@keto_bp.delete("/api/events/<int:event_id>")
+def keto_delete_event(event_id: int):
+    deleted = delete_event(event_id)
+    if not deleted:
+        return jsonify({"ok": False, "error": "Event not found"}), 404
+
+    return jsonify({"ok": True, "event_id": event_id})
 
 
 @keto_bp.get("/api/day")

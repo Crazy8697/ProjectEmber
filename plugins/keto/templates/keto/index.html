@@ -60,7 +60,6 @@
       background: #2a3b57;
     }
 
-
     .wrap {
       width: 100%;
       max-width: none;
@@ -120,7 +119,7 @@
       font-size: 13px;
     }
 
-    input, select {
+    input, select, textarea {
       width: 100%;
       min-width: 0;
       padding: 10px 12px;
@@ -130,7 +129,12 @@
       color: var(--text);
     }
 
-    input:focus, select:focus {
+    textarea {
+      min-height: 96px;
+      resize: vertical;
+    }
+
+    input:focus, select:focus, textarea:focus {
       outline: none;
       border-color: var(--accent);
     }
@@ -246,14 +250,47 @@
 
     .toolbar .grow { flex: 1 1 220px; min-width: 180px; }
 
+    .formGrid {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: 1fr;
+    }
+
+    .field {
+      display: grid;
+      gap: 6px;
+    }
+
+    .field label {
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .statusLine {
+      min-height: 18px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
     @media (min-width: 900px) {
       .grid2 { grid-template-columns: 1fr 1fr; }
       .grid3 { grid-template-columns: 1fr 1fr 1fr; }
       .grid4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
       .metrics { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+      .formGrid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+      .field.span2 { grid-column: span 2; }
+      .field.span4 { grid-column: 1 / -1; }
     }
 
-    /* ===== MOBILE RESPONSIVE ===== */
     @media (max-width: 768px) {
       body { padding: 10px 12px 20px; }
     }
@@ -268,9 +305,7 @@
       .metric { padding: 10px; }
       .metric .value { font-size: 16px; }
       .metric .sub { font-size: 10px; }
-      /* Shrink the notes column so it doesn't dominate on phone */
       .table td.notes, .table th.notes { min-width: 120px; }
-      /* Toolbar stacks */
       .toolbar { gap: 6px; }
       .toolbar .grow { min-width: 0; }
       button, a.btn { padding: 8px 10px; font-size: 12px; }
@@ -295,6 +330,94 @@
       </div>
     </div>
 
+    <div class="card">
+      <div class="titleRow">
+        <div>
+          <h2>Add Event</h2>
+          <p>Log food, drinks, electrolytes, water, or notes without needing a séance.</p>
+        </div>
+        <div class="badge" id="saveBadge">ready</div>
+      </div>
+
+      <form id="eventForm">
+        <input id="editingEventId" type="hidden" value=""/>
+        <div class="formGrid">
+          <div class="field">
+            <label for="eventType">Event Type</label>
+            <select id="eventType" name="event_type">
+              <option value="meal">meal</option>
+              <option value="drink">drink</option>
+              <option value="exercise">exercise</option>
+              <option value="supplement">supplement</option>
+              <option value="custom">custom</option>
+            </select>
+          </div>
+
+          <div class="field span2">
+            <label for="eventLabel">Label</label>
+            <input id="eventLabel" name="label" type="text" placeholder="Greek chicken bowl, coffee, water, etc."/>
+          </div>
+
+          <div class="field">
+            <label for="eventTime">Time</label>
+            <input id="eventTime" name="event_time" type="time"/>
+          </div>
+
+          <div class="field">
+            <label for="caloriesInput">Calories</label>
+            <input id="caloriesInput" name="calories" type="number" step="0.1" value="0"/>
+          </div>
+
+          <div class="field">
+            <label for="proteinInput">Protein (g)</label>
+            <input id="proteinInput" name="protein_g" type="number" step="0.1" value="0"/>
+          </div>
+
+          <div class="field">
+            <label for="fatInput">Fat (g)</label>
+            <input id="fatInput" name="fat_g" type="number" step="0.1" value="0"/>
+          </div>
+
+          <div class="field">
+            <label for="carbsInput">Net Carbs (g)</label>
+            <input id="carbsInput" name="net_carbs_g" type="number" step="0.1" value="0"/>
+          </div>
+
+          <div class="field">
+            <label for="waterInput">Water (mL)</label>
+            <input id="waterInput" name="water_ml" type="number" step="0.1" value="0"/>
+          </div>
+
+          <div class="field">
+            <label for="sodiumInput">Sodium (mg)</label>
+            <input id="sodiumInput" name="sodium_mg" type="number" step="0.1" value="0"/>
+          </div>
+
+          <div class="field">
+            <label for="potassiumInput">Potassium (mg)</label>
+            <input id="potassiumInput" name="potassium_mg" type="number" step="0.1" value="0"/>
+          </div>
+
+          <div class="field">
+            <label for="magnesiumInput">Magnesium (mg)</label>
+            <input id="magnesiumInput" name="magnesium_mg" type="number" step="0.1" value="0"/>
+          </div>
+
+          <div class="field span4">
+            <label for="notesInput">Notes</label>
+            <textarea id="notesInput" name="notes" placeholder="Optional notes, ingredients, context, regret, whatever."></textarea>
+          </div>
+        </div>
+
+        <div class="actions" style="margin-top: 12px;">
+          <button type="submit" id="saveBtn">Save Event</button>
+          <button type="button" id="cancelEditBtn" style="display:none;">Cancel Edit</button>
+          <button type="button" id="resetBtn">Clear Form</button>
+          <div class="statusLine" id="formStatus">Waiting for your bad decisions.</div>
+        </div>
+      </form>
+    </div>
+
     <div class="grid4 metrics" id="topMetrics">
       <div class="metric">
         <div class="label">Calories</div>
@@ -315,6 +438,16 @@
         <div class="label">Net Carbs</div>
         <div class="value" id="mCarbs">--</div>
         <div class="sub" id="mCarbsSub">target --</div>
+      </div>
+      <div class="metric">
+        <div class="label">Hydration %</div>
+        <div class="value" id="mHydration">--</div>
+        <div class="sub" id="mHydrationSub">water target --</div>
+      </div>
+      <div class="metric">
+        <div class="label">Na:K Ratio</div>
+        <div class="value" id="mNaK">--</div>
+        <div class="sub" id="mNaKSub">sodium to potassium</div>
       </div>
     </div>
 
@@ -381,6 +514,7 @@
               <th>Potassium</th>
               <th>Magnesium</th>
               <th class="notes">Notes</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody id="eventsBody"></tbody>
@@ -423,10 +557,38 @@ function setToday() {
   document.getElementById("dateInput").value = `${yyyy}-${mm}-${dd}`;
 }
 
+function setCurrentTime() {
+  const now = new Date();
+  const hh = String(now.getHours()).padStart(2, "0");
+  const mm = String(now.getMinutes()).padStart(2, "0");
+  document.getElementById("eventTime").value = `${hh}:${mm}`;
+}
+
 function eventTime(ts) {
   if (!ts) return "";
   const parts = String(ts).split("T");
   return parts[1] ? parts[1].slice(0, 5) : ts;
+}
+
+function numVal(id) {
+  const raw = document.getElementById(id).value;
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function resetForm(keepType = true) {
+  const type = document.getElementById("eventType").value;
+  document.getElementById("eventForm").reset();
+  if (keepType) document.getElementById("eventType").value = type;
+  document.getElementById("caloriesInput").value = "0";
+  document.getElementById("proteinInput").value = "0";
+  document.getElementById("fatInput").value = "0";
+  document.getElementById("carbsInput").value = "0";
+  document.getElementById("waterInput").value = "0";
+  document.getElementById("sodiumInput").value = "0";
+  document.getElementById("potassiumInput").value = "0";
+  document.getElementById("magnesiumInput").value = "0";
+  setCurrentTime();
 }
 
 async function loadDay() {
@@ -454,6 +616,186 @@ async function loadDay() {
   }
 }
 
+function setEditMode(eventObj) {
+  document.getElementById("editingEventId").value = String(eventObj.id ?? "");
+  document.getElementById("eventType").value = eventObj.event_type ?? "meal";
+  document.getElementById("eventLabel").value = eventObj.label ?? "";
+  document.getElementById("dateInput").value = eventObj.event_date ?? document.getElementById("dateInput").value;
+  document.getElementById("eventTime").value = eventTime(eventObj.event_timestamp) || "00:00";
+  document.getElementById("caloriesInput").value = Number(eventObj.calories ?? 0);
+  document.getElementById("proteinInput").value = Number(eventObj.protein_g ?? 0);
+  document.getElementById("fatInput").value = Number(eventObj.fat_g ?? 0);
+  document.getElementById("carbsInput").value = Number(eventObj.net_carbs_g ?? 0);
+  document.getElementById("waterInput").value = Number(eventObj.water_ml ?? 0);
+  document.getElementById("sodiumInput").value = Number(eventObj.sodium_mg ?? 0);
+  document.getElementById("potassiumInput").value = Number(eventObj.potassium_mg ?? 0);
+  document.getElementById("magnesiumInput").value = Number(eventObj.magnesium_mg ?? 0);
+  document.getElementById("notesInput").value = eventObj.notes ?? "";
+  document.getElementById("saveBtn").textContent = "Update Event";
+  document.getElementById("cancelEditBtn").style.display = "inline-flex";
+  document.getElementById("saveBadge").textContent = "editing";
+  document.getElementById("formStatus").textContent = `Editing event #${eventObj.id}.`;
+}
+
+function clearEditMode(message = "Ready for a new entry.") {
+  document.getElementById("editingEventId").value = "";
+  document.getElementById("saveBtn").textContent = "Save Event";
+  document.getElementById("cancelEditBtn").style.display = "none";
+  document.getElementById("saveBadge").textContent = "ready";
+  document.getElementById("formStatus").textContent = message;
+}
+
+async function editEvent(eventId) {
+  const formStatus = document.getElementById("formStatus");
+  const saveBadge = document.getElementById("saveBadge");
+
+  formStatus.textContent = `Loading event #${eventId}…`;
+  saveBadge.textContent = "loading";
+
+  try {
+    const res = await fetch(`/keto/api/events/${eventId}`);
+    const data = await res.json();
+
+    if (!data.ok) {
+      formStatus.textContent = `Edit load failed: ${JSON.stringify(data)}`;
+      saveBadge.textContent = "error";
+      return;
+    }
+
+    setEditMode(data.event);
+  } catch (err) {
+    formStatus.textContent = `Edit load failed: ${String(err)}`;
+    saveBadge.textContent = "error";
+  }
+}
+
+async function deleteEvent(eventId) {
+  const formStatus = document.getElementById("formStatus");
+  const saveBadge = document.getElementById("saveBadge");
+
+  if (!confirm(`Delete event #${eventId}?`)) {
+    return;
+  }
+
+  formStatus.textContent = `Deleting event #${eventId}…`;
+  saveBadge.textContent = "deleting";
+
+  try {
+    const res = await fetch(`/keto/api/events/${eventId}`, {
+      method: "DELETE",
+    });
+    const data = await res.json();
+
+    if (!data.ok) {
+      formStatus.textContent = `Delete failed: ${JSON.stringify(data)}`;
+      saveBadge.textContent = "error";
+      return;
+    }
+
+    await loadDay();
+    formStatus.textContent = `Deleted event #${eventId}.`;
+    saveBadge.textContent = "ready";
+  } catch (err) {
+    formStatus.textContent = `Delete failed: ${String(err)}`;
+    saveBadge.textContent = "error";
+  }
+}
+
+async function updateEvent(eventId, ev) {
+  const formStatus = document.getElementById("formStatus");
+  const saveBadge = document.getElementById("saveBadge");
+  const saveBtn = document.getElementById("saveBtn");
+
+  formStatus.textContent = `Updating event #${eventId}…`;
+  saveBadge.textContent = "updating";
+  saveBtn.disabled = true;
+
+  try {
+    const res = await fetch(`/keto/api/events/${eventId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(ev),
+    });
+
+    const data = await res.json();
+
+    if (!data.ok) {
+      formStatus.textContent = `Update failed: ${JSON.stringify(data)}`;
+      saveBadge.textContent = "error";
+      return;
+    }
+
+    resetForm(true);
+    clearEditMode(`Updated event #${eventId}. Reloading day summary…`);
+    await loadDay();
+    document.getElementById("formStatus").textContent = `Updated event #${eventId} and refreshed.`;
+  } catch (err) {
+    formStatus.textContent = `Update failed: ${String(err)}`;
+    saveBadge.textContent = "error";
+  } finally {
+    saveBtn.disabled = false;
+  }
+}
+
+async function saveEvent(ev) {
+  const formStatus = document.getElementById("formStatus");
+  const saveBadge = document.getElementById("saveBadge");
+  const saveBtn = document.getElementById("saveBtn");
+
+  formStatus.textContent = "Saving event…";
+  saveBadge.textContent = "saving";
+  saveBtn.disabled = true;
+
+  try {
+    const res = await fetch("/keto/api/events", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(ev),
+    });
+
+    const data = await res.json();
+
+    if (!data.ok) {
+      formStatus.textContent = `Save failed: ${JSON.stringify(data)}`;
+      saveBadge.textContent = "error";
+      return;
+    }
+
+    formStatus.textContent = "Saved. Reloading day summary…";
+    saveBadge.textContent = "saved";
+    resetForm(true);
+    await loadDay();
+    formStatus.textContent = "Saved and refreshed.";
+  } catch (err) {
+    formStatus.textContent = `Save failed: ${String(err)}`;
+    saveBadge.textContent = "error";
+  } finally {
+    saveBtn.disabled = false;
+  }
+}
+
+function buildEventPayload() {
+  const date = document.getElementById("dateInput").value;
+  const time = document.getElementById("eventTime").value || "00:00";
+  const timestamp = `${date}T${time}:00`;
+
+  return {
+    event_type: document.getElementById("eventType").value.trim(),
+    label: document.getElementById("eventLabel").value.trim(),
+    event_date: date,
+    event_timestamp: timestamp,
+    calories: numVal("caloriesInput"),
+    protein_g: numVal("proteinInput"),
+    fat_g: numVal("fatInput"),
+    net_carbs_g: numVal("carbsInput"),
+    water_ml: numVal("waterInput"),
+    sodium_mg: numVal("sodiumInput"),
+    potassium_mg: numVal("potassiumInput"),
+    magnesium_mg: numVal("magnesiumInput"),
+    notes: document.getElementById("notesInput").value.trim(),
+  };
+}
+
 function renderDay(data) {
   const totals = data.totals || {};
   const targets = data.targets || {};
@@ -464,6 +806,21 @@ function renderDay(data) {
   document.getElementById("mProtein").textContent = fmt(totals.protein_g, "g");
   document.getElementById("mFat").textContent = fmt(totals.fat_g, "g");
   document.getElementById("mCarbs").textContent = fmt(totals.net_carbs_g, "g");
+
+  const hydrationPct = Number(targets.water_target_ml || 0) > 0
+    ? (Number(totals.water_ml || 0) / Number(targets.water_target_ml)) * 100
+    : 0;
+  const sodium = Number(totals.sodium_mg || 0);
+  const potassium = Number(totals.potassium_mg || 0);
+  const nakRatio = potassium > 0 ? sodium / potassium : null;
+
+  document.getElementById("mHydration").textContent = `${hydrationPct.toFixed(1)}%`;
+  document.getElementById("mHydrationSub").textContent = `${fmt(totals.water_ml, " mL")} / ${fmt(targets.water_target_ml, " mL")}`;
+
+  document.getElementById("mNaK").textContent = nakRatio === null ? "--" : nakRatio.toFixed(2);
+  document.getElementById("mNaKSub").textContent = nakRatio === null
+    ? "need potassium intake"
+    : `${fmt(sodium, " mg")} / ${fmt(potassium, " mg")}`;
 
   document.getElementById("mCaloriesSub").innerHTML = metricSub(totals.calories, targets.calories_target);
   document.getElementById("mProteinSub").innerHTML = metricSub(totals.protein_g, targets.protein_target_g, "g", true);
@@ -519,6 +876,10 @@ function renderDay(data) {
       <td>${fmt(ev.potassium_mg, " mg")}</td>
       <td>${fmt(ev.magnesium_mg, " mg")}</td>
       <td class="notes">${ev.notes ?? ""}</td>
+      <td>
+        <button type="button" onclick="editEvent(${ev.id})">Edit</button>
+        <button type="button" onclick="deleteEvent(${ev.id})">Delete</button>
+      </td>
     `;
     eventsBody.appendChild(tr);
   }
@@ -546,9 +907,43 @@ document.getElementById("todayBtn").addEventListener("click", () => {
   setToday();
   loadDay();
 });
+
 document.getElementById("loadBtn").addEventListener("click", loadDay);
 
+document.getElementById("cancelEditBtn").addEventListener("click", () => {
+  resetForm(true);
+  clearEditMode("Edit cancelled.");
+});
+
+document.getElementById("resetBtn").addEventListener("click", () => {
+  resetForm(true);
+  clearEditMode("Form cleared.");
+});
+
+document.getElementById("eventForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+
+  const date = document.getElementById("dateInput").value;
+  if (!date) {
+    document.getElementById("formStatus").textContent = "Pick a date first.";
+    document.getElementById("saveBadge").textContent = "date?";
+    return;
+  }
+
+  const payload = buildEventPayload();
+  const editingEventId = document.getElementById("editingEventId").value.trim();
+
+  if (editingEventId) {
+    await updateEvent(editingEventId, payload);
+  } else {
+    await saveEvent(payload);
+  }
+});
+
 setToday();
+setCurrentTime();
+resetForm(true);
+clearEditMode("Waiting for your bad decisions.");
 loadDay();
 </script>
 </body>
