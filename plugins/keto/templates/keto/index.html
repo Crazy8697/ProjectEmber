@@ -33,7 +33,7 @@
       font-size: 13px;
     }
 
-    body { padding: 18px 20px 28px; }
+    body { padding: 0 0 28px; }
 
     * {
       scrollbar-width: thin;
@@ -65,7 +65,8 @@
       max-width: none;
       margin: 0;
       display: grid;
-      gap: 16px;
+      gap: 10px;
+      padding-top: 0;
     }
 
     .card, .subcard {
@@ -74,7 +75,7 @@
       border-radius: var(--r);
     }
 
-    .card { padding: 18px; }
+    .card { padding: 14px; }
     .subcard { padding: 16px; min-width: 0; }
 
     .titleRow, .row, .toolbar, .smallRow {
@@ -160,21 +161,23 @@
 
     .grid4, .grid3, .grid2 {
       display: grid;
-      gap: 16px;
+      gap: 10px;
       grid-template-columns: 1fr;
+      align-items: start;
     }
 
     .metrics {
       display: grid;
-      gap: 12px;
+      gap: 8px;
       grid-template-columns: repeat(1, minmax(0, 1fr));
+      align-items: start;
     }
 
     .metric {
       background: rgba(255,255,255,.02);
       border: 1px solid var(--border);
       border-radius: var(--r);
-      padding: 14px;
+      padding: 12px;
     }
 
     .metric .label {
@@ -275,6 +278,97 @@
       align-items: center;
     }
 
+    .btnTab {
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      padding: 8px 12px;
+      font-size: 12px;
+      line-height: 1;
+      min-height: 36px;
+    }
+
+    .btnTab.active {
+      color: var(--accentH);
+      border-color: var(--accent);
+      background: rgba(6, 182, 212, 0.08);
+    }
+
+    .ketoTopbar {
+      padding: 8px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: nowrap;
+    }
+
+    .ketoTopbar .titleRow {
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex: 1 1 auto;
+      min-width: 0;
+    }
+
+    .ketoTopbar .titleBlock {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+      flex: 0 0 auto;
+    }
+
+    .ketoTopbar .titleText {
+      min-width: 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .ketoTopbar h1 {
+      margin: 0;
+      font-size: 14px;
+      line-height: 1;
+      white-space: nowrap;
+    }
+
+    .ketoTopbar p {
+      display: none;
+    }
+
+    .ketoTopbar .pill {
+      align-self: center;
+      margin: 0;
+      order: 2;
+    }
+
+    .ketoTopbar .smallRow {
+      gap: 8px;
+      align-items: center;
+      flex-wrap: nowrap;
+    }
+
+    .ketoTopbar .toolbar {
+      gap: 8px;
+      align-items: center;
+      flex-wrap: nowrap;
+      margin-left: auto;
+    }
+
+    .ketoTopbar .toolbar .grow {
+      flex: 0 0 180px;
+      min-width: 180px;
+    }
+
+    .ketoTopbar input,
+    .ketoTopbar button {
+      min-height: 36px;
+      padding-top: 8px;
+      padding-bottom: 8px;
+    }
+
     .statusLine {
       min-height: 18px;
       font-size: 12px;
@@ -285,18 +379,18 @@
       .grid2 { grid-template-columns: 1fr 1fr; }
       .grid3 { grid-template-columns: 1fr 1fr 1fr; }
       .grid4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-      .metrics { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+      .metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
       .formGrid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
       .field.span2 { grid-column: span 2; }
       .field.span4 { grid-column: 1 / -1; }
     }
 
     @media (max-width: 768px) {
-      body { padding: 10px 12px 20px; }
+      body { padding: 0 0 20px; }
     }
 
     @media (max-width: 480px) {
-      body { padding: 8px 8px 16px; }
+      body { padding: 0 0 16px; }
       .wrap { gap: 10px; }
       .card { padding: 12px; }
       .subcard { padding: 10px; }
@@ -314,23 +408,29 @@
 </head>
 <body>
   <div class="wrap">
-    <div class="card">
+    <div class="card ketoTopbar" style="border-top: 0; border-radius: 0;">
       <div class="titleRow">
-        <div>
-          <h1>🥩 Keto Dashboard</h1>
-          <p>Daily summary, totals, and event timeline without the spreadsheet goblin routine.</p>
+        <div class="titleBlock">
+          <div class="titleText">
+            <h1>🥩 Keto Dashboard</h1>
+            <div class="pill">/keto</div>
+          </div>
         </div>
-        <div class="pill">/keto</div>
-      </div>
 
-      <div class="toolbar">
-        <input id="dateInput" class="grow" type="date"/>
-        <button id="loadBtn">Load Day</button>
-        <button id="todayBtn">Today</button>
+        <div class="smallRow">
+          <button type="button" id="summaryTabBtn" class="btnTab">Summary</button>
+          <button type="button" id="addEventTabBtn" class="btnTab">Add Event</button>
+        </div>
+
+        <div class="toolbar">
+          <input id="dateInput" class="grow" type="date"/>
+          <button id="loadBtn">Load Day</button>
+          <button id="todayBtn">Today</button>
+        </div>
       </div>
     </div>
 
-    <div class="card">
+    <div id="addEventPanel" class="card" style="display:none;">
       <div class="titleRow">
         <div>
           <h2>Add Event</h2>
@@ -418,6 +518,7 @@
       </form>
     </div>
 
+    <div id="summaryPanel" style="margin: 0 10px;">
     <div class="grid4 metrics" id="topMetrics">
       <div class="metric">
         <div class="label">Calories</div>
@@ -451,8 +552,8 @@
       </div>
     </div>
 
-    <div class="grid2">
-      <div class="card">
+    <div class="grid2" style="margin-top: 10px;">
+      <div class="card" style="padding-bottom: 8px;">
         <h2>Daily Totals</h2>
         <p>What happened today, numerically. A rare moment where numbers are less annoying than feelings.</p>
         <div class="tableWrap">
@@ -470,7 +571,7 @@
         </div>
       </div>
 
-      <div class="card">
+      <div class="card" style="padding-bottom: 8px;">
         <h2>Electrolytes + Water</h2>
         <p>Hydration and mineral tracking. Meat machine support values.</p>
         <div class="tableWrap">
@@ -489,7 +590,7 @@
       </div>
     </div>
 
-    <div class="card">
+    <div class="card" style="padding-bottom: 8px; margin-top: 10px;">
       <div class="titleRow">
         <div>
           <h2>Event Log</h2>
@@ -523,9 +624,6 @@
       <div id="eventsEmpty" class="empty" style="display:none;">No events for this date yet.</div>
     </div>
 
-    <div class="card">
-      <h2>API Status</h2>
-      <div id="statusOut" class="status empty">Loading…</div>
     </div>
   </div>
 
@@ -591,28 +689,37 @@ function resetForm(keepType = true) {
   setCurrentTime();
 }
 
+function showSummaryTab() {
+  document.getElementById("summaryPanel").style.display = "";
+  document.getElementById("addEventPanel").style.display = "none";
+  document.getElementById("summaryTabBtn").classList.add("active");
+  document.getElementById("addEventTabBtn").classList.remove("active");
+}
+
+function showAddEventTab() {
+  document.getElementById("summaryPanel").style.display = "none";
+  document.getElementById("addEventPanel").style.display = "";
+  document.getElementById("summaryTabBtn").classList.remove("active");
+  document.getElementById("addEventTabBtn").classList.add("active");
+}
+
 async function loadDay() {
   const date = document.getElementById("dateInput").value;
-  const statusOut = document.getElementById("statusOut");
   if (!date) {
-    statusOut.textContent = "Pick a date first.";
     return;
   }
-
-  statusOut.textContent = "Loading…";
 
   try {
     const res = await fetch(`/keto/api/day?date=${encodeURIComponent(date)}`);
     const data = await res.json();
     if (!data.ok) {
-      statusOut.textContent = JSON.stringify(data, null, 2);
+      document.getElementById("formStatus").textContent = `Load failed: ${JSON.stringify(data)}`;
       return;
     }
 
     renderDay(data);
-    statusOut.textContent = JSON.stringify(data, null, 2);
   } catch (err) {
-    statusOut.textContent = String(err);
+    document.getElementById("formStatus").textContent = `Load failed: ${String(err)}`;
   }
 }
 
@@ -903,6 +1010,9 @@ function renderRows(tbody, rows, options = {}) {
   }
 }
 
+document.getElementById("summaryTabBtn").addEventListener("click", showSummaryTab);
+document.getElementById("addEventTabBtn").addEventListener("click", showAddEventTab);
+
 document.getElementById("todayBtn").addEventListener("click", () => {
   setToday();
   loadDay();
@@ -944,6 +1054,7 @@ setToday();
 setCurrentTime();
 resetForm(true);
 clearEditMode("Waiting for your bad decisions.");
+showSummaryTab();
 loadDay();
 </script>
 </body>
