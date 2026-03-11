@@ -769,7 +769,9 @@ async function editEvent(eventId) {
       return;
     }
 
+    showAddEventTab();
     setEditMode(data.event);
+    document.getElementById("addEventPanel").scrollIntoView({ behavior: "smooth", block: "start" });
   } catch (err) {
     formStatus.textContent = `Edit load failed: ${String(err)}`;
     saveBadge.textContent = "error";
@@ -885,13 +887,19 @@ function buildEventPayload() {
   const date = document.getElementById("dateInput").value;
   const time = document.getElementById("eventTime").value || "00:00";
   const timestamp = `${date}T${time}:00`;
+  const eventType = document.getElementById("eventType").value.trim();
+  let calories = numVal("caloriesInput");
+
+  if (eventType === "exercise" && calories > 0) {
+    calories = -Math.abs(calories);
+  }
 
   return {
-    event_type: document.getElementById("eventType").value.trim(),
+    event_type: eventType,
     label: document.getElementById("eventLabel").value.trim(),
     event_date: date,
     event_timestamp: timestamp,
-    calories: numVal("caloriesInput"),
+    calories: calories,
     protein_g: numVal("proteinInput"),
     fat_g: numVal("fatInput"),
     net_carbs_g: numVal("carbsInput"),
