@@ -28,6 +28,22 @@ TOOLS: List[Tool] = [
         hint="Native Ember-themed inventory page.",
     ),
     Tool(
+        id="keto",
+        name="Keto Dashboard",
+        kind="native",
+        description="Daily food logging, macros, electrolytes, and event tracking.",
+        group="Tools",
+        hint="Native Keto dashboard.",
+    ),
+    Tool(
+        id="recipes",
+        name="Recipes",
+        kind="native",
+        description="Recipe index, instructions, nutrition, and quick-log into Keto.",
+        group="Tools",
+        hint="Native recipe library.",
+    ),
+    Tool(
         id="admin",
         name="Admin Console",
         kind="iframe",
@@ -36,8 +52,6 @@ TOOLS: List[Tool] = [
         iframe_src="/admin",
         hint="Admin Console running at /admin (embedded here for convenience).",
     ),
-    # Future example:
-    # Tool(id="keto", name="Keto Tracker", kind="native", description="AI food logging + macros + charts."),
 ]
 
 

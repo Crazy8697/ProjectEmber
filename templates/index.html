@@ -347,6 +347,7 @@
             <div class="section-title">Tools</div>
             <button class="tool-btn" id="invBtn" onclick="app.showTool('inventory')">🎒 Scavenger Inventory</button>
             <button class="tool-btn" id="ketoBtn" onclick="app.showTool('keto')">🥩 Keto Dashboard</button>
+            <button class="tool-btn" id="recipesBtn" onclick="app.showTool('recipes')">📚 Recipes</button>
             <button class="tool-btn" id="adminBtn" onclick="app.showTool('admin')">⚙️ Admin Console</button>
         </div>
 
@@ -906,6 +907,7 @@ const app = {
 
         document.getElementById('invBtn').classList.toggle('active', tool === 'inventory');
         document.getElementById('ketoBtn').classList.toggle('active', tool === 'keto');
+        document.getElementById('recipesBtn').classList.toggle('active', tool === 'recipes');
         document.getElementById('adminBtn').classList.toggle('active', tool === 'admin');
 
         const frame = document.getElementById('toolFrame');
@@ -913,6 +915,8 @@ const app = {
             frame.src = '/inventory-page?v=' + Date.now();
         } else if (tool === 'keto') {
             frame.src = '/keto/?v=' + Date.now();
+        } else if (tool === 'recipes') {
+            frame.src = '/keto/recipes?v=' + Date.now();
         } else if (tool === 'admin') {
             frame.src = '/admin?v=' + Date.now();
         }

@@ -6,6 +6,7 @@ from pathlib import Path
 PLUGIN_DIR = Path(__file__).resolve().parent
 DB_PATH = PLUGIN_DIR / "keto.db"
 SCHEMA_PATH = PLUGIN_DIR / "schema.sql"
+RECIPES_SCHEMA_PATH = PLUGIN_DIR / "recipes_schema.sql"
 
 DEFAULT_TARGETS = {
     "id": 1,
@@ -37,6 +38,7 @@ TOTAL_FIELDS = (
 def get_connection() -> sqlite3.Connection:
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA foreign_keys = ON")
     return conn
 
 
@@ -74,8 +76,10 @@ def seed_defaults(conn: sqlite3.Connection) -> None:
 
 def init_db() -> None:
     schema = SCHEMA_PATH.read_text(encoding="utf-8")
+    recipes_schema = RECIPES_SCHEMA_PATH.read_text(encoding="utf-8")
     with get_connection() as conn:
         conn.executescript(schema)
+        conn.executescript(recipes_schema)
         seed_defaults(conn)
         conn.commit()
 
@@ -301,12 +305,246 @@ def get_day_summary(event_date: str) -> dict:
     return {
         "date": event_date,
         "targets": get_targets(),
-        "events": list_events_for_date(event_date),
         "totals": get_daily_totals(event_date),
         "differences": get_daily_differences(event_date),
+        "events": list_events_for_date(event_date),
     }
 
 
-if __name__ == "__main__":
-    init_db()
-    print(get_targets())
+# -----------------------------
+# Recipe helpers
+# -----------------------------
+
+def list_recipes() -> list[dict]:
+    with get_connection() as conn:
+        rows = conn.execute(
+            """
+            SELECT *
+            FROM recipes
+            ORDER BY name COLLATE NOCASE ASC, id ASC
+            """
+        ).fetchall()
+        return [dict(row) for row in rows]
+
+
+def get_recipe_by_id(recipe_id: int) -> dict | None:
+    with get_connection() as conn:
+        row = conn.execute(
+            """
+            SELECT *
+            FROM recipes
+            WHERE id = ?
+            """,
+            (recipe_id,),
+        ).fetchone()
+
+        if row is None:
+            return None
+
+        recipe = dict(row)
+        recipe["ingredients"] = list_recipe_ingredients(recipe_id)
+        return recipe
+
+
+def list_recipe_ingredients(recipe_id: int) -> list[dict]:
+    with get_connection() as conn:
+        rows = conn.execute(
+            """
+            SELECT *
+            FROM recipe_ingredients
+            WHERE recipe_id = ?
+            ORDER BY id ASC
+            """,
+            (recipe_id,),
+        ).fetchall()
+        return [dict(row) for row in rows]
+
+
+def create_recipe(
+    *,
+    name: str,
+    description: str | None = None,
+    keto_notes: str | None = None,
+    servings: float = 1,
+    calories: float = 0,
+    protein_g: float = 0,
+    fat_g: float = 0,
+    net_carbs_g: float = 0,
+    water_ml: float = 0,
+    sodium_mg: float = 0,
+    potassium_mg: float = 0,
+    magnesium_mg: float = 0,
+    ingredients: list[dict] | None = None,
+) -> int:
+    with get_connection() as conn:
+        cur = conn.execute(
+            """
+            INSERT INTO recipes (
+                name,
+                description,
+                keto_notes,
+                servings,
+                calories,
+                protein_g,
+                fat_g,
+                net_carbs_g,
+                water_ml,
+                sodium_mg,
+                potassium_mg,
+                magnesium_mg
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                name.strip(),
+                (description or "").strip(),
+                (keto_notes or "").strip(),
+                servings,
+                calories,
+                protein_g,
+                fat_g,
+                net_carbs_g,
+                water_ml,
+                sodium_mg,
+                potassium_mg,
+                magnesium_mg,
+            ),
+        )
+        recipe_id = int(cur.lastrowid)
+        _replace_recipe_ingredients(conn, recipe_id, ingredients or [])
+        conn.commit()
+        return recipe_id
+
+
+def update_recipe(
+    *,
+    recipe_id: int,
+    name: str,
+    description: str | None = None,
+    keto_notes: str | None = None,
+    servings: float = 1,
+    calories: float = 0,
+    protein_g: float = 0,
+    fat_g: float = 0,
+    net_carbs_g: float = 0,
+    water_ml: float = 0,
+    sodium_mg: float = 0,
+    potassium_mg: float = 0,
+    magnesium_mg: float = 0,
+    ingredients: list[dict] | None = None,
+) -> bool:
+    with get_connection() as conn:
+        cur = conn.execute(
+            """
+            UPDATE recipes
+            SET
+                name = ?,
+                description = ?,
+                keto_notes = ?,
+                servings = ?,
+                calories = ?,
+                protein_g = ?,
+                fat_g = ?,
+                net_carbs_g = ?,
+                water_ml = ?,
+                sodium_mg = ?,
+                potassium_mg = ?,
+                magnesium_mg = ?
+            WHERE id = ?
+            """,
+            (
+                name.strip(),
+                (description or "").strip(),
+                (keto_notes or "").strip(),
+                servings,
+                calories,
+                protein_g,
+                fat_g,
+                net_carbs_g,
+                water_ml,
+                sodium_mg,
+                potassium_mg,
+                magnesium_mg,
+                recipe_id,
+            ),
+        )
+        if cur.rowcount <= 0:
+            conn.commit()
+            return False
+
+        _replace_recipe_ingredients(conn, recipe_id, ingredients or [])
+        conn.commit()
+        return True
+
+
+def delete_recipe(recipe_id: int) -> bool:
+    with get_connection() as conn:
+        cur = conn.execute(
+            """
+            DELETE FROM recipes
+            WHERE id = ?
+            """,
+            (recipe_id,),
+        )
+        conn.commit()
+        return cur.rowcount > 0
+
+
+def _replace_recipe_ingredients(conn: sqlite3.Connection, recipe_id: int, ingredients: list[dict]) -> None:
+    conn.execute(
+        """
+        DELETE FROM recipe_ingredients
+        WHERE recipe_id = ?
+        """,
+        (recipe_id,),
+    )
+
+    for item in ingredients:
+        ingredient = str(item.get("ingredient", "")).strip()
+        amount = str(item.get("amount", "")).strip()
+        if not ingredient:
+            continue
+
+        conn.execute(
+            """
+            INSERT INTO recipe_ingredients (
+                recipe_id,
+                ingredient,
+                amount,
+                calories,
+                protein_g,
+                fat_g,
+                net_carbs_g
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                recipe_id,
+                ingredient,
+                amount,
+                float(item.get("calories", 0) or 0),
+                float(item.get("protein_g", 0) or 0),
+                float(item.get("fat_g", 0) or 0),
+                float(item.get("net_carbs_g", 0) or 0),
+            ),
+        )
+
+
+def recipe_to_event_payload(recipe: dict, *, event_date: str, event_timestamp: str) -> dict:
+    return {
+        "event_timestamp": event_timestamp,
+        "event_date": event_date,
+        "event_type": "meal",
+        "label": recipe.get("name", "").strip(),
+        "calories": float(recipe.get("calories", 0) or 0),
+        "protein_g": float(recipe.get("protein_g", 0) or 0),
+        "fat_g": float(recipe.get("fat_g", 0) or 0),
+        "net_carbs_g": float(recipe.get("net_carbs_g", 0) or 0),
+        "water_ml": float(recipe.get("water_ml", 0) or 0),
+        "sodium_mg": float(recipe.get("sodium_mg", 0) or 0),
+        "potassium_mg": float(recipe.get("potassium_mg", 0) or 0),
+        "magnesium_mg": float(recipe.get("magnesium_mg", 0) or 0),
+        "source": "recipe",
+        "source_id": str(recipe.get("id", "")),
+        "notes": None,
+    }

@@ -1,0 +1,1103 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Recipes</title>
+  <style>
+    :root {
+      --bg: #0a0c10;
+      --card: #0d1117;
+      --border: #1a2332;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --muted2: #4a5568;
+      --accent: #06b6d4;
+      --accentH: #22d3ee;
+      --green: #a3e635;
+      --red: #f87171;
+      --yellow: #facc15;
+      --btn: #111827;
+      --btnH: #1a2332;
+      --mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+      --r: 6px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      min-height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 13px;
+    }
+
+    body { padding: 0 0 28px; }
+
+    * {
+      scrollbar-width: thin;
+      scrollbar-color: #1f2a3d #0a0c10;
+    }
+
+    *::-webkit-scrollbar { width: 10px; height: 10px; }
+    *::-webkit-scrollbar-track { background: #0a0c10; border-radius: 8px; }
+    *::-webkit-scrollbar-thumb { background: #1f2a3d; border: 2px solid #0a0c10; border-radius: 8px; }
+    *::-webkit-scrollbar-thumb:hover { background: #2a3b57; }
+
+    .wrap {
+      width: 100%;
+      max-width: none;
+      margin: 0;
+      display: grid;
+      gap: 10px;
+      padding-top: 0;
+    }
+
+    .card, .subcard {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+    }
+
+    .card { padding: 14px; }
+    .subcard { padding: 16px; min-width: 0; }
+
+    .titleRow, .row, .toolbar, .smallRow {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .titleRow {
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 16px;
+      color: var(--accent);
+    }
+
+    h2 {
+      margin: 0 0 6px;
+      font-size: 14px;
+      color: var(--accent);
+    }
+
+    p { margin: 0 0 10px; color: var(--muted2); font-size: 12px; }
+
+    .pill, .badge {
+      font-size: 10px;
+      padding: 2px 8px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      background: var(--btn);
+      color: var(--muted2);
+    }
+
+    input, button, select, textarea {
+      font-family: var(--mono);
+      font-size: 13px;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      min-width: 0;
+      padding: 10px 12px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    textarea {
+      min-height: 96px;
+      resize: vertical;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    input[readonly], textarea[readonly] {
+      opacity: 0.85;
+      cursor: default;
+    }
+
+    button, a.btn {
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: var(--btn);
+      color: var(--text);
+      padding: 9px 12px;
+      border-radius: 4px;
+      font-weight: 600;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    button:hover, a.btn:hover {
+      background: var(--btnH);
+      color: var(--accentH);
+    }
+
+    .grid4, .grid3, .grid2 {
+      display: grid;
+      gap: 10px;
+      grid-template-columns: 1fr;
+      align-items: start;
+    }
+
+    .metrics {
+      display: grid;
+      gap: 8px;
+      grid-template-columns: repeat(1, minmax(0, 1fr));
+      align-items: start;
+    }
+
+    .metric {
+      background: rgba(255,255,255,.02);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 12px;
+    }
+
+    .metric .label {
+      color: var(--muted2);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      margin-bottom: 8px;
+    }
+
+    .metric .value {
+      font-size: 20px;
+      color: var(--text);
+      line-height: 1.15;
+    }
+
+    .metric .sub {
+      margin-top: 6px;
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .good { color: var(--green); }
+    .bad { color: var(--red); }
+    .warn { color: var(--yellow); }
+
+    .tableWrap, .status {
+      margin-top: 10px;
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      overflow: auto;
+      background: var(--bg);
+      width: 100%;
+      min-width: 0;
+    }
+
+    .table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+
+    .table th, .table td {
+      border-bottom: 1px solid var(--border);
+      padding: 9px 8px;
+      text-align: left;
+      vertical-align: top;
+      white-space: nowrap;
+    }
+
+    .table th {
+      color: var(--muted2);
+      font-weight: 700;
+      text-transform: uppercase;
+      font-size: 10px;
+      letter-spacing: 0.5px;
+      background: rgba(255,255,255,.02);
+      position: sticky;
+      top: 0;
+    }
+
+    .table td.notes, .table th.notes {
+      white-space: normal;
+      min-width: 220px;
+    }
+
+    .muted { color: var(--muted2); font-size: 11px; }
+    .empty {
+      padding: 18px;
+      color: var(--muted2);
+      font-size: 12px;
+    }
+
+    .toolbar .grow { flex: 1 1 220px; min-width: 180px; }
+
+    .formGrid {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: 1fr;
+    }
+
+    .field {
+      display: grid;
+      gap: 6px;
+    }
+
+    .field label {
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .btnTab {
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      padding: 8px 12px;
+      font-size: 12px;
+      line-height: 1;
+      min-height: 36px;
+    }
+
+    .btnTab.active {
+      color: var(--accentH);
+      border-color: var(--accent);
+      background: rgba(6, 182, 212, 0.08);
+    }
+
+    .ketoTopbar {
+      padding: 8px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: nowrap;
+    }
+
+    .ketoTopbar .titleRow {
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex: 1 1 auto;
+      min-width: 0;
+      flex-wrap: nowrap;
+    }
+
+    .ketoTopbar .titleText {
+      min-width: 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex: 0 0 auto;
+    }
+
+    .ketoTopbar h1 {
+      margin: 0;
+      font-size: 14px;
+      line-height: 1;
+      white-space: nowrap;
+    }
+
+    .ketoTopbar .pill {
+      align-self: center;
+      margin: 0;
+    }
+
+    .ketoTopbar .smallRow {
+      gap: 8px;
+      align-items: center;
+      flex-wrap: nowrap;
+    }
+
+    .ketoTopbar .toolbar {
+      gap: 8px;
+      align-items: center;
+      flex-wrap: nowrap;
+      margin-left: auto;
+    }
+
+    .ketoTopbar .toolbar .grow {
+      flex: 0 0 180px;
+      min-width: 180px;
+    }
+
+    .ketoTopbar input,
+    .ketoTopbar button {
+      min-height: 36px;
+      padding-top: 8px;
+      padding-bottom: 8px;
+    }
+
+    .statusLine {
+      min-height: 18px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .recipesLayout {
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 10px;
+      min-height: 520px;
+    }
+
+    .recipeList {
+      display: grid;
+      gap: 8px;
+      max-height: 640px;
+      overflow: auto;
+      padding-right: 4px;
+    }
+
+    .recipeItem {
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      background: rgba(255,255,255,.02);
+      padding: 10px;
+      cursor: pointer;
+    }
+
+    .recipeItem:hover,
+    .recipeItem.active {
+      border-color: var(--accent);
+      background: rgba(6, 182, 212, 0.08);
+    }
+
+    .recipeName {
+      color: var(--text);
+      font-size: 13px;
+      margin-bottom: 4px;
+      font-weight: 700;
+    }
+
+    .recipeMeta {
+      color: var(--muted);
+      font-size: 11px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .ingredientsList {
+      display: grid;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .ingredientRow {
+      display: grid;
+      grid-template-columns: 1.6fr 1fr auto;
+      gap: 8px;
+      align-items: stretch;
+    }
+
+    .ingredientRow input,
+    .ingredientRow button {
+      min-height: 42px;
+      height: 42px;
+    }
+
+    @media (min-width: 900px) {
+      .grid2 { grid-template-columns: 1fr 1fr; }
+      .grid3 { grid-template-columns: 1fr 1fr 1fr; }
+      .grid4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+      .metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .formGrid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+      .field.span2 { grid-column: span 2; }
+      .field.span4 { grid-column: 1 / -1; }
+    }
+
+    @media (max-width: 980px) {
+      .recipesLayout {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 768px) {
+      body { padding: 0 0 20px; }
+      .ketoTopbar .titleRow {
+        flex-wrap: wrap;
+      }
+    }
+
+    @media (max-width: 480px) {
+      body { padding: 0 0 16px; }
+      .wrap { gap: 10px; }
+      .card { padding: 12px; }
+      .subcard { padding: 10px; }
+      h1 { font-size: 14px; }
+      h2 { font-size: 13px; }
+      .metric { padding: 10px; }
+      .metric .value { font-size: 16px; }
+      .metric .sub { font-size: 10px; }
+      .table td.notes, .table th.notes { min-width: 120px; }
+      .toolbar { gap: 6px; }
+      .toolbar .grow { min-width: 0; }
+      button, a.btn { padding: 8px 10px; font-size: 12px; }
+      .ingredientRow { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card ketoTopbar" style="border-top: 0; border-radius: 0;">
+      <div class="titleRow">
+        <div class="titleText">
+          <h1>📚 Recipes</h1>
+          <div class="pill">/recipes</div>
+        </div>
+
+        <div class="smallRow">
+          <button type="button" id="recipeIndexTabBtn" class="btnTab">Recipe Index</button>
+          <button type="button" id="addRecipeBtn">Add Recipe</button>
+        </div>
+
+        <div class="toolbar">
+          <input id="dateInput" class="grow" type="date"/>
+        </div>
+      </div>
+    </div>
+    </div>
+
+    <div id="recipesPanel" class="card" style="display:none;">
+      <div class="recipesLayout">
+        <div class="subcard">
+          <div class="titleRow">
+            <div>
+              <h2>Recipe Index</h2>
+              <p>Saved meal templates, because retyping the same crap forever is stupid.</p>
+            </div>
+            <div class="badge" id="recipeCountBadge">0</div>
+          </div>
+
+          <div class="recipeList" id="recipeList"></div>
+          <div id="recipeListEmpty" class="empty" style="display:none;">No recipes yet.</div>
+        </div>
+
+        <div class="subcard">
+          <div class="titleRow">
+            <div>
+              <h2 id="recipePanelTitle">Recipe View</h2>
+              <p id="recipePanelSubtitle">Select a recipe to view it, or click Add Recipe to create a new one.</p>
+            </div>
+            <div class="badge" id="recipeStatusBadge">idle</div>
+          </div>
+
+          <form id="recipeForm">
+            <input type="hidden" id="recipeId" value=""/>
+
+            <div class="formGrid">
+              <div class="field span2">
+                <label for="recipeName">Recipe Name</label>
+                <input id="recipeName" type="text" placeholder="Cheesy Beef & Mushroom Skillet" readonly/>
+              </div>
+
+              <div class="field">
+                <label for="recipeServings">Servings</label>
+                <input id="recipeServings" type="number" step="0.1" value="1"/>
+              </div>
+
+              <div class="field">
+                <label for="recipeCalories">Calories</label>
+                <input id="recipeCalories" type="number" step="0.1" value="0" readonly/>
+              </div>
+
+              <div class="field">
+                <label for="recipeProtein">Protein (g)</label>
+                <input id="recipeProtein" type="number" step="0.1" value="0" readonly/>
+              </div>
+
+              <div class="field">
+                <label for="recipeFat">Fat (g)</label>
+                <input id="recipeFat" type="number" step="0.1" value="0" readonly/>
+              </div>
+
+              <div class="field">
+                <label for="recipeCarbs">Net Carbs (g)</label>
+                <input id="recipeCarbs" type="number" step="0.1" value="0" readonly/>
+              </div>
+
+              <div class="field">
+                <label for="recipeWater">Water (mL)</label>
+                <input id="recipeWater" type="number" step="0.1" value="0" readonly/>
+              </div>
+
+              <div class="field">
+                <label for="recipeSodium">Sodium (mg)</label>
+                <input id="recipeSodium" type="number" step="0.1" value="0" readonly/>
+              </div>
+
+              <div class="field">
+                <label for="recipePotassium">Potassium (mg)</label>
+                <input id="recipePotassium" type="number" step="0.1" value="0" readonly/>
+              </div>
+
+              <div class="field">
+                <label for="recipeMagnesium">Magnesium (mg)</label>
+                <input id="recipeMagnesium" type="number" step="0.1" value="0" readonly/>
+              </div>
+
+              <div class="field span4">
+                <label for="recipeDescription">Instructions / Notes</label>
+                <textarea id="recipeDescription" placeholder="Write the actual recipe method here. This stays in Recipes and does not dump the whole novella into Keto events." readonly></textarea>
+              </div>
+            </div>
+
+            <div style="margin-top: 14px;">
+              <div class="titleRow" style="margin-bottom: 8px;">
+                <div>
+                  <h2 style="margin-bottom: 0;">Ingredients</h2>
+                </div>
+                <div class="actions">
+                  <button type="button" id="addIngredientBtn">Add Ingredient</button>
+                </div>
+              </div>
+
+              <div class="ingredientsList" id="ingredientsList"></div>
+            </div>
+
+            <div class="actions" style="margin-top: 14px;">
+              <button type="button" id="editRecipeBtn">Edit Recipe</button>
+              <button type="button" id="cancelRecipeEditBtn">Cancel Edit</button>
+              <button type="submit" id="saveRecipeBtn">Save Recipe</button>
+              <button type="button" id="deleteRecipeBtn">Delete Recipe</button>
+              <button type="button" id="logRecipeBtn">Log This Meal</button>
+              <button type="button" id="clearRecipeBtn">Clear Recipe</button>
+              <div class="statusLine" id="recipeStatusLine">No recipe selected.</div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+let recipesCache = [];
+let activeRecipeId = null;
+let recipeEditMode = false;
+
+function fmt(n, suffix = "") {
+  const num = Number(n || 0);
+  return `${num.toFixed(1)}${suffix}`;
+}
+
+function diffClass(value, inverse = false) {
+  const n = Number(value || 0);
+  if (n === 0) return "";
+  if (!inverse) return n > 0 ? "bad" : "good";
+  return n > 0 ? "good" : "bad";
+}
+
+function metricSub(total, target, suffix = "", inverse = false) {
+  const diff = Number(total || 0) - Number(target || 0);
+  const cls = diffClass(diff, inverse);
+  const sign = diff > 0 ? "+" : "";
+  return `target ${fmt(target, suffix)} · <span class="${cls}">${sign}${fmt(diff, suffix)}</span>`;
+}
+
+function setToday() {
+  const now = new Date();
+  const yyyy = now.getFullYear();
+  const mm = String(now.getMonth() + 1).padStart(2, "0");
+  const dd = String(now.getDate()).padStart(2, "0");
+  document.getElementById("dateInput").value = `${yyyy}-${mm}-${dd}`;
+}
+
+function setCurrentTime() {
+  const now = new Date();
+  const hh = String(now.getHours()).padStart(2, "0");
+  const mm = String(now.getMinutes()).padStart(2, "0");
+  document.getElementById("eventTime").value = `${hh}:${mm}`;
+}
+
+function eventTime(ts) {
+  if (!ts) return "";
+  const parts = String(ts).split("T");
+  return parts[1] ? parts[1].slice(0, 5) : ts;
+}
+
+function numVal(id) {
+  const raw = document.getElementById(id).value;
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function setActiveTab(tab) {
+  const recipesPanel = document.getElementById("recipesPanel");
+  recipesPanel.style.display = "";
+  document.getElementById("recipeIndexTabBtn").classList.toggle("active", tab === "recipes-index" || tab === "recipes-detail");
+}
+
+
+
+function showRecipeIndexTab() {
+  setActiveTab("recipes-index");
+}
+
+function showRecipeDetailTab() {
+  setActiveTab("recipes-detail");
+}
+
+
+
+
+
+
+
+
+
+
+
+
+function recipeNum(id) {
+  const n = Number(document.getElementById(id).value);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function setRecipeStatus(message, badge = "idle") {
+  document.getElementById("recipeStatusLine").textContent = message;
+  document.getElementById("recipeStatusBadge").textContent = badge;
+}
+
+function addIngredientRow(item = {}) {
+  const row = document.createElement("div");
+  row.className = "ingredientRow";
+  const ro = recipeEditMode ? "" : "readonly";
+  const hideBtn = recipeEditMode ? "" : 'style="display:none;"';
+  row.innerHTML = `
+    <input type="text" class="ingredientName" placeholder="Ingredient" value="${(item.ingredient ?? "").replace(/"/g, "&quot;")}" ${ro}>
+    <input type="text" class="ingredientAmount" placeholder="Amount" value="${(item.amount ?? "").replace(/"/g, "&quot;")}" ${ro}>
+    <button type="button" class="removeIngredientBtn" ${hideBtn}>X</button>
+  `;
+  const btn = row.querySelector(".removeIngredientBtn");
+  if (btn) btn.addEventListener("click", () => row.remove());
+  document.getElementById("ingredientsList").appendChild(row);
+}
+
+function setRecipeFieldsEditable(editable) {
+  recipeEditMode = editable;
+  const ids = [
+    "recipeName",
+    "recipeCalories",
+    "recipeProtein",
+    "recipeFat",
+    "recipeCarbs",
+    "recipeWater",
+    "recipeSodium",
+    "recipePotassium",
+    "recipeMagnesium",
+    "recipeDescription",
+  ];
+  for (const id of ids) {
+    const el = document.getElementById(id);
+    if (!el) continue;
+    if (editable) el.removeAttribute("readonly");
+    else el.setAttribute("readonly", "readonly");
+  }
+
+  const ingredientNames = document.querySelectorAll(".ingredientName");
+  const ingredientAmounts = document.querySelectorAll(".ingredientAmount");
+  const removeBtns = document.querySelectorAll(".removeIngredientBtn");
+
+  for (const el of ingredientNames) {
+    if (editable) el.removeAttribute("readonly");
+    else el.setAttribute("readonly", "readonly");
+  }
+
+  for (const el of ingredientAmounts) {
+    if (editable) el.removeAttribute("readonly");
+    else el.setAttribute("readonly", "readonly");
+  }
+
+  for (const btn of removeBtns) {
+    btn.style.display = editable ? "inline-flex" : "none";
+  }
+
+  const addIngredientBtn = document.getElementById("addIngredientBtn");
+  const deleteRecipeBtn = document.getElementById("deleteRecipeBtn");
+  if (addIngredientBtn) addIngredientBtn.style.display = editable ? "inline-flex" : "none";
+  if (deleteRecipeBtn) deleteRecipeBtn.style.display = editable ? "inline-flex" : "none";
+}
+
+function updateScaledRecipeView() {
+  const recipe = recipesCache.find(r => Number(r.id) === Number(activeRecipeId));
+  if (!recipe || recipeEditMode) return;
+
+  const servings = Number(document.getElementById("recipeServings").value || 1);
+  const baseServings = Number(recipe.servings || 1) || 1;
+  const scale = servings / baseServings;
+
+  const setScaled = (id, val) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const scaled = Number(val || 0) * scale;
+    el.value = String(Number.isFinite(scaled) ? scaled.toFixed(1).replace(/\.0$/, "") : "0");
+  };
+
+  setScaled("recipeCalories", recipe.calories);
+  setScaled("recipeProtein", recipe.protein_g);
+  setScaled("recipeFat", recipe.fat_g);
+  setScaled("recipeCarbs", recipe.net_carbs_g);
+  setScaled("recipeWater", recipe.water_ml);
+  setScaled("recipeSodium", recipe.sodium_mg);
+  setScaled("recipePotassium", recipe.potassium_mg);
+  setScaled("recipeMagnesium", recipe.magnesium_mg);
+}
+
+function setRecipePanelMode(mode) {
+  const title = document.getElementById("recipePanelTitle");
+  const subtitle = document.getElementById("recipePanelSubtitle");
+  const saveBtn = document.getElementById("saveRecipeBtn");
+  const editBtn = document.getElementById("editRecipeBtn");
+  const cancelEditBtn = document.getElementById("cancelRecipeEditBtn");
+  const logBtn = document.getElementById("logRecipeBtn");
+  const clearBtn = document.getElementById("clearRecipeBtn");
+  const deleteBtn = document.getElementById("deleteRecipeBtn");
+
+  if (mode === "blank") {
+    if (title) title.textContent = "Recipe View";
+    if (subtitle) subtitle.textContent = "Select a recipe to view it, or click Add Recipe to create a new one.";
+    if (saveBtn) saveBtn.style.display = "none";
+    if (editBtn) editBtn.style.display = "none";
+    if (cancelEditBtn) cancelEditBtn.style.display = "none";
+    if (logBtn) logBtn.style.display = "none";
+    if (clearBtn) clearBtn.style.display = "none";
+    if (deleteBtn) deleteBtn.style.display = "none";
+    return;
+  }
+
+  if (mode === "view") {
+    if (title) title.textContent = "Recipe View";
+    if (subtitle) subtitle.textContent = "Review the recipe, adjust servings, or log it to Keto.";
+    if (saveBtn) saveBtn.style.display = "none";
+    if (editBtn) editBtn.style.display = "inline-flex";
+    if (cancelEditBtn) cancelEditBtn.style.display = "none";
+    if (logBtn) logBtn.style.display = "inline-flex";
+    if (clearBtn) clearBtn.style.display = "inline-flex";
+    if (deleteBtn) deleteBtn.style.display = "none";
+    return;
+  }
+
+  if (mode === "edit") {
+    if (title) title.textContent = "Recipe Editor";
+    if (subtitle) subtitle.textContent = "Edit or create a recipe. This is the dangerous part where humans type things.";
+    if (saveBtn) saveBtn.style.display = "inline-flex";
+    if (editBtn) editBtn.style.display = "none";
+    if (cancelEditBtn) cancelEditBtn.style.display = "inline-flex";
+    if (logBtn) logBtn.style.display = "none";
+    if (clearBtn) clearBtn.style.display = "inline-flex";
+    if (deleteBtn) deleteBtn.style.display = activeRecipeId ? "inline-flex" : "none";
+  }
+}
+
+function blankRecipeForm(message = "No recipe selected.") {
+  activeRecipeId = null;
+  recipeEditMode = false;
+  document.getElementById("recipeId").value = "";
+  document.getElementById("recipeName").value = "";
+  document.getElementById("recipeDescription").value = "";
+  document.getElementById("recipeServings").value = "1";
+  document.getElementById("recipeCalories").value = "";
+  document.getElementById("recipeProtein").value = "";
+  document.getElementById("recipeFat").value = "";
+  document.getElementById("recipeCarbs").value = "";
+  document.getElementById("recipeWater").value = "";
+  document.getElementById("recipeSodium").value = "";
+  document.getElementById("recipePotassium").value = "";
+  document.getElementById("recipeMagnesium").value = "";
+  document.getElementById("ingredientsList").innerHTML = "";
+  setRecipeFieldsEditable(false);
+  setRecipePanelMode("blank");
+  setRecipeStatus(message, "idle");
+  renderRecipeList();
+}
+
+function enterRecipeEditMode() {
+  setRecipeFieldsEditable(true);
+  setRecipePanelMode("edit");
+  setRecipeStatus(activeRecipeId ? `Editing recipe #${activeRecipeId}.` : "Creating a new recipe.", "editing");
+}
+
+function cancelRecipeEdit() {
+  if (activeRecipeId) {
+    loadRecipe(activeRecipeId);
+  } else {
+    blankRecipeForm("Edit cancelled.");
+  }
+}
+
+function clearRecipeForm(message = "Ready for a new recipe.") {
+  activeRecipeId = null;
+  setRecipeFieldsEditable(true);
+  setRecipePanelMode("edit");
+  document.getElementById("recipeId").value = "";
+  document.getElementById("recipeName").value = "";
+  document.getElementById("recipeDescription").value = "";
+  document.getElementById("recipeServings").value = "1";
+  document.getElementById("recipeCalories").value = "0";
+  document.getElementById("recipeProtein").value = "0";
+  document.getElementById("recipeFat").value = "0";
+  document.getElementById("recipeCarbs").value = "0";
+  document.getElementById("recipeWater").value = "0";
+  document.getElementById("recipeSodium").value = "0";
+  document.getElementById("recipePotassium").value = "0";
+  document.getElementById("recipeMagnesium").value = "0";
+  document.getElementById("ingredientsList").innerHTML = "";
+  addIngredientRow();
+  setRecipeStatus(message, "idle");
+  renderRecipeList();
+}
+
+function buildRecipePayload() {
+  const ingredientRows = Array.from(document.querySelectorAll("#ingredientsList .ingredientRow"));
+  const ingredients = ingredientRows.map((row) => ({
+    ingredient: row.querySelector(".ingredientName")?.value?.trim() || "",
+    amount: row.querySelector(".ingredientAmount")?.value?.trim() || "",
+  })).filter((x) => x.ingredient);
+
+  return {
+    name: document.getElementById("recipeName").value.trim(),
+    description: document.getElementById("recipeDescription").value.trim(),
+    servings: recipeNum("recipeServings"),
+    calories: recipeNum("recipeCalories"),
+    protein_g: recipeNum("recipeProtein"),
+    fat_g: recipeNum("recipeFat"),
+    net_carbs_g: recipeNum("recipeCarbs"),
+    water_ml: recipeNum("recipeWater"),
+    sodium_mg: recipeNum("recipeSodium"),
+    potassium_mg: recipeNum("recipePotassium"),
+    magnesium_mg: recipeNum("recipeMagnesium"),
+    ingredients,
+  };
+}
+
+function renderRecipeList() {
+  const list = document.getElementById("recipeList");
+  const empty = document.getElementById("recipeListEmpty");
+  list.innerHTML = "";
+  document.getElementById("recipeCountBadge").textContent = String(recipesCache.length);
+
+  if (!recipesCache.length) {
+    empty.style.display = "block";
+    return;
+  }
+
+  empty.style.display = "none";
+
+  for (const recipe of recipesCache) {
+    const item = document.createElement("div");
+    item.className = "recipeItem" + (Number(recipe.id) === Number(activeRecipeId) ? " active" : "");
+    item.innerHTML = `
+      <div class="recipeName">${recipe.name ?? "Untitled Recipe"}</div>
+      <div class="recipeMeta">
+        <span>${fmt(recipe.calories)} cal</span>
+        <span>${fmt(recipe.protein_g, "g")} protein</span>
+        <span>${fmt(recipe.fat_g, "g")} fat</span>
+        <span>${fmt(recipe.net_carbs_g, "g")} carbs</span>
+      </div>
+    `;
+    item.addEventListener("click", () => loadRecipe(recipe.id));
+    list.appendChild(item);
+  }
+}
+
+function fillRecipeForm(recipe) {
+  activeRecipeId = recipe.id;
+  document.getElementById("recipeId").value = String(recipe.id ?? "");
+  document.getElementById("recipeName").value = recipe.name ?? "";
+  document.getElementById("recipeDescription").value = recipe.description ?? "";
+  document.getElementById("recipeServings").value = Number(recipe.servings ?? 1);
+  document.getElementById("recipeCalories").value = Number(recipe.calories ?? 0);
+  document.getElementById("recipeProtein").value = Number(recipe.protein_g ?? 0);
+  document.getElementById("recipeFat").value = Number(recipe.fat_g ?? 0);
+  document.getElementById("recipeCarbs").value = Number(recipe.net_carbs_g ?? 0);
+  document.getElementById("recipeWater").value = Number(recipe.water_ml ?? 0);
+  document.getElementById("recipeSodium").value = Number(recipe.sodium_mg ?? 0);
+  document.getElementById("recipePotassium").value = Number(recipe.potassium_mg ?? 0);
+  document.getElementById("recipeMagnesium").value = Number(recipe.magnesium_mg ?? 0);
+
+  const ingredientsList = document.getElementById("ingredientsList");
+  ingredientsList.innerHTML = "";
+  const ingredients = Array.isArray(recipe.ingredients) ? recipe.ingredients : [];
+  if (ingredients.length) {
+    for (const item of ingredients) addIngredientRow(item);
+  } else {
+    addIngredientRow();
+  }
+
+  setRecipeFieldsEditable(false);
+  setRecipePanelMode("view");
+  setRecipeStatus(`Loaded recipe #${recipe.id}.`, "loaded");
+  renderRecipeList();
+  updateScaledRecipeView();
+}
+
+async function loadRecipes() {
+  try {
+    const res = await fetch("/keto/api/recipes");
+    const data = await res.json();
+    if (!data.ok) {
+      setRecipeStatus(`Recipe load failed: ${JSON.stringify(data)}`, "error");
+      return;
+    }
+    recipesCache = data.recipes || [];
+    renderRecipeList();
+  } catch (err) {
+    setRecipeStatus(`Recipe load failed: ${String(err)}`, "error");
+  }
+}
+
+async function loadRecipe(recipeId) {
+  setRecipeStatus(`Loading recipe #${recipeId}…`, "loading");
+  try {
+    const res = await fetch(`/keto/api/recipes/${recipeId}`);
+    const data = await res.json();
+    if (!data.ok) {
+      setRecipeStatus(`Recipe load failed: ${JSON.stringify(data)}`, "error");
+      return;
+    }
+    fillRecipeForm(data.recipe);
+    showRecipeDetailTab();
+  } catch (err) {
+    setRecipeStatus(`Recipe load failed: ${String(err)}`, "error");
+  }
+}
+
+async function saveRecipe() {
+  const payload = buildRecipePayload();
+  if (!payload.name) {
+    setRecipeStatus("Recipe name is required.", "name?");
+    return;
+  }
+
+  const recipeId = document.getElementById("recipeId").value.trim();
+  const isEdit = Boolean(recipeId);
+  setRecipeStatus(isEdit ? `Updating recipe #${recipeId}…` : "Saving recipe…", isEdit ? "updating" : "saving");
+
+  try {
+    const res = await fetch(isEdit ? `/keto/api/recipes/${recipeId}` : "/keto/api/recipes", {
+      method: isEdit ? "PUT" : "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!data.ok) {
+      setRecipeStatus(`Recipe save failed: ${JSON.stringify(data)}`, "error");
+      return;
+    }
+
+    await loadRecipes();
+    const targetId = isEdit ? Number(recipeId) : Number(data.recipe_id);
+    if (targetId) await loadRecipe(targetId);
+    setRecipeStatus(isEdit ? `Updated recipe #${targetId}.` : `Saved recipe #${targetId}.`, "saved");
+  } catch (err) {
+    setRecipeStatus(`Recipe save failed: ${String(err)}`, "error");
+  }
+}
+
+async function deleteRecipeById() {
+  const recipeId = document.getElementById("recipeId").value.trim();
+  if (!recipeId) {
+    setRecipeStatus("No recipe selected.", "none");
+    return;
+  }
+  if (!confirm(`Delete recipe #${recipeId}?`)) return;
+
+  setRecipeStatus(`Deleting recipe #${recipeId}…`, "deleting");
+  try {
+    const res = await fetch(`/keto/api/recipes/${recipeId}`, { method: "DELETE" });
+    const data = await res.json();
+    if (!data.ok) {
+      setRecipeStatus(`Recipe delete failed: ${JSON.stringify(data)}`, "error");
+      return;
+    }
+    await loadRecipes();
+    clearRecipeForm(`Deleted recipe #${recipeId}.`);
+    showRecipeIndexTab();
+  } catch (err) {
+    setRecipeStatus(`Recipe delete failed: ${String(err)}`, "error");
+  }
+}
+
+async function logRecipeToToday() {
+  const recipeId = document.getElementById("recipeId").value.trim();
+  if (!recipeId) {
+    setRecipeStatus("No recipe selected.", "none");
+    return;
+  }
+
+  const date = document.getElementById("dateInput").value;
+  const now = new Date();
+  const hh = String(now.getHours()).padStart(2, "0");
+  const mm = String(now.getMinutes()).padStart(2, "0");
+  const time = `${hh}:${mm}`;
+
+  setRecipeStatus(`Logging recipe #${recipeId} to Keto…`, "logging");
+  try {
+    const res = await fetch(`/keto/api/recipes/${recipeId}/log`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        event_date: date,
+        event_time: time,
+      }),
+    });
+    const data = await res.json();
+    if (!data.ok) {
+      setRecipeStatus(`Recipe log failed: ${JSON.stringify(data)}`, "error");
+      return;
+    }
+    setRecipeStatus(`Logged recipe as event #${data.event_id}.`, "logged");
+  } catch (err) {
+    setRecipeStatus(`Recipe log failed: ${String(err)}`, "error");
+  }
+}
+
+document.getElementById("recipeIndexTabBtn").addEventListener("click", showRecipeIndexTab);
+
+document.getElementById("addRecipeBtn").addEventListener("click", () => {
+  clearRecipeForm("Ready for a new recipe.");
+  showRecipeDetailTab();
+});
+
+document.getElementById("editRecipeBtn").addEventListener("click", enterRecipeEditMode);
+document.getElementById("cancelRecipeEditBtn").addEventListener("click", cancelRecipeEdit);
+
+document.getElementById("recipeForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  await saveRecipe();
+});
+
+document.getElementById("addIngredientBtn").addEventListener("click", () => addIngredientRow());
+document.getElementById("clearRecipeBtn").addEventListener("click", () => clearRecipeForm("Recipe form cleared."));
+document.getElementById("deleteRecipeBtn").addEventListener("click", deleteRecipeById);
+document.getElementById("logRecipeBtn").addEventListener("click", logRecipeToToday);
+document.getElementById("recipeServings").addEventListener("input", updateScaledRecipeView);
+
+setToday();
+blankRecipeForm("No recipe selected.");
+showRecipeIndexTab();
+loadRecipes();
+</script>
+</body>
+</html>

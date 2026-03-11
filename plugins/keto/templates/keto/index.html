@@ -40,25 +40,10 @@
       scrollbar-color: #1f2a3d #0a0c10;
     }
 
-    *::-webkit-scrollbar {
-      width: 10px;
-      height: 10px;
-    }
-
-    *::-webkit-scrollbar-track {
-      background: #0a0c10;
-      border-radius: 8px;
-    }
-
-    *::-webkit-scrollbar-thumb {
-      background: #1f2a3d;
-      border: 2px solid #0a0c10;
-      border-radius: 8px;
-    }
-
-    *::-webkit-scrollbar-thumb:hover {
-      background: #2a3b57;
-    }
+    *::-webkit-scrollbar { width: 10px; height: 10px; }
+    *::-webkit-scrollbar-track { background: #0a0c10; border-radius: 8px; }
+    *::-webkit-scrollbar-thumb { background: #1f2a3d; border: 2px solid #0a0c10; border-radius: 8px; }
+    *::-webkit-scrollbar-thumb:hover { background: #2a3b57; }
 
     .wrap {
       width: 100%;
@@ -93,7 +78,7 @@
     }
 
     h1 {
-      margin: 0 0 4px;
+      margin: 0;
       font-size: 16px;
       color: var(--accent);
     }
@@ -310,14 +295,7 @@
       gap: 10px;
       flex: 1 1 auto;
       min-width: 0;
-    }
-
-    .ketoTopbar .titleBlock {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      min-width: 0;
-      flex: 0 0 auto;
+      flex-wrap: nowrap;
     }
 
     .ketoTopbar .titleText {
@@ -325,6 +303,7 @@
       display: flex;
       align-items: center;
       gap: 8px;
+      flex: 0 0 auto;
     }
 
     .ketoTopbar h1 {
@@ -334,14 +313,9 @@
       white-space: nowrap;
     }
 
-    .ketoTopbar p {
-      display: none;
-    }
-
     .ketoTopbar .pill {
       align-self: center;
       margin: 0;
-      order: 2;
     }
 
     .ketoTopbar .smallRow {
@@ -375,6 +349,69 @@
       color: var(--muted);
     }
 
+    .recipesLayout {
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 10px;
+      min-height: 520px;
+    }
+
+    .recipeList {
+      display: grid;
+      gap: 8px;
+      max-height: 640px;
+      overflow: auto;
+      padding-right: 4px;
+    }
+
+    .recipeItem {
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      background: rgba(255,255,255,.02);
+      padding: 10px;
+      cursor: pointer;
+    }
+
+    .recipeItem:hover,
+    .recipeItem.active {
+      border-color: var(--accent);
+      background: rgba(6, 182, 212, 0.08);
+    }
+
+    .recipeName {
+      color: var(--text);
+      font-size: 13px;
+      margin-bottom: 4px;
+      font-weight: 700;
+    }
+
+    .recipeMeta {
+      color: var(--muted);
+      font-size: 11px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .ingredientsList {
+      display: grid;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .ingredientRow {
+      display: grid;
+      grid-template-columns: 1.6fr 1fr auto;
+      gap: 8px;
+      align-items: stretch;
+    }
+
+    .ingredientRow input,
+    .ingredientRow button {
+      min-height: 42px;
+      height: 42px;
+    }
+
     @media (min-width: 900px) {
       .grid2 { grid-template-columns: 1fr 1fr; }
       .grid3 { grid-template-columns: 1fr 1fr 1fr; }
@@ -385,8 +422,17 @@
       .field.span4 { grid-column: 1 / -1; }
     }
 
+    @media (max-width: 980px) {
+      .recipesLayout {
+        grid-template-columns: 1fr;
+      }
+    }
+
     @media (max-width: 768px) {
       body { padding: 0 0 20px; }
+      .ketoTopbar .titleRow {
+        flex-wrap: wrap;
+      }
     }
 
     @media (max-width: 480px) {
@@ -403,6 +449,7 @@
       .toolbar { gap: 6px; }
       .toolbar .grow { min-width: 0; }
       button, a.btn { padding: 8px 10px; font-size: 12px; }
+      .ingredientRow { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -410,11 +457,9 @@
   <div class="wrap">
     <div class="card ketoTopbar" style="border-top: 0; border-radius: 0;">
       <div class="titleRow">
-        <div class="titleBlock">
-          <div class="titleText">
-            <h1>🥩 Keto Dashboard</h1>
-            <div class="pill">/keto</div>
-          </div>
+        <div class="titleText">
+          <h1>🥩 Keto Dashboard</h1>
+          <div class="pill">/keto</div>
         </div>
 
         <div class="smallRow">
@@ -434,7 +479,7 @@
       <div class="titleRow">
         <div>
           <h2>Add Event</h2>
-          <p>Log food, drinks, electrolytes, water, or notes without needing a séance.</p>
+          <p>Log food, drinks, electrolytes, water, or whatever else your meat machine did.</p>
         </div>
         <div class="badge" id="saveBadge">ready</div>
       </div>
@@ -519,111 +564,110 @@
     </div>
 
     <div id="summaryPanel" style="margin: 0 10px;">
-    <div class="grid4 metrics" id="topMetrics">
-      <div class="metric">
-        <div class="label">Calories</div>
-        <div class="value" id="mCalories">--</div>
-        <div class="sub" id="mCaloriesSub">target --</div>
+      <div class="grid4 metrics" id="topMetrics">
+        <div class="metric">
+          <div class="label">Calories</div>
+          <div class="value" id="mCalories">--</div>
+          <div class="sub" id="mCaloriesSub">target --</div>
+        </div>
+        <div class="metric">
+          <div class="label">Protein</div>
+          <div class="value" id="mProtein">--</div>
+          <div class="sub" id="mProteinSub">target --</div>
+        </div>
+        <div class="metric">
+          <div class="label">Fat</div>
+          <div class="value" id="mFat">--</div>
+          <div class="sub" id="mFatSub">target --</div>
+        </div>
+        <div class="metric">
+          <div class="label">Net Carbs</div>
+          <div class="value" id="mCarbs">--</div>
+          <div class="sub" id="mCarbsSub">target --</div>
+        </div>
+        <div class="metric">
+          <div class="label">Hydration %</div>
+          <div class="value" id="mHydration">--</div>
+          <div class="sub" id="mHydrationSub">water target --</div>
+        </div>
+        <div class="metric">
+          <div class="label">Na:K Ratio</div>
+          <div class="value" id="mNaK">--</div>
+          <div class="sub" id="mNaKSub">sodium to potassium</div>
+        </div>
       </div>
-      <div class="metric">
-        <div class="label">Protein</div>
-        <div class="value" id="mProtein">--</div>
-        <div class="sub" id="mProteinSub">target --</div>
-      </div>
-      <div class="metric">
-        <div class="label">Fat</div>
-        <div class="value" id="mFat">--</div>
-        <div class="sub" id="mFatSub">target --</div>
-      </div>
-      <div class="metric">
-        <div class="label">Net Carbs</div>
-        <div class="value" id="mCarbs">--</div>
-        <div class="sub" id="mCarbsSub">target --</div>
-      </div>
-      <div class="metric">
-        <div class="label">Hydration %</div>
-        <div class="value" id="mHydration">--</div>
-        <div class="sub" id="mHydrationSub">water target --</div>
-      </div>
-      <div class="metric">
-        <div class="label">Na:K Ratio</div>
-        <div class="value" id="mNaK">--</div>
-        <div class="sub" id="mNaKSub">sodium to potassium</div>
-      </div>
-    </div>
 
-    <div class="grid2" style="margin-top: 10px;">
-      <div class="card" style="padding-bottom: 8px;">
-        <h2>Daily Totals</h2>
-        <p>What happened today, numerically. A rare moment where numbers are less annoying than feelings.</p>
+      <div class="grid2" style="margin-top: 10px;">
+        <div class="card" style="padding-bottom: 8px;">
+          <h2>Daily Totals</h2>
+          <p>What happened today, numerically.</p>
+          <div class="tableWrap">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Metric</th>
+                  <th>Total</th>
+                  <th>Target</th>
+                  <th>Diff</th>
+                </tr>
+              </thead>
+              <tbody id="totalsBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card" style="padding-bottom: 8px;">
+          <h2>Electrolytes + Water</h2>
+          <p>Hydration and mineral tracking. Meat machine support values.</p>
+          <div class="tableWrap">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Metric</th>
+                  <th>Total</th>
+                  <th>Target</th>
+                  <th>Diff</th>
+                </tr>
+              </thead>
+              <tbody id="electrolytesBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="padding-bottom: 8px; margin-top: 10px;">
+        <div class="titleRow">
+          <div>
+            <h2>Event Log</h2>
+            <p>Chronological events for the selected day.</p>
+          </div>
+          <div class="badge" id="eventCount">0 events</div>
+        </div>
+
         <div class="tableWrap">
           <table class="table">
             <thead>
               <tr>
-                <th>Metric</th>
-                <th>Total</th>
-                <th>Target</th>
-                <th>Diff</th>
+                <th>Time</th>
+                <th>Type</th>
+                <th>Label</th>
+                <th>Calories</th>
+                <th>Protein</th>
+                <th>Fat</th>
+                <th>Net Carbs</th>
+                <th>Water</th>
+                <th>Sodium</th>
+                <th>Potassium</th>
+                <th>Magnesium</th>
+                <th class="notes">Notes</th>
+                <th>Actions</th>
               </tr>
             </thead>
-            <tbody id="totalsBody"></tbody>
+            <tbody id="eventsBody"></tbody>
           </table>
         </div>
+        <div id="eventsEmpty" class="empty" style="display:none;">No events for this date yet.</div>
       </div>
-
-      <div class="card" style="padding-bottom: 8px;">
-        <h2>Electrolytes + Water</h2>
-        <p>Hydration and mineral tracking. Meat machine support values.</p>
-        <div class="tableWrap">
-          <table class="table">
-            <thead>
-              <tr>
-                <th>Metric</th>
-                <th>Total</th>
-                <th>Target</th>
-                <th>Diff</th>
-              </tr>
-            </thead>
-            <tbody id="electrolytesBody"></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <div class="card" style="padding-bottom: 8px; margin-top: 10px;">
-      <div class="titleRow">
-        <div>
-          <h2>Event Log</h2>
-          <p>Chronological events for the selected day.</p>
-        </div>
-        <div class="badge" id="eventCount">0 events</div>
-      </div>
-
-      <div class="tableWrap">
-        <table class="table">
-          <thead>
-            <tr>
-              <th>Time</th>
-              <th>Type</th>
-              <th>Label</th>
-              <th>Calories</th>
-              <th>Protein</th>
-              <th>Fat</th>
-              <th>Net Carbs</th>
-              <th>Water</th>
-              <th>Sodium</th>
-              <th>Potassium</th>
-              <th>Magnesium</th>
-              <th class="notes">Notes</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody id="eventsBody"></tbody>
-        </table>
-      </div>
-      <div id="eventsEmpty" class="empty" style="display:none;">No events for this date yet.</div>
-    </div>
-
     </div>
   </div>
 
@@ -674,6 +718,27 @@ function numVal(id) {
   return Number.isFinite(n) ? n : 0;
 }
 
+function setActiveTab(tab) {
+  const summaryPanel = document.getElementById("summaryPanel");
+  const addEventPanel = document.getElementById("addEventPanel");
+
+  summaryPanel.style.display = tab === "summary" ? "" : "none";
+  addEventPanel.style.display = tab === "event" ? "" : "none";
+
+  document.getElementById("summaryTabBtn").classList.toggle("active", tab === "summary");
+  document.getElementById("addEventTabBtn").classList.toggle("active", tab === "event");
+}
+
+function showSummaryTab() {
+  setActiveTab("summary");
+}
+
+function showAddEventTab() {
+  setActiveTab("event");
+}
+
+
+
 function resetForm(keepType = true) {
   const type = document.getElementById("eventType").value;
   document.getElementById("eventForm").reset();
@@ -689,25 +754,9 @@ function resetForm(keepType = true) {
   setCurrentTime();
 }
 
-function showSummaryTab() {
-  document.getElementById("summaryPanel").style.display = "";
-  document.getElementById("addEventPanel").style.display = "none";
-  document.getElementById("summaryTabBtn").classList.add("active");
-  document.getElementById("addEventTabBtn").classList.remove("active");
-}
-
-function showAddEventTab() {
-  document.getElementById("summaryPanel").style.display = "none";
-  document.getElementById("addEventPanel").style.display = "";
-  document.getElementById("summaryTabBtn").classList.remove("active");
-  document.getElementById("addEventTabBtn").classList.add("active");
-}
-
 async function loadDay() {
   const date = document.getElementById("dateInput").value;
-  if (!date) {
-    return;
-  }
+  if (!date) return;
 
   try {
     const res = await fetch(`/keto/api/day?date=${encodeURIComponent(date)}`);
@@ -782,17 +831,13 @@ async function deleteEvent(eventId) {
   const formStatus = document.getElementById("formStatus");
   const saveBadge = document.getElementById("saveBadge");
 
-  if (!confirm(`Delete event #${eventId}?`)) {
-    return;
-  }
+  if (!confirm(`Delete event #${eventId}?`)) return;
 
   formStatus.textContent = `Deleting event #${eventId}…`;
   saveBadge.textContent = "deleting";
 
   try {
-    const res = await fetch(`/keto/api/events/${eventId}`, {
-      method: "DELETE",
-    });
+    const res = await fetch(`/keto/api/events/${eventId}`, { method: "DELETE" });
     const data = await res.json();
 
     if (!data.ok) {
@@ -1017,6 +1062,18 @@ function renderRows(tbody, rows, options = {}) {
     tbody.appendChild(tr);
   }
 }
+
+
+
+
+
+
+
+
+
+
+
+
 
 document.getElementById("summaryTabBtn").addEventListener("click", showSummaryTab);
 document.getElementById("addEventTabBtn").addEventListener("click", showAddEventTab);
