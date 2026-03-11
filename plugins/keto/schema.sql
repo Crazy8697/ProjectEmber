@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS events (
     event_timestamp TEXT NOT NULL,
     event_date TEXT NOT NULL,
     event_type TEXT NOT NULL CHECK (
-        event_type IN ('meal', 'drink', 'exercise', 'supplement', 'custom')
+        event_type IN ('meal', 'snack', 'drink', 'exercise', 'supplement', 'custom')
     ),
     label TEXT NOT NULL,
 

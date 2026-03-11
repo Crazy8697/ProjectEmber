@@ -21,7 +21,7 @@ DEFAULT_TARGETS = {
     "expected_events_per_day": 4,
 }
 
-ALLOWED_EVENT_TYPES = {"meal", "drink", "exercise", "supplement", "custom"}
+ALLOWED_EVENT_TYPES = {"meal", "snack", "drink", "exercise", "supplement", "custom"}
 
 TOTAL_FIELDS = (
     "calories",
