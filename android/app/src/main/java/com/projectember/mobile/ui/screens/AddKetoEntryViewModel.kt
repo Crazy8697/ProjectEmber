@@ -12,7 +12,10 @@ import kotlinx.coroutines.launch
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
-class AddKetoEntryViewModel(private val ketoRepository: KetoRepository) : ViewModel() {
+class AddKetoEntryViewModel(
+    private val ketoRepository: KetoRepository,
+    private val editEntryId: Int? = null
+) : ViewModel() {
 
     companion object {
         private const val DATE_FORMAT = "yyyy-MM-dd"
@@ -20,7 +23,15 @@ class AddKetoEntryViewModel(private val ketoRepository: KetoRepository) : ViewMo
         val EVENT_TYPES = listOf("meal", "drink", "snack", "exercise")
 
         private fun parseDoubleOrZero(value: String): Double = value.toDoubleOrNull() ?: 0.0
+
+        private fun formatDouble(d: Double): String =
+            if (d == 0.0) "" else d.toBigDecimal().stripTrailingZeros().toPlainString()
     }
+
+    /** True when opened for an existing entry; false when creating a new one. */
+    val isEditMode: Boolean get() = editEntryId != null
+
+    private var originalEntry: KetoEntry? = null
 
     var label by mutableStateOf("")
         private set
@@ -41,6 +52,24 @@ class AddKetoEntryViewModel(private val ketoRepository: KetoRepository) : ViewMo
         private set
     var eventTypeError by mutableStateOf<String?>(null)
         private set
+
+    init {
+        if (editEntryId != null) {
+            viewModelScope.launch {
+                val entry = ketoRepository.getEntryById(editEntryId)
+                if (entry != null) {
+                    originalEntry = entry
+                    label = entry.label
+                    eventType = entry.eventType
+                    calories = formatDouble(entry.calories)
+                    proteinG = formatDouble(entry.proteinG)
+                    fatG = formatDouble(entry.fatG)
+                    netCarbsG = formatDouble(entry.netCarbsG)
+                    notes = entry.notes ?: ""
+                }
+            }
+        }
+    }
 
     fun onLabelChange(value: String) {
         label = value
@@ -71,28 +100,54 @@ class AddKetoEntryViewModel(private val ketoRepository: KetoRepository) : ViewMo
         if (!valid) return
 
         viewModelScope.launch {
-            val now = LocalDateTime.now()
-            val entry = KetoEntry(
-                label = label.trim(),
-                eventType = eventType,
-                calories = parseDoubleOrZero(calories),
-                proteinG = parseDoubleOrZero(proteinG),
-                fatG = parseDoubleOrZero(fatG),
-                netCarbsG = parseDoubleOrZero(netCarbsG),
-                entryDate = now.format(DateTimeFormatter.ofPattern(DATE_FORMAT)),
-                eventTimestamp = now.format(DateTimeFormatter.ofPattern(TIMESTAMP_FORMAT)),
-                notes = notes.trim().ifBlank { null }
-            )
-            ketoRepository.insertEntry(entry)
+            val existing = originalEntry
+            if (existing != null) {
+                ketoRepository.updateEntry(
+                    existing.copy(
+                        label = label.trim(),
+                        eventType = eventType,
+                        calories = parseDoubleOrZero(calories),
+                        proteinG = parseDoubleOrZero(proteinG),
+                        fatG = parseDoubleOrZero(fatG),
+                        netCarbsG = parseDoubleOrZero(netCarbsG),
+                        notes = notes.trim().ifBlank { null }
+                    )
+                )
+            } else {
+                val now = LocalDateTime.now()
+                ketoRepository.insertEntry(
+                    KetoEntry(
+                        label = label.trim(),
+                        eventType = eventType,
+                        calories = parseDoubleOrZero(calories),
+                        proteinG = parseDoubleOrZero(proteinG),
+                        fatG = parseDoubleOrZero(fatG),
+                        netCarbsG = parseDoubleOrZero(netCarbsG),
+                        entryDate = now.format(DateTimeFormatter.ofPattern(DATE_FORMAT)),
+                        eventTimestamp = now.format(DateTimeFormatter.ofPattern(TIMESTAMP_FORMAT)),
+                        notes = notes.trim().ifBlank { null }
+                    )
+                )
+            }
+            onSuccess()
+        }
+    }
+
+    fun deleteEntry(onSuccess: () -> Unit) {
+        // originalEntry is null only if the entry hasn't loaded yet; nothing to delete in that case.
+        val entry = originalEntry ?: return
+        viewModelScope.launch {
+            ketoRepository.deleteEntry(entry)
             onSuccess()
         }
     }
 }
 
 class AddKetoEntryViewModelFactory(
-    private val ketoRepository: KetoRepository
+    private val ketoRepository: KetoRepository,
+    private val editEntryId: Int? = null
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T =
-        AddKetoEntryViewModel(ketoRepository) as T
+        AddKetoEntryViewModel(ketoRepository, editEntryId) as T
 }

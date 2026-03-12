@@ -8,8 +8,18 @@ class KetoRepository(private val ketoDao: KetoDao) {
     fun getRecentEntries(limit: Int): Flow<List<KetoEntry>> = ketoDao.getRecentEntries(limit)
     fun getEntriesForDate(date: String): Flow<List<KetoEntry>> = ketoDao.getEntriesForDate(date)
 
+    suspend fun getEntryById(id: Int): KetoEntry? = ketoDao.getEntryById(id)
+
     suspend fun insertEntry(entry: KetoEntry) {
         ketoDao.insert(entry)
+    }
+
+    suspend fun updateEntry(entry: KetoEntry) {
+        ketoDao.update(entry)
+    }
+
+    suspend fun deleteEntry(entry: KetoEntry) {
+        ketoDao.delete(entry)
     }
 
     suspend fun replaceAll(entries: List<KetoEntry>) {
