@@ -818,54 +818,46 @@ _CHART_FIELDS = (
     "water_ml", "sodium_mg", "potassium_mg", "magnesium_mg",
 )
 
-_CHART_SELECT = """
-    COALESCE(SUM(calories), 0)     AS calories,
-    COALESCE(SUM(protein_g), 0)    AS protein_g,
-    COALESCE(SUM(fat_g), 0)        AS fat_g,
-    COALESCE(SUM(net_carbs_g), 0)  AS net_carbs_g,
-    COALESCE(SUM(water_ml), 0)     AS water_ml,
-    COALESCE(SUM(sodium_mg), 0)    AS sodium_mg,
-    COALESCE(SUM(potassium_mg), 0) AS potassium_mg,
-    COALESCE(SUM(magnesium_mg), 0) AS magnesium_mg
-"""
+_CHART_SELECT_COLS = (
+    "COALESCE(SUM(calories), 0)     AS calories,"
+    " COALESCE(SUM(protein_g), 0)    AS protein_g,"
+    " COALESCE(SUM(fat_g), 0)        AS fat_g,"
+    " COALESCE(SUM(net_carbs_g), 0)  AS net_carbs_g,"
+    " COALESCE(SUM(water_ml), 0)     AS water_ml,"
+    " COALESCE(SUM(sodium_mg), 0)    AS sodium_mg,"
+    " COALESCE(SUM(potassium_mg), 0) AS potassium_mg,"
+    " COALESCE(SUM(magnesium_mg), 0) AS magnesium_mg"
+)
 
 
 def get_chart_daily(date_from: str, date_to: str) -> list[dict]:
     """Daily aggregated totals for dates that have events in [date_from, date_to]."""
     with get_connection() as conn:
         rows = conn.execute(
-            f"""
-            SELECT
-                event_date AS date,
-                {_CHART_SELECT}
-            FROM events
-            WHERE event_date >= ? AND event_date <= ?
-            GROUP BY event_date
-            ORDER BY event_date ASC
-            """,
+            "SELECT event_date AS date, "
+            + _CHART_SELECT_COLS
+            + " FROM events WHERE event_date >= ? AND event_date <= ?"
+            " GROUP BY event_date ORDER BY event_date ASC",
             (date_from, date_to),
         ).fetchall()
         return [dict(row) for row in rows]
 
 
 def get_chart_weekly(date_from: str, date_to: str) -> list[dict]:
-    """Weekly aggregated totals (ISO week starting Monday) in [date_from, date_to].
+    """Weekly aggregated totals in [date_from, date_to].
 
-    Returns one row per ISO week with ``date`` set to the Monday of that week
-    in YYYY-MM-DD format so the front-end can parse it with d3.timeParse.
+    Groups by calendar week (Monday-based).  The ``date`` column is set to
+    the Monday of each week using SQLite's ``'weekday 0'`` modifier so the
+    front-end can parse it with ``d3.timeParse('%Y-%m-%d')``.
     """
     with get_connection() as conn:
         rows = conn.execute(
-            f"""
-            SELECT
-                strftime('%Y-W%W', event_date) AS week_label,
-                date(event_date, 'weekday 1', '-7 days') AS date,
-                {_CHART_SELECT}
-            FROM events
-            WHERE event_date >= ? AND event_date <= ?
-            GROUP BY week_label
-            ORDER BY week_label ASC
-            """,
+            "SELECT"
+            " date(event_date, 'weekday 0', '-6 days') AS date,"
+            " " + _CHART_SELECT_COLS
+            + " FROM events WHERE event_date >= ? AND event_date <= ?"
+            " GROUP BY date(event_date, 'weekday 0', '-6 days')"
+            " ORDER BY date ASC",
             (date_from, date_to),
         ).fetchall()
         return [dict(row) for row in rows]
@@ -879,16 +871,12 @@ def get_chart_monthly(date_from: str, date_to: str) -> list[dict]:
     """
     with get_connection() as conn:
         rows = conn.execute(
-            f"""
-            SELECT
-                strftime('%Y-%m', event_date) AS month_label,
-                strftime('%Y-%m-01', event_date) AS date,
-                {_CHART_SELECT}
-            FROM events
-            WHERE event_date >= ? AND event_date <= ?
-            GROUP BY month_label
-            ORDER BY month_label ASC
-            """,
+            "SELECT"
+            " strftime('%Y-%m-01', event_date) AS date,"
+            " " + _CHART_SELECT_COLS
+            + " FROM events WHERE event_date >= ? AND event_date <= ?"
+            " GROUP BY strftime('%Y-%m', event_date)"
+            " ORDER BY date ASC",
             (date_from, date_to),
         ).fetchall()
         return [dict(row) for row in rows]

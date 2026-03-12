@@ -1545,12 +1545,9 @@ function drawChart(container, data, metric) {
   const parseTs   = d3.timeParse("%Y-%m-%dT%H:%M:%S");
   let   fmtAxis;
   if (mode === "monthly") {
-    fmtAxis = d => {
-      const parts = String(d.date || d).split("-");
-      return parts.length >= 2 ? `${parts[0]}-${parts[1]}` : String(d.date || d);
-    };
+    fmtAxis = d3.timeFormat("%b %Y");
   } else if (mode === "weekly") {
-    fmtAxis = d3.timeFormat("W%V %b");
+    fmtAxis = d3.timeFormat("%b %d");
   } else {
     fmtAxis = d3.timeFormat("%b %d");
   }
@@ -1696,10 +1693,13 @@ function drawChart(container, data, metric) {
 
   } else if (mode === "weekly" || mode === "monthly") {
     // Bar chart for weekly/monthly aggregates
+    const MIN_BAR_WIDTH    = 4;
+    const BAR_SPACING      = 2;
+    const SINGLE_BAR_WIDTH = 20;
     const barData = series.filter(d => d.val !== null && d.val > 0);
     const bandW   = barData.length > 1
-      ? Math.max(4, iW / barData.length - 2)
-      : 20;
+      ? Math.max(MIN_BAR_WIDTH, iW / barData.length - BAR_SPACING)
+      : SINGLE_BAR_WIDTH;
 
     g.selectAll(".bar")
       .data(barData)
