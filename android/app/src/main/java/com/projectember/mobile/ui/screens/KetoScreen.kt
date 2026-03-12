@@ -13,7 +13,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -23,14 +22,19 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.projectember.mobile.data.local.entities.KetoEntry
@@ -45,7 +49,10 @@ fun KetoScreen(
     val recentEntries by viewModel.recentEntries.collectAsState()
     val todayEntries by viewModel.todayEntries.collectAsState()
 
-    val todayCalories = todayEntries.sumOf { it.calories }
+    // Exercise entries subtract from the daily calorie total
+    val todayCalories = todayEntries.sumOf { entry ->
+        if (entry.eventType.equals("exercise", ignoreCase = true)) -entry.calories else entry.calories
+    }
     val todayProtein = todayEntries.sumOf { it.proteinG }
     val todayFat = todayEntries.sumOf { it.fatG }
     val todayCarbs = todayEntries.sumOf { it.netCarbsG }
@@ -115,11 +122,24 @@ fun KetoScreen(
 
             if (recentEntries.isEmpty()) {
                 item {
-                    Text(
-                        text = "No entries yet. Tap + to add your first entry.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 32.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = "No entries yet",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = "Tap + to log your first keto entry.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
             } else {
                 items(recentEntries) { entry ->
@@ -152,15 +172,29 @@ private fun MacroRow(label: String, value: String) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun KetoEntryCard(entry: KetoEntry) {
+    val isExercise = entry.eventType.equals("exercise", ignoreCase = true)
+    var expanded by remember { mutableStateOf(false) }
+
+    val cardColor = if (isExercise)
+        MaterialTheme.colorScheme.tertiaryContainer
+    else
+        MaterialTheme.colorScheme.surfaceVariant
+
+    val onCardColor = if (isExercise)
+        MaterialTheme.colorScheme.onTertiaryContainer
+    else
+        MaterialTheme.colorScheme.onSurfaceVariant
+
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        )
+        colors = CardDefaults.cardColors(containerColor = cardColor),
+        onClick = { expanded = !expanded }
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
+            // Header row: label + event type badge
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -169,27 +203,141 @@ private fun KetoEntryCard(entry: KetoEntry) {
                 Text(
                     text = entry.label,
                     style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.SemiBold
+                    fontWeight = FontWeight.SemiBold,
+                    color = onCardColor,
+                    modifier = Modifier.weight(1f)
                 )
+                EventTypeBadge(type = entry.eventType)
+            }
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            // Calories + time row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Unicode minus (U+2212) for display; arithmetic negation is done in todayCalories
+                val caloriesText = if (isExercise)
+                    "−%.0f kcal".format(entry.calories)
+                else
+                    "%.0f kcal".format(entry.calories)
                 Text(
-                    text = entry.eventType,
+                    text = caloriesText,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium,
+                    color = onCardColor
+                )
+                // Show only HH:mm — timestamp is always "yyyy-MM-dd HH:mm" (positions 11–15)
+                val timeText = if (entry.eventTimestamp.length >= 16)
+                    entry.eventTimestamp.substring(11, 16)
+                else
+                    entry.eventTimestamp
+                Text(
+                    text = timeText,
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary
+                    color = onCardColor
                 )
             }
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = "%.0f kcal  |  P: %.0fg  |  F: %.0fg  |  C: %.0fg".format(
-                    entry.calories, entry.proteinG, entry.fatG, entry.netCarbsG
-                ),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Text(
-                text = entry.eventTimestamp,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+
+            // Expanded detail: macros, notes, full timestamp
+            if (expanded) {
+                Spacer(modifier = Modifier.height(8.dp))
+                HorizontalDivider(color = onCardColor.copy(alpha = 0.2f))
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    MacroDetail(
+                        label = "Protein",
+                        value = "%.1f g".format(entry.proteinG),
+                        color = onCardColor
+                    )
+                    MacroDetail(
+                        label = "Fat",
+                        value = "%.1f g".format(entry.fatG),
+                        color = onCardColor
+                    )
+                    MacroDetail(
+                        label = "Net Carbs",
+                        value = "%.1f g".format(entry.netCarbsG),
+                        color = onCardColor
+                    )
+                }
+
+                if (!entry.notes.isNullOrBlank()) {
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = entry.notes,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = onCardColor
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = entry.eventTimestamp,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = onCardColor.copy(alpha = 0.6f)
+                )
+            }
         }
+    }
+}
+
+@Composable
+private fun EventTypeBadge(type: String) {
+    val (bg, fg) = when (type.lowercase()) {
+        "exercise" -> Pair(
+            MaterialTheme.colorScheme.tertiary,
+            MaterialTheme.colorScheme.onTertiary
+        )
+        "meal" -> Pair(
+            MaterialTheme.colorScheme.primary,
+            MaterialTheme.colorScheme.onPrimary
+        )
+        "drink" -> Pair(
+            MaterialTheme.colorScheme.secondary,
+            MaterialTheme.colorScheme.onSecondary
+        )
+        "snack" -> Pair(
+            MaterialTheme.colorScheme.secondaryContainer,
+            MaterialTheme.colorScheme.onSecondaryContainer
+        )
+        else -> Pair(
+            MaterialTheme.colorScheme.surfaceVariant,
+            MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+    Surface(
+        shape = MaterialTheme.shapes.extraSmall,
+        color = bg
+    ) {
+        Text(
+            text = type.uppercase(),
+            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+            style = MaterialTheme.typography.labelSmall,
+            color = fg
+        )
+    }
+}
+
+@Composable
+private fun MacroDetail(label: String, value: String, color: Color) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodySmall,
+            fontWeight = FontWeight.SemiBold,
+            color = color
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = color.copy(alpha = 0.7f)
+        )
     }
 }
