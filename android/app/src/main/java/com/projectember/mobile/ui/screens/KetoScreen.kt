@@ -24,6 +24,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -44,7 +45,8 @@ import com.projectember.mobile.data.local.entities.KetoEntry
 fun KetoScreen(
     viewModel: KetoViewModel,
     onNavigateBack: () -> Unit,
-    onNavigateToAddEntry: () -> Unit
+    onNavigateToAddEntry: () -> Unit,
+    onNavigateToEditEntry: (Int) -> Unit
 ) {
     val recentEntries by viewModel.recentEntries.collectAsState()
     val todayEntries by viewModel.todayEntries.collectAsState()
@@ -143,7 +145,7 @@ fun KetoScreen(
                 }
             } else {
                 items(recentEntries) { entry ->
-                    KetoEntryCard(entry = entry)
+                    KetoEntryCard(entry = entry, onEditEntry = onNavigateToEditEntry)
                 }
             }
 
@@ -174,7 +176,7 @@ private fun MacroRow(label: String, value: String) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun KetoEntryCard(entry: KetoEntry) {
+private fun KetoEntryCard(entry: KetoEntry, onEditEntry: (Int) -> Unit) {
     val isExercise = entry.eventType.equals("exercise", ignoreCase = true)
     var expanded by remember { mutableStateOf(false) }
 
@@ -283,6 +285,18 @@ private fun KetoEntryCard(entry: KetoEntry) {
                     style = MaterialTheme.typography.labelSmall,
                     color = onCardColor.copy(alpha = 0.6f)
                 )
+
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    TextButton(
+                        onClick = { onEditEntry(entry.id) }
+                    ) {
+                        Text("Edit", color = onCardColor)
+                    }
+                }
             }
         }
     }

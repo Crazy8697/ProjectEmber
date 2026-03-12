@@ -4,9 +4,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.projectember.mobile.EmberApplication
 import com.projectember.mobile.ui.screens.AddKetoEntryScreen
 import com.projectember.mobile.ui.screens.AddKetoEntryViewModelFactory
@@ -51,13 +53,34 @@ fun EmberNavGraph(
             KetoScreen(
                 viewModel = viewModel,
                 onNavigateBack = { navController.popBackStack() },
-                onNavigateToAddEntry = { navController.navigate(Screen.KetoAddEntry.route) }
+                onNavigateToAddEntry = { navController.navigate(Screen.KetoAddEntry.route) },
+                onNavigateToEditEntry = { entryId ->
+                    navController.navigate(Screen.KetoEditEntry.createRoute(entryId))
+                }
             )
         }
 
         composable(Screen.KetoAddEntry.route) {
             val viewModel: AddKetoEntryViewModel = viewModel(
                 factory = AddKetoEntryViewModelFactory(app.ketoRepository)
+            )
+            AddKetoEntryScreen(
+                viewModel = viewModel,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(
+            route = Screen.KetoEditEntry.route,
+            arguments = listOf(navArgument("entryId") { type = NavType.IntType })
+        ) { backStackEntry ->
+            val entryId = backStackEntry.arguments?.getInt("entryId")
+            if (entryId == null) {
+                navController.popBackStack()
+                return@composable
+            }
+            val viewModel: AddKetoEntryViewModel = viewModel(
+                factory = AddKetoEntryViewModelFactory(app.ketoRepository, entryId)
             )
             AddKetoEntryScreen(
                 viewModel = viewModel,
