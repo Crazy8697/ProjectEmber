@@ -151,6 +151,9 @@ STARTER_RECIPES = [
     },
 ]
 
+STARTER_RECIPE_NAMES = {recipe["name"] for recipe in STARTER_RECIPES}
+
+
 ALLOWED_EVENT_TYPES = {"meal", "snack", "drink", "exercise", "supplement", "custom"}
 
 TOTAL_FIELDS = (
@@ -204,12 +207,24 @@ def seed_defaults(conn: sqlite3.Connection) -> None:
     )
 
 
+def ensure_recipe_support_tables(conn: sqlite3.Connection) -> None:
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS starter_recipe_tombstones (
+            name TEXT PRIMARY KEY,
+            deleted_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )
+        """
+    )
+
+
 def init_db() -> None:
     schema = SCHEMA_PATH.read_text(encoding="utf-8")
     recipes_schema = RECIPES_SCHEMA_PATH.read_text(encoding="utf-8")
     with get_connection() as conn:
         conn.executescript(schema)
         conn.executescript(recipes_schema)
+        ensure_recipe_support_tables(conn)
         seed_defaults(conn)
         seed_starter_recipes(conn)
         conn.commit()
@@ -268,12 +283,23 @@ def update_targets(
 
 
 def seed_starter_recipes(conn: sqlite3.Connection) -> None:
-    """Insert starter recipes only if the recipes table is empty."""
-    count = conn.execute("SELECT COUNT(*) FROM recipes").fetchone()[0]
-    if count > 0:
-        return
+    """Ensure starter recipes exist unless the user explicitly deleted them."""
+    ensure_recipe_support_tables(conn)
+
+    existing_names = {
+        row[0]
+        for row in conn.execute("SELECT name FROM recipes").fetchall()
+    }
+    tombstoned_names = {
+        row[0]
+        for row in conn.execute("SELECT name FROM starter_recipe_tombstones").fetchall()
+    }
 
     for recipe in STARTER_RECIPES:
+        name = recipe["name"]
+        if name in existing_names or name in tombstoned_names:
+            continue
+
         conn.execute(
             """
             INSERT INTO recipes (
@@ -283,7 +309,7 @@ def seed_starter_recipes(conn: sqlite3.Connection) -> None:
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
-                recipe["name"],
+                name,
                 recipe.get("description", ""),
                 recipe.get("keto_notes", ""),
                 recipe.get("servings", 1),
@@ -686,6 +712,32 @@ def update_recipe(
 
 def delete_recipe(recipe_id: int) -> bool:
     with get_connection() as conn:
+        ensure_recipe_support_tables(conn)
+
+        row = conn.execute(
+            """
+            SELECT name
+            FROM recipes
+            WHERE id = ?
+            """,
+            (recipe_id,),
+        ).fetchone()
+
+        if row is None:
+            conn.commit()
+            return False
+
+        recipe_name = row[0]
+
+        if recipe_name in STARTER_RECIPE_NAMES:
+            conn.execute(
+                """
+                INSERT OR IGNORE INTO starter_recipe_tombstones (name)
+                VALUES (?)
+                """,
+                (recipe_name,),
+            )
+
         cur = conn.execute(
             """
             DELETE FROM recipes
