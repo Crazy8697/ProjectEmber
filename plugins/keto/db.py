@@ -581,7 +581,7 @@ def get_chart_daily(date_from: str, date_to: str) -> list[dict]:
 
 
 def get_chart_per_meal(date_from: str, date_to: str) -> list[dict]:
-    """Individual event rows in [date_from, date_to] for per-meal chart mode."""
+    """Individual ingestive event rows in [date_from, date_to] for per-meal chart mode."""
     with get_connection() as conn:
         rows = conn.execute(
             """
@@ -597,6 +597,7 @@ def get_chart_per_meal(date_from: str, date_to: str) -> list[dict]:
                 COALESCE(water_ml, 0)         AS water_ml
             FROM events
             WHERE event_date >= ? AND event_date <= ?
+              AND event_type IN ('meal', 'snack', 'drink')
             ORDER BY event_timestamp ASC, id ASC
             """,
             (date_from, date_to),

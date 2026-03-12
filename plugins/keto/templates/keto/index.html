@@ -1153,8 +1153,8 @@ function renderDay(data) {
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${eventTime(ev.event_timestamp)}</td>
-      <td>${ev.event_type ?? ""}</td>
-      <td>${ev.label ?? ""}</td>
+      <td>${escHtml(ev.event_type ?? "")}</td>
+      <td>${escHtml(ev.label ?? "")}</td>
       <td>${fmt(ev.calories)}</td>
       <td>${fmt(ev.protein_g, "g")}</td>
       <td>${fmt(ev.fat_g, "g")}</td>
@@ -1163,7 +1163,7 @@ function renderDay(data) {
       <td>${fmt(ev.sodium_mg, " mg")}</td>
       <td>${fmt(ev.potassium_mg, " mg")}</td>
       <td>${fmt(ev.magnesium_mg, " mg")}</td>
-      <td class="notes">${ev.notes ?? ""}</td>
+      <td class="notes">${escHtml(ev.notes ?? "")}</td>
       <td>
         <button type="button" onclick="editEvent(${ev.id})">Edit</button>
         <button type="button" onclick="deleteEvent(${ev.id})">Delete</button>
