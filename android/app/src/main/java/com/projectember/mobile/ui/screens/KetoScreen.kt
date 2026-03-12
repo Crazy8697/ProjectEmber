@@ -308,8 +308,8 @@ private fun EventTypeBadge(type: String) {
             MaterialTheme.colorScheme.onSecondaryContainer
         )
         else -> Pair(
-            MaterialTheme.colorScheme.outline,
-            MaterialTheme.colorScheme.surface
+            MaterialTheme.colorScheme.surfaceVariant,
+            MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
     Surface(
