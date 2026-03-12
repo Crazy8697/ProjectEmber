@@ -90,7 +90,7 @@ fun EmberNavGraph(
 
         composable(Screen.Recipes.route) {
             val viewModel: RecipesViewModel = viewModel(
-                factory = RecipesViewModelFactory(app.recipeRepository)
+                factory = RecipesViewModelFactory(app.recipeRepository, app.ketoRepository)
             )
             RecipesScreen(
                 viewModel = viewModel,
