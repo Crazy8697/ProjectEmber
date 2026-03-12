@@ -36,3 +36,7 @@ android/local.properties
 android/**/*.iml
 android/.idea/
 android/captures/
+
+# Allow Android app source data layer to be tracked
+!android/app/src/main/java/com/projectember/mobile/data/
+!android/app/src/main/java/com/projectember/mobile/data/**
