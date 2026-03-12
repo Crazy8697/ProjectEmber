@@ -451,6 +451,72 @@
       button, a.btn { padding: 8px 10px; font-size: 12px; }
       .ingredientRow { grid-template-columns: 1fr; }
     }
+
+    /* ─── Trend graph section ─── */
+    .graphSection { margin-top: 10px; }
+
+    .graphHeader {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .graphControls {
+      display: flex;
+      gap: 8px;
+      align-items: flex-end;
+      flex-wrap: wrap;
+    }
+
+    .graphControls .field { flex: 0 0 auto; gap: 4px; }
+
+    .graphControls input[type="date"],
+    .graphControls select {
+      width: auto;
+      min-width: 110px;
+      padding: 6px 8px;
+      height: 36px;
+    }
+
+    .graphContainer {
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      background: var(--bg);
+      min-height: 300px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .graphLoading, .graphEmpty {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 260px;
+      color: var(--muted2);
+      font-size: 12px;
+    }
+
+    .graphContainer svg { width: 100%; display: block; }
+
+    .chartTooltip {
+      position: fixed;
+      background: var(--card);
+      border: 1px solid var(--accent);
+      border-radius: 4px;
+      padding: 8px 10px;
+      font-size: 11px;
+      line-height: 1.6;
+      color: var(--text);
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.1s;
+      z-index: 999;
+      white-space: nowrap;
+      font-family: var(--mono);
+    }
   </style>
 </head>
 <body>
@@ -669,9 +735,70 @@
         </div>
         <div id="eventsEmpty" class="empty" style="display:none;">No events for this date yet.</div>
       </div>
+
+      <!-- ─── Trend Graphs ─── -->
+      <div class="card graphSection" id="graphSection">
+        <div class="graphHeader">
+          <div>
+            <h2>Trends</h2>
+            <p>Rolling history and macro trends over a date range.</p>
+          </div>
+          <div class="graphControls">
+            <div class="field">
+              <label for="graphFrom">From</label>
+              <input id="graphFrom" type="date"/>
+            </div>
+            <div class="field">
+              <label for="graphTo">To</label>
+              <input id="graphTo" type="date"/>
+            </div>
+            <div class="field">
+              <label for="graphMetric">Metric</label>
+              <select id="graphMetric">
+                <option value="calories">Calories</option>
+                <option value="net_carbs_g">Net Carbs (g)</option>
+                <option value="protein_g">Protein (g)</option>
+                <option value="fat_g">Fat (g)</option>
+                <option value="water_ml">Water (mL)</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="graphMode">Mode</label>
+              <select id="graphMode">
+                <option value="daily">Daily Totals</option>
+                <option value="per_meal">Per Meal</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="graphAvg">Rolling Avg</label>
+              <select id="graphAvg">
+                <option value="none">None</option>
+                <option value="7">7-day</option>
+                <option value="14">14-day</option>
+                <option value="30">30-day</option>
+              </select>
+            </div>
+            <div class="field">
+              <label style="visibility:hidden;">x</label>
+              <button type="button" id="graphLoadBtn">Load</button>
+            </div>
+            <div class="field">
+              <label style="visibility:hidden;">x</label>
+              <button type="button" id="graphExportBtn" title="Export chart as PNG">⬇ PNG</button>
+            </div>
+          </div>
+        </div>
+        <div class="graphContainer" id="graphContainer">
+          <div class="graphLoading" id="graphLoading" style="display:none;">Loading…</div>
+          <div class="graphEmpty"   id="graphEmpty">Select a range and click Load.</div>
+        </div>
+      </div>
+
     </div>
   </div>
 
+<div class="chartTooltip" id="chartTooltip"></div>
+<script src="/keto/static/d3.min.js"></script>
 <script>
 function fmt(n, suffix = "") {
   const num = Number(n || 0);
@@ -1065,16 +1192,306 @@ function renderRows(tbody, rows, options = {}) {
 }
 
 
+// ─────────────────────────────────────────────────────────
+// Trend graphs
+// ─────────────────────────────────────────────────────────
 
+const GRAPH_METRIC_LABELS = {
+  calories:    "Calories",
+  net_carbs_g: "Net Carbs (g)",
+  protein_g:   "Protein (g)",
+  fat_g:       "Fat (g)",
+  water_ml:    "Water (mL)",
+};
 
+function escHtml(s) {
+  return String(s ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
 
+function graphInitDates() {
+  const now  = new Date();
+  const to   = now.toISOString().slice(0, 10);
+  const from = new Date(now);
+  from.setDate(from.getDate() - 29);
+  document.getElementById("graphFrom").value = from.toISOString().slice(0, 10);
+  document.getElementById("graphTo").value   = to;
+}
 
+async function loadGraphData() {
+  const from   = document.getElementById("graphFrom").value;
+  const to     = document.getElementById("graphTo").value;
+  const mode   = document.getElementById("graphMode").value;
+  const avg    = document.getElementById("graphAvg").value;
+  const metric = document.getElementById("graphMetric").value;
 
+  const container = document.getElementById("graphContainer");
+  const loading   = document.getElementById("graphLoading");
+  const empty     = document.getElementById("graphEmpty");
 
+  container.querySelectorAll("svg").forEach(el => el.remove());
+  loading.style.display = "flex";
+  empty.style.display   = "none";
 
+  if (!from || !to) {
+    loading.style.display = "none";
+    empty.textContent     = "Select a date range and click Load.";
+    empty.style.display   = "flex";
+    return;
+  }
 
+  try {
+    const url  = `/keto/api/graphs?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&mode=${mode}&avg=${avg}`;
+    const res  = await fetch(url);
+    const data = await res.json();
+    loading.style.display = "none";
 
+    if (!data.ok) {
+      empty.textContent   = `Error: ${data.error || "Unknown error"}`;
+      empty.style.display = "flex";
+      return;
+    }
 
+    if (!data.rows || data.rows.length === 0) {
+      empty.textContent   = "No data for this date range.";
+      empty.style.display = "flex";
+      return;
+    }
+
+    drawChart(container, data, metric);
+  } catch (err) {
+    loading.style.display = "none";
+    empty.textContent     = `Load failed: ${String(err)}`;
+    empty.style.display   = "flex";
+  }
+}
+
+function drawChart(container, data, metric) {
+  const rows    = data.rows;
+  const rolling = data.rolling || [];
+  const mode    = data.mode;
+  const label   = GRAPH_METRIC_LABELS[metric] || metric;
+
+  const W  = Math.max(container.getBoundingClientRect().width || 700, 400);
+  const H  = 300;
+  const mg = { top: 18, right: 20, bottom: 44, left: 58 };
+  const iW = W - mg.left - mg.right;
+  const iH = H - mg.top  - mg.bottom;
+
+  const parseDate = d3.timeParse("%Y-%m-%d");
+  const parseTs   = d3.timeParse("%Y-%m-%dT%H:%M:%S");
+  const fmtAxis   = d3.timeFormat("%b %d");
+
+  // X domain
+  const fromDt = parseDate(data.from);
+  let   toDt   = parseDate(data.to);
+  if (mode === "per_meal") {
+    toDt = new Date(toDt.getTime() + 24 * 60 * 60 * 1000 - 1);
+  }
+
+  // Build series — daily mode fills missing dates with null (creates line gaps)
+  let series;
+  if (mode === "daily") {
+    const byDate = new Map(rows.map(r => [r.date, r]));
+    series = [];
+    const cur = new Date(fromDt);
+    while (cur <= toDt) {
+      const ds  = cur.toISOString().slice(0, 10);
+      const row = byDate.get(ds);
+      series.push({ date: ds, val: row != null ? Number(row[metric] ?? 0) : null });
+      cur.setDate(cur.getDate() + 1);
+    }
+  } else {
+    series = rows.map(r => ({
+      date: r.date,
+      val:  Number(r[metric] ?? 0),
+      lbl:  r.label || r.event_type || "",
+      ts:   r.event_timestamp || null,
+    }));
+  }
+
+  const rollSeries = rolling.map(r => ({ date: r.date, val: Number(r[metric] ?? 0) }));
+
+  const allVals = [
+    ...series.map(d => d.val).filter(v => v != null),
+    ...rollSeries.map(d => d.val),
+  ];
+  const yMax = d3.max(allVals) || 1;
+  const yMin = Math.min(0, d3.min(allVals) || 0);
+
+  const xScale = d3.scaleTime().domain([fromDt, toDt]).range([0, iW]);
+  const yScale = d3.scaleLinear().domain([yMin, yMax * 1.1]).range([iH, 0]).nice();
+
+  const svg = d3.select(container)
+    .append("svg")
+    .attr("width",  W)
+    .attr("height", H);
+
+  // Inline background so it survives PNG export
+  svg.style("background", "#0d1117");
+
+  const g = svg.append("g").attr("transform", `translate(${mg.left},${mg.top})`);
+
+  // Grid lines
+  g.append("g")
+    .call(d3.axisLeft(yScale).ticks(5).tickSize(-iW).tickFormat(""))
+    .call(gg => {
+      gg.select(".domain").remove();
+      gg.selectAll("line").attr("stroke", "#1a2332").attr("stroke-opacity", "0.6");
+    });
+
+  // Shared axis styling
+  const axisStyle = gg => {
+    gg.select(".domain").attr("stroke", "#1a2332");
+    gg.selectAll(".tick line").attr("stroke", "#1a2332");
+    gg.selectAll(".tick text")
+      .attr("fill", "#4a5568")
+      .attr("font-size", "10")
+      .attr("font-family", "monospace");
+  };
+
+  g.append("g")
+    .attr("transform", `translate(0,${iH})`)
+    .call(d3.axisBottom(xScale).ticks(Math.min(rows.length, 8)).tickFormat(fmtAxis))
+    .call(axisStyle);
+
+  g.append("g")
+    .call(d3.axisLeft(yScale).ticks(5))
+    .call(axisStyle);
+
+  g.append("text")
+    .attr("transform", "rotate(-90)")
+    .attr("x", -(iH / 2))
+    .attr("y", -mg.left + 14)
+    .attr("text-anchor", "middle")
+    .attr("fill", "#4a5568")
+    .attr("font-size", "10")
+    .attr("font-family", "monospace")
+    .text(label);
+
+  // Tooltip helpers
+  const tooltip = d3.select("#chartTooltip");
+  const ttShow  = (ev, html) =>
+    tooltip.style("opacity", "1")
+      .style("left",  `${ev.clientX + 14}px`)
+      .style("top",   `${ev.clientY - 14}px`)
+      .html(html);
+  const ttHide = () => tooltip.style("opacity", "0");
+
+  if (mode === "daily") {
+    // Raw data line — defined() creates visual gaps for null (missing days)
+    const lineFn = d3.line()
+      .defined(d => d.val !== null)
+      .x(d => xScale(parseDate(d.date)))
+      .y(d => yScale(d.val));
+
+    g.append("path")
+      .datum(series)
+      .attr("fill", "none").attr("stroke", "#06b6d4").attr("stroke-width", "2")
+      .attr("d", lineFn);
+
+    // Rolling average overlay (yellow dashed)
+    if (rollSeries.length > 0) {
+      const rollFn = d3.line()
+        .x(d => xScale(parseDate(d.date)))
+        .y(d => yScale(d.val));
+
+      g.append("path")
+        .datum(rollSeries)
+        .attr("fill", "none").attr("stroke", "#facc15")
+        .attr("stroke-width", "1.5").attr("stroke-dasharray", "4 3")
+        .attr("d", rollFn);
+    }
+
+    // Data-point dots
+    g.selectAll(".dot")
+      .data(series.filter(d => d.val !== null))
+      .enter().append("circle")
+      .attr("r", "3.5")
+      .attr("cx", d => xScale(parseDate(d.date)))
+      .attr("cy", d => yScale(d.val))
+      .attr("fill", "#06b6d4").attr("stroke", "#0a0c10").attr("stroke-width", "1.5")
+      .style("cursor", "pointer")
+      .on("mousemove", (ev, d) => ttShow(ev,
+        `<strong>${escHtml(d.date)}</strong><br/>${escHtml(label)}: <strong>${d.val.toFixed(1)}</strong>`))
+      .on("mouseleave", ttHide);
+
+  } else {
+    // Per-meal scatter — X uses event_timestamp when available
+    g.selectAll(".dot")
+      .data(series)
+      .enter().append("circle")
+      .attr("r", "4")
+      .attr("cx", d => {
+        const t = d.ts ? parseTs(d.ts) : null;
+        return xScale(t || parseDate(d.date));
+      })
+      .attr("cy", d => yScale(d.val))
+      .attr("fill", "#06b6d4").attr("stroke", "#0a0c10").attr("stroke-width", "1.5")
+      .style("cursor", "pointer")
+      .on("mousemove", (ev, d) => ttShow(ev,
+        `<strong>${escHtml(d.date)}</strong><br/>${escHtml(d.lbl)}<br/>${escHtml(label)}: <strong>${d.val.toFixed(1)}</strong>`))
+      .on("mouseleave", ttHide);
+  }
+}
+
+function exportChartPng() {
+  const container = document.getElementById("graphContainer");
+  const svgEl     = container.querySelector("svg");
+  if (!svgEl) { alert("No chart to export — load data first."); return; }
+
+  // Clone and inject a <style> so text/line colours survive SVG serialisation
+  const clone    = svgEl.cloneNode(true);
+  const styleTag = document.createElementNS("http://www.w3.org/2000/svg", "style");
+  styleTag.textContent =
+    "text{fill:#4a5568;font-size:10px;font-family:monospace}" +
+    ".domain{stroke:#1a2332;fill:none}line{stroke:#1a2332}";
+  clone.insertBefore(styleTag, clone.firstChild);
+
+  const bbox  = svgEl.getBoundingClientRect();
+  const scale = 2;
+  const cw    = Math.round((bbox.width  || 700) * scale);
+  const ch    = Math.round((bbox.height || 300) * scale);
+
+  let svgStr = new XMLSerializer().serializeToString(clone);
+  if (!svgStr.includes("xmlns=")) {
+    svgStr = svgStr.replace("<svg", `<svg xmlns="http://www.w3.org/2000/svg"`);
+  }
+
+  const url = URL.createObjectURL(new Blob([svgStr], { type: "image/svg+xml;charset=utf-8" }));
+  const img = new Image();
+
+  img.onload = () => {
+    const canvas = document.createElement("canvas");
+    canvas.width = cw; canvas.height = ch;
+    const ctx = canvas.getContext("2d");
+    ctx.fillStyle = "#0d1117";
+    ctx.fillRect(0, 0, cw, ch);
+    ctx.scale(scale, scale);
+    ctx.drawImage(img, 0, 0);
+    URL.revokeObjectURL(url);
+    const a = document.createElement("a");
+    a.download = `keto-trends-${document.getElementById("graphFrom").value || "export"}.png`;
+    a.href = canvas.toDataURL("image/png");
+    a.click();
+  };
+  img.onerror = () => { URL.revokeObjectURL(url); alert("PNG export failed — try a different browser."); };
+  img.src = url;
+}
+
+// Disable rolling-avg selector in per-meal mode
+document.getElementById("graphMode").addEventListener("change", () => {
+  const isPm  = document.getElementById("graphMode").value === "per_meal";
+  const avgEl = document.getElementById("graphAvg");
+  avgEl.disabled = isPm;
+  if (isPm) avgEl.value = "none";
+});
+
+document.getElementById("graphLoadBtn").addEventListener("click", loadGraphData);
+document.getElementById("graphExportBtn").addEventListener("click", exportChartPng);
 
 document.getElementById("summaryTabBtn").addEventListener("click", showSummaryTab);
 document.getElementById("addEventTabBtn").addEventListener("click", showAddEventTab);
@@ -1122,6 +1539,8 @@ resetForm(true);
 clearEditMode("Waiting for your bad decisions.");
 showSummaryTab();
 loadDay();
+graphInitDates();
+loadGraphData();
 </script>
 </body>
 </html>

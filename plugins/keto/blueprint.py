@@ -1,12 +1,15 @@
-from datetime import datetime
+from datetime import date as _date_cls, datetime, timedelta as _timedelta
 
 from flask import Blueprint, jsonify, render_template, request
 
 from .db import (
     add_event,
+    compute_rolling_avg,
     create_recipe,
     delete_event,
     delete_recipe,
+    get_chart_daily,
+    get_chart_per_meal,
     get_day_summary,
     get_event_by_id,
     get_recipe_by_id,
@@ -171,6 +174,56 @@ def keto_day_summary():
         return jsonify({"ok": False, "error": "Missing required query parameter: date"}), 400
 
     return jsonify({"ok": True, **get_day_summary(event_date)})
+
+
+@keto_bp.get("/api/graphs")
+def keto_graphs():
+    date_from = request.args.get("from", "").strip()
+    date_to   = request.args.get("to",   "").strip()
+    mode      = request.args.get("mode", "daily").strip()
+    avg       = request.args.get("avg",  "none").strip()
+
+    if not date_from or not date_to:
+        return jsonify({"ok": False, "error": "Missing required parameters: from, to"}), 400
+
+    if mode not in ("daily", "per_meal"):
+        return jsonify({"ok": False, "error": "mode must be 'daily' or 'per_meal'"}), 400
+
+    if avg not in ("none", "7", "14", "30"):
+        return jsonify({"ok": False, "error": "avg must be 'none', '7', '14', or '30'"}), 400
+
+    try:
+        if mode == "per_meal":
+            rows    = get_chart_per_meal(date_from, date_to)
+            rolling = []
+        else:
+            if avg != "none":
+                window        = int(avg)
+                extended_from = (
+                    _date_cls.fromisoformat(date_from) - _timedelta(days=window - 1)
+                ).isoformat()
+                all_daily = get_chart_daily(extended_from, date_to)
+            else:
+                all_daily = get_chart_daily(date_from, date_to)
+
+            rows    = [r for r in all_daily if r["date"] >= date_from]
+            rolling = (
+                compute_rolling_avg(all_daily, int(avg), date_from, date_to)
+                if avg != "none"
+                else []
+            )
+    except ValueError as exc:
+        return jsonify({"ok": False, "error": str(exc)}), 400
+
+    return jsonify({
+        "ok":      True,
+        "mode":    mode,
+        "avg":     avg,
+        "from":    date_from,
+        "to":      date_to,
+        "rows":    rows,
+        "rolling": rolling,
+    })
 
 
 # -----------------------------
