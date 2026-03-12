@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import sqlite3
+from datetime import date as _date, timedelta as _timedelta
 from pathlib import Path
 
 PLUGIN_DIR = Path(__file__).resolve().parent
@@ -548,3 +549,97 @@ def recipe_to_event_payload(recipe: dict, *, event_date: str, event_timestamp: s
         "source_id": str(recipe.get("id", "")),
         "notes": None,
     }
+
+
+# -----------------------------
+# Chart / Trend data helpers
+# -----------------------------
+
+_CHART_FIELDS = ("calories", "protein_g", "fat_g", "net_carbs_g", "water_ml")
+
+
+def get_chart_daily(date_from: str, date_to: str) -> list[dict]:
+    """Daily aggregated totals for dates that have events in [date_from, date_to]."""
+    with get_connection() as conn:
+        rows = conn.execute(
+            """
+            SELECT
+                event_date                    AS date,
+                COALESCE(SUM(calories), 0)    AS calories,
+                COALESCE(SUM(protein_g), 0)   AS protein_g,
+                COALESCE(SUM(fat_g), 0)       AS fat_g,
+                COALESCE(SUM(net_carbs_g), 0) AS net_carbs_g,
+                COALESCE(SUM(water_ml), 0)    AS water_ml
+            FROM events
+            WHERE event_date >= ? AND event_date <= ?
+            GROUP BY event_date
+            ORDER BY event_date ASC
+            """,
+            (date_from, date_to),
+        ).fetchall()
+        return [dict(row) for row in rows]
+
+
+def get_chart_per_meal(date_from: str, date_to: str) -> list[dict]:
+    """Individual ingestive event rows in [date_from, date_to] for per-meal chart mode."""
+    with get_connection() as conn:
+        rows = conn.execute(
+            """
+            SELECT
+                event_date                    AS date,
+                event_timestamp,
+                event_type,
+                label,
+                COALESCE(calories, 0)         AS calories,
+                COALESCE(protein_g, 0)        AS protein_g,
+                COALESCE(fat_g, 0)            AS fat_g,
+                COALESCE(net_carbs_g, 0)      AS net_carbs_g,
+                COALESCE(water_ml, 0)         AS water_ml
+            FROM events
+            WHERE event_date >= ? AND event_date <= ?
+              AND event_type IN ('meal', 'snack', 'drink')
+            ORDER BY event_timestamp ASC, id ASC
+            """,
+            (date_from, date_to),
+        ).fetchall()
+        return [dict(row) for row in rows]
+
+
+def compute_rolling_avg(
+    daily_rows: list[dict],
+    window: int,
+    date_from: str,
+    date_to: str,
+) -> list[dict]:
+    """
+    Compute a rolling average over *window* days for every date in
+    [date_from, date_to].  Missing days contribute 0 to each window bucket.
+    Returns one entry per date in the requested range.
+    """
+    data_by_date: dict[str, dict] = {row["date"]: row for row in daily_rows}
+    start = _date.fromisoformat(date_from)
+    end = _date.fromisoformat(date_to)
+    window_start = start - _timedelta(days=window - 1)
+
+    # Dense chronological list from window_start to date_to
+    all_dates: list[_date] = []
+    d = window_start
+    while d <= end:
+        all_dates.append(d)
+        d += _timedelta(days=1)
+
+    result: list[dict] = []
+    for i, d in enumerate(all_dates):
+        if d < start:
+            continue
+        window_slice = all_dates[max(0, i - window + 1) : i + 1]
+        avg_row: dict = {"date": d.isoformat()}
+        for field in _CHART_FIELDS:
+            total = sum(
+                data_by_date.get(wd.isoformat(), {}).get(field, 0.0)
+                for wd in window_slice
+            )
+            avg_row[field] = round(total / len(window_slice), 2)
+        result.append(avg_row)
+
+    return result
