@@ -19,6 +19,7 @@ from .db import (
     recipe_to_event_payload,
     update_event,
     update_recipe,
+    update_targets,
 )
 
 keto_bp = Blueprint(
@@ -67,6 +68,30 @@ def keto_targets():
             },
         }
     )
+
+
+@keto_bp.put("/api/targets")
+def keto_update_targets():
+    data = request.get_json(silent=True) or {}
+    try:
+        values = {
+            "calories_target":       float(data.get("calories_target", 0) or 0),
+            "protein_target_g":      float(data.get("protein_target_g", 0) or 0),
+            "fat_target_g":          float(data.get("fat_target_g", 0) or 0),
+            "net_carbs_target_g":    float(data.get("net_carbs_target_g", 0) or 0),
+            "water_target_ml":       float(data.get("water_target_ml", 0) or 0),
+            "sodium_target_mg":      float(data.get("sodium_target_mg", 0) or 0),
+            "potassium_target_mg":   float(data.get("potassium_target_mg", 0) or 0),
+            "magnesium_target_mg":   float(data.get("magnesium_target_mg", 0) or 0),
+            "expected_events_per_day": float(data.get("expected_events_per_day", 4) or 4),
+        }
+        negative = [k for k, v in values.items() if v < 0]
+        if negative:
+            return jsonify({"ok": False, "error": f"Target values must be non-negative: {', '.join(negative)}"}), 400
+        update_targets(**values)
+    except (ValueError, TypeError) as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    return jsonify({"ok": True})
 
 
 @keto_bp.get("/api/events")

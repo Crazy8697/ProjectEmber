@@ -315,6 +315,27 @@
             .messages { padding: 10px 12px; }
         }
 
+        /* Phone landscape — keep sidebar collapsible when width > 768px */
+        @media (max-height: 500px) and (orientation: landscape) and (max-width: 1024px) {
+            .mobile-menu-btn { display: flex; align-items: center; }
+            .sidebar {
+                position: fixed;
+                left: -260px;
+                top: 0;
+                height: 100%;
+                z-index: 160;
+                width: 250px;
+                transition: left 0.22s ease;
+                box-shadow: none;
+            }
+            .sidebar.mobile-open {
+                left: 0;
+                box-shadow: 4px 0 24px rgba(0,0,0,0.55);
+            }
+            .main-container { width: 100%; }
+            .header { padding-left: 52px; }
+        }
+
         @media (max-width: 480px) {
             .header { padding: 8px 12px 8px 52px; }
             .header h2 { font-size: 13px; }
