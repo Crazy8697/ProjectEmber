@@ -517,6 +517,134 @@
       white-space: nowrap;
       font-family: var(--mono);
     }
+
+    /* ─── Help buttons ─── */
+    .helpBtn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 15px;
+      height: 15px;
+      border-radius: 50%;
+      background: rgba(255,255,255,.05);
+      border: 1px solid var(--border);
+      color: var(--muted2);
+      font-size: 9px;
+      cursor: pointer;
+      padding: 0;
+      font-weight: 700;
+      vertical-align: middle;
+      margin-left: 4px;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+    .helpBtn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: rgba(6,182,212,.1);
+    }
+
+    /* ─── Generic keto modal overlay ─── */
+    .kModal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.65);
+      z-index: 800;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 40px 16px 24px;
+      overflow-y: auto;
+    }
+    .kModal.visible { display: flex; }
+
+    .kModalBox {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      max-width: 500px;
+      width: 100%;
+      padding: 18px 20px 20px;
+    }
+
+    .kModalHead {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .kModalHead h3 {
+      color: var(--accent);
+      font-size: 14px;
+      margin: 0;
+    }
+
+    .kModalClose {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--muted2);
+      padding: 2px 8px;
+      font-size: 11px;
+      cursor: pointer;
+      border-radius: 4px;
+      line-height: 1.4;
+      flex-shrink: 0;
+    }
+    .kModalClose:hover { border-color: var(--accent); color: var(--accent); }
+
+    .kModalBody {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.75;
+    }
+
+    .kModalBody strong { color: var(--text); }
+
+    .kModalBody p { margin-bottom: 10px; }
+
+    .kModalBody .disclaimer {
+      background: rgba(250,204,21,.06);
+      border: 1px solid rgba(250,204,21,.25);
+      border-radius: 4px;
+      padding: 8px 10px;
+      color: var(--yellow);
+      font-size: 11px;
+      line-height: 1.6;
+      margin-bottom: 14px;
+    }
+
+    .kModalBody .guideSection {
+      margin-top: 14px;
+      padding-top: 10px;
+      border-top: 1px solid var(--border);
+    }
+
+    .kModalBody .guideSection h4 {
+      color: var(--accent);
+      font-size: 12px;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+
+    /* ─── Targets form grid ─── */
+    .targetsGrid {
+      display: grid;
+      gap: 10px;
+      grid-template-columns: 1fr 1fr;
+    }
+
+    @media (max-width: 480px) {
+      .targetsGrid { grid-template-columns: 1fr; }
+    }
+
+    /* ─── Phone landscape: keep topbar collapsible ─── */
+    @media (max-height: 500px) and (orientation: landscape) {
+      .ketoTopbar .titleRow { flex-wrap: wrap; }
+      .ketoTopbar .toolbar { flex-wrap: wrap; }
+    }
   </style>
 </head>
 <body>
@@ -531,6 +659,8 @@
         <div class="smallRow">
           <button type="button" id="summaryTabBtn" class="btnTab">Summary</button>
           <button type="button" id="addEventTabBtn" class="btnTab">Add Event</button>
+          <button type="button" id="targetsBtn" class="btnTab">⚙ Targets</button>
+          <button type="button" id="guideBtn" class="btnTab">📖 Guide</button>
         </div>
 
         <div class="toolbar">
@@ -581,7 +711,7 @@
           </div>
 
           <div class="field">
-            <label for="proteinInput">Protein (g)</label>
+            <label for="proteinInput">Protein (g) <button class="helpBtn" type="button" onclick="showHelp('protein')" title="About protein target" aria-label="Help: protein target">?</button></label>
             <input id="proteinInput" name="protein_g" type="number" step="0.1" value="0"/>
           </div>
 
@@ -591,12 +721,12 @@
           </div>
 
           <div class="field">
-            <label for="carbsInput">Net Carbs (g)</label>
+            <label for="carbsInput">Net Carbs (g) <button class="helpBtn" type="button" onclick="showHelp('netCarbs')" title="What are net carbs?" aria-label="Help: net carbs">?</button></label>
             <input id="carbsInput" name="net_carbs_g" type="number" step="0.1" value="0"/>
           </div>
 
           <div class="field">
-            <label for="waterInput">Water (mL)</label>
+            <label for="waterInput">Water (mL) <button class="helpBtn" type="button" onclick="showHelp('water')" title="About water tracking" aria-label="Help: water tracking">?</button></label>
             <input id="waterInput" name="water_ml" type="number" step="0.1" value="0"/>
           </div>
 
@@ -653,7 +783,7 @@
           <div class="sub" id="mCarbsSub">target --</div>
         </div>
         <div class="metric">
-          <div class="label">Hydration %</div>
+          <div class="label">Hydration % <button class="helpBtn" type="button" onclick="showHelp('hydration')" title="About hydration tracking" aria-label="Help: hydration tracking">?</button></div>
           <div class="value" id="mHydration">--</div>
           <div class="sub" id="mHydrationSub">water target --</div>
         </div>
@@ -740,7 +870,7 @@
       <div class="card graphSection" id="graphSection">
         <div class="graphHeader">
           <div>
-            <h2>Trends</h2>
+            <h2>Trends <button class="helpBtn" type="button" onclick="showHelp('trends')" title="About trend graphs" aria-label="Help: trend graphs">?</button></h2>
             <p>Rolling history and macro trends over a date range.</p>
           </div>
           <div class="graphControls">
@@ -763,14 +893,14 @@
               </select>
             </div>
             <div class="field">
-              <label for="graphMode">Mode</label>
+              <label for="graphMode">Mode <button class="helpBtn" type="button" onclick="showHelp('graphMode')" title="Daily totals vs per-meal mode" aria-label="Help: graph mode">?</button></label>
               <select id="graphMode">
                 <option value="daily">Daily Totals</option>
                 <option value="per_meal">Per Meal</option>
               </select>
             </div>
             <div class="field">
-              <label for="graphAvg">Rolling Avg</label>
+              <label for="graphAvg">Rolling Avg <button class="helpBtn" type="button" onclick="showHelp('rollingAvg')" title="About rolling average" aria-label="Help: rolling average">?</button></label>
               <select id="graphAvg">
                 <option value="none">None</option>
                 <option value="7">7-day</option>
@@ -798,6 +928,128 @@
   </div>
 
 <div class="chartTooltip" id="chartTooltip"></div>
+
+<!-- ─── Help popup modal ─── -->
+<div id="helpModal" class="kModal" onclick="if(event.target===this)closeModal('helpModal')">
+  <div class="kModalBox" style="max-width:420px;" role="dialog" aria-modal="true" aria-labelledby="helpModalTitle">
+    <div class="kModalHead">
+      <h3 id="helpModalTitle"></h3>
+      <button class="kModalClose" onclick="closeModal('helpModal')" aria-label="Close">✕ close</button>
+    </div>
+    <div class="kModalBody" id="helpModalBody"></div>
+  </div>
+</div>
+
+<!-- ─── Keto field guide modal ─── -->
+<div id="guideModal" class="kModal" onclick="if(event.target===this)closeModal('guideModal')">
+  <div class="kModalBox" style="max-width:560px;" role="dialog" aria-modal="true" aria-labelledby="guideModalTitle">
+    <div class="kModalHead">
+      <h3 id="guideModalTitle">📖 Keto Basics: Quick Field Guide</h3>
+      <button class="kModalClose" onclick="closeModal('guideModal')" aria-label="Close">✕ close</button>
+    </div>
+    <div class="kModalBody">
+      <div class="disclaimer">
+        ⚠️ General information only — not medical advice. This is a starting point for learning, not a treatment plan. Consult a qualified healthcare professional for personalized medical guidance.
+      </div>
+
+      <div class="guideSection" style="margin-top:0; padding-top:0; border-top:none;">
+        <h4>What is keto?</h4>
+        <p>A keto (ketogenic) diet is a way of eating that's very low in carbohydrates and higher in fat and protein. The goal is to shift your body into a metabolic state called ketosis, where fat becomes the primary fuel source instead of glucose from carbs.</p>
+      </div>
+
+      <div class="guideSection">
+        <h4>The core idea: cut carbs</h4>
+        <p>Most approaches focus on keeping <strong>net carbs</strong> low — typically under 20–50g per day as a rough starting point. Net carbs = total carbs minus fiber. Fiber doesn't spike blood sugar the same way, so it's subtracted.</p>
+      </div>
+
+      <div class="guideSection">
+        <h4>What to focus on first</h4>
+        <p>
+          1. <strong>Net carbs</strong> — the number to watch most closely.<br>
+          2. <strong>Protein</strong> — enough to maintain muscle, but not excessive.<br>
+          3. <strong>Fat</strong> — your main energy source; don't fear it.<br>
+          4. <strong>Water + electrolytes</strong> — low-carb eating can increase how fast you lose water and sodium.
+        </p>
+      </div>
+
+      <div class="guideSection">
+        <h4>Common beginner mistakes</h4>
+        <p>
+          • Hidden carbs in sauces, dressings, and processed foods.<br>
+          • Not eating enough — undereating on keto is easy at first.<br>
+          • Forgetting electrolytes — sodium, potassium, and magnesium matter.<br>
+          • Expecting instant results — adaptation takes days to weeks for most people.<br>
+          • Quitting too soon before giving the body time to adjust.
+        </p>
+      </div>
+
+      <div class="guideSection">
+        <h4>How this tracker helps</h4>
+        <p>
+          Log meals, snacks, drinks, and water each day. The Summary view shows your daily totals vs. your personal targets. The Trends graph shows patterns over time. Set your own targets in ⚙ Targets to match your goals.
+        </p>
+        <p>The starter recipes in the Recipes tab are a quick-add reference for common low-carb foods — feel free to use them as a starting point or build your own.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── Custom targets modal ─── -->
+<div id="targetsModal" class="kModal" onclick="if(event.target===this)closeModal('targetsModal')">
+  <div class="kModalBox" style="max-width:520px;" role="dialog" aria-modal="true" aria-labelledby="targetsModalTitle">
+    <div class="kModalHead">
+      <h3 id="targetsModalTitle">⚙ Personal Targets</h3>
+      <button class="kModalClose" onclick="closeModal('targetsModal')" aria-label="Close">✕ close</button>
+    </div>
+    <div class="kModalBody">
+      <p style="margin-bottom:14px;">These are your <strong>personal editable goals</strong> — a starting point, not a prescription. Adjust them to match your actual targets. Changes take effect immediately after saving.</p>
+      <div class="targetsGrid">
+        <div class="field">
+          <label for="tCalories">Calories (daily target)</label>
+          <input id="tCalories" type="number" step="1" min="0" placeholder="e.g. 2000"/>
+        </div>
+        <div class="field">
+          <label for="tCarbs">Net Carbs (g) <button class="helpBtn" type="button" onclick="showHelp('netCarbs')" title="What are net carbs?" aria-label="Help: net carbs">?</button></label>
+          <input id="tCarbs" type="number" step="0.5" min="0" placeholder="e.g. 20"/>
+        </div>
+        <div class="field">
+          <label for="tProtein">Protein (g) <button class="helpBtn" type="button" onclick="showHelp('protein')" title="About protein target" aria-label="Help: protein target">?</button></label>
+          <input id="tProtein" type="number" step="1" min="0" placeholder="e.g. 140"/>
+        </div>
+        <div class="field">
+          <label for="tFat">Fat (g)</label>
+          <input id="tFat" type="number" step="1" min="0" placeholder="e.g. 140"/>
+        </div>
+        <div class="field">
+          <label for="tWater">Water (mL) <button class="helpBtn" type="button" onclick="showHelp('water')" title="About water tracking" aria-label="Help: water tracking">?</button></label>
+          <input id="tWater" type="number" step="50" min="0" placeholder="e.g. 3000"/>
+        </div>
+        <div class="field">
+          <label for="tSodium">Sodium (mg)</label>
+          <input id="tSodium" type="number" step="100" min="0" placeholder="e.g. 4000"/>
+        </div>
+        <div class="field">
+          <label for="tPotassium">Potassium (mg)</label>
+          <input id="tPotassium" type="number" step="100" min="0" placeholder="e.g. 3500"/>
+        </div>
+        <div class="field">
+          <label for="tMagnesium">Magnesium (mg)</label>
+          <input id="tMagnesium" type="number" step="10" min="0" placeholder="e.g. 400"/>
+        </div>
+        <div class="field">
+          <label for="tEventsPerDay">Expected events / day</label>
+          <input id="tEventsPerDay" type="number" step="1" min="1" placeholder="e.g. 4"/>
+        </div>
+      </div>
+      <div class="actions" style="margin-top:14px;">
+        <button type="button" onclick="saveTargets()">Save Targets</button>
+        <button type="button" onclick="closeModal('targetsModal')">Cancel</button>
+        <div class="statusLine" id="targetsStatus"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script src="/keto/static/d3.min.js"></script>
 <script>
 function fmt(n, suffix = "") {
@@ -1541,6 +1793,144 @@ showSummaryTab();
 loadDay();
 graphInitDates();
 loadGraphData();
+
+// ─────────────────────────────────────────────────────────
+// Modal helpers
+// ─────────────────────────────────────────────────────────
+function openModal(id) {
+  document.getElementById(id).classList.add("visible");
+}
+
+function closeModal(id) {
+  document.getElementById(id).classList.remove("visible");
+}
+
+// ─────────────────────────────────────────────────────────
+// Help popups
+// ─────────────────────────────────────────────────────────
+const HELP_CONTENT = {
+  netCarbs: {
+    title: "Net Carbs",
+    body: `<strong>What:</strong> Total carbs minus fiber (and sugar alcohols when listed on the label).<br><br>
+           <strong>Why it matters:</strong> This is the primary keto tracking number. Keeping net carbs low — under 20g/day is a common starting goal — is the key lever for most people.<br><br>
+           <strong>How to use:</strong> Check food labels: subtract fiber from total carbs. Log the result here as Net Carbs.`,
+  },
+  protein: {
+    title: "Protein Target",
+    body: `<strong>What:</strong> Your daily protein intake goal in grams.<br><br>
+           <strong>Why it matters:</strong> Adequate protein supports muscle maintenance. Your ideal amount depends on your body weight, activity level, and goals.<br><br>
+           <strong>How to use:</strong> This is your personal editable goal. Green means you've hit or exceeded it. Edit your target in ⚙ Targets.`,
+  },
+  water: {
+    title: "Water / Hydration",
+    body: `<strong>What:</strong> Your daily water intake goal in milliliters (1 cup ≈ 237 mL).<br><br>
+           <strong>Why it matters:</strong> Staying hydrated is especially relevant in early low-carb eating. Logging water helps you notice patterns.<br><br>
+           <strong>How to use:</strong> Log water entries in Add Event. Hydration % in the summary shows your progress toward your daily water goal. Edit your target in ⚙ Targets.`,
+  },
+  hydration: {
+    title: "Hydration %",
+    body: `<strong>What:</strong> The percentage of your daily water goal you've logged so far.<br><br>
+           <strong>Why it matters:</strong> A quick check on whether you're on track with water intake for the day.<br><br>
+           <strong>How to use:</strong> Log water and drink entries. Edit your water goal in ⚙ Targets.`,
+  },
+  trends: {
+    title: "Trends / Graphs",
+    body: `<strong>What:</strong> A chart of your logged data over a date range.<br><br>
+           <strong>Why it matters:</strong> Day-to-day numbers have a lot of noise. Patterns over days or weeks give a clearer picture.<br><br>
+           <strong>How to use:</strong> Pick a metric (calories, net carbs, etc.), set a date range, and click Load. Use Rolling Avg to smooth out daily swings.`,
+  },
+  rollingAvg: {
+    title: "Rolling Average",
+    body: `<strong>What:</strong> A smoothed trend line calculated over a sliding N-day window.<br><br>
+           <strong>Why it matters:</strong> Daily numbers can spike for many reasons. A rolling average reveals the actual direction over time.<br><br>
+           <strong>How to use:</strong> Choose 7, 14, or 30 days in the dropdown. Only available in Daily Totals mode.`,
+  },
+  graphMode: {
+    title: "Graph Mode: Daily vs Per Meal",
+    body: `<strong>Daily Totals:</strong> One data point per day — each dot represents the full-day sum. Good for seeing big-picture trends and supports rolling averages.<br><br>
+           <strong>Per Meal:</strong> One dot per logged food, snack, or drink. Useful for seeing how eating is spread across the day.`,
+  },
+  targets: {
+    title: "Custom Targets",
+    body: `<strong>What:</strong> Your personal daily goals for calories, protein, fat, net carbs, and water.<br><br>
+           <strong>Why it matters:</strong> Targets give context to your daily totals — green means you're at or past your goal for that metric.<br><br>
+           <strong>How to use:</strong> Click ⚙ Targets to open the targets editor. These are your personal editable goals — not a medical prescription.`,
+  },
+};
+
+function showHelp(key) {
+  const item = HELP_CONTENT[key];
+  if (!item) return;
+  document.getElementById("helpModalTitle").textContent = item.title;
+  document.getElementById("helpModalBody").innerHTML = item.body;
+  openModal("helpModal");
+}
+
+// ─────────────────────────────────────────────────────────
+// Custom targets
+// ─────────────────────────────────────────────────────────
+async function openTargetsModal() {
+  openModal("targetsModal");
+  const statusEl = document.getElementById("targetsStatus");
+  statusEl.textContent = "Loading current targets…";
+  try {
+    const res  = await fetch("/keto/api/targets");
+    const data = await res.json();
+    if (!data.ok) {
+      statusEl.textContent = `Failed to load targets: ${JSON.stringify(data)}`;
+      return;
+    }
+    const t = data.targets;
+    document.getElementById("tCalories").value    = t.calories_target;
+    document.getElementById("tProtein").value     = t.protein_target_g;
+    document.getElementById("tFat").value         = t.fat_target_g;
+    document.getElementById("tCarbs").value       = t.net_carbs_target_g;
+    document.getElementById("tWater").value       = t.water_target_ml;
+    document.getElementById("tSodium").value      = t.sodium_target_mg;
+    document.getElementById("tPotassium").value   = t.potassium_target_mg;
+    document.getElementById("tMagnesium").value   = t.magnesium_target_mg;
+    document.getElementById("tEventsPerDay").value = t.expected_events_per_day;
+    statusEl.textContent = "Edit your goals below, then Save.";
+  } catch (err) {
+    statusEl.textContent = `Load failed: ${String(err)}`;
+  }
+}
+
+async function saveTargets() {
+  const statusEl = document.getElementById("targetsStatus");
+  statusEl.textContent = "Saving…";
+  try {
+    const payload = {
+      calories_target:       Number(document.getElementById("tCalories").value)    || 0,
+      protein_target_g:      Number(document.getElementById("tProtein").value)     || 0,
+      fat_target_g:          Number(document.getElementById("tFat").value)         || 0,
+      net_carbs_target_g:    Number(document.getElementById("tCarbs").value)       || 0,
+      water_target_ml:       Number(document.getElementById("tWater").value)       || 0,
+      sodium_target_mg:      Number(document.getElementById("tSodium").value)      || 0,
+      potassium_target_mg:   Number(document.getElementById("tPotassium").value)   || 0,
+      magnesium_target_mg:   Number(document.getElementById("tMagnesium").value)   || 0,
+      expected_events_per_day: Number(document.getElementById("tEventsPerDay").value) || 4,
+    };
+    const res  = await fetch("/keto/api/targets", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!data.ok) {
+      statusEl.textContent = `Save failed: ${JSON.stringify(data)}`;
+      return;
+    }
+    statusEl.textContent = "Saved.";
+    closeModal("targetsModal");
+    await loadDay();
+  } catch (err) {
+    statusEl.textContent = `Save failed: ${String(err)}`;
+  }
+}
+
+document.getElementById("guideBtn").addEventListener("click", () => openModal("guideModal"));
+document.getElementById("targetsBtn").addEventListener("click", openTargetsModal);
 </script>
 </body>
 </html>

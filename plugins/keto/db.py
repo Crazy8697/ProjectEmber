@@ -22,6 +22,138 @@ DEFAULT_TARGETS = {
     "expected_events_per_day": 4,
 }
 
+# Starter recipes seeded the first time the recipes table is empty.
+# These are general starter ideas, not dietary recommendations.
+STARTER_RECIPES = [
+    # Simple meals
+    {
+        "name": "Scrambled Eggs (2 eggs)",
+        "description": "Basic scrambled eggs in butter.",
+        "keto_notes": "Simple, fast, near-zero carb. Starter meal option.",
+        "servings": 1,
+        "calories": 180, "protein_g": 12, "fat_g": 14, "net_carbs_g": 1,
+        "water_ml": 0, "sodium_mg": 180, "potassium_mg": 130, "magnesium_mg": 10,
+    },
+    {
+        "name": "Ground Beef Bowl (4 oz)",
+        "description": "Plain ground beef seasoned with salt and pepper.",
+        "keto_notes": "Near-zero carb. Good protein and fat base.",
+        "servings": 1,
+        "calories": 280, "protein_g": 19, "fat_g": 22, "net_carbs_g": 0,
+        "water_ml": 0, "sodium_mg": 260, "potassium_mg": 270, "magnesium_mg": 18,
+    },
+    {
+        "name": "Rotisserie Chicken Thigh",
+        "description": "One chicken thigh, skin on.",
+        "keto_notes": "Easy protein. Near-zero carb.",
+        "servings": 1,
+        "calories": 210, "protein_g": 22, "fat_g": 13, "net_carbs_g": 0,
+        "water_ml": 0, "sodium_mg": 230, "potassium_mg": 200, "magnesium_mg": 22,
+    },
+    {
+        "name": "Eggs & Bacon (2 eggs + 2 strips)",
+        "description": "Two fried eggs and two strips of bacon.",
+        "keto_notes": "Classic keto-friendly starter meal.",
+        "servings": 1,
+        "calories": 300, "protein_g": 20, "fat_g": 24, "net_carbs_g": 1,
+        "water_ml": 0, "sodium_mg": 560, "potassium_mg": 190, "magnesium_mg": 15,
+    },
+    # Simple drinks
+    {
+        "name": "Water (500 mL)",
+        "description": "Plain water.",
+        "keto_notes": "Log water separately to track daily hydration.",
+        "servings": 1,
+        "calories": 0, "protein_g": 0, "fat_g": 0, "net_carbs_g": 0,
+        "water_ml": 500, "sodium_mg": 0, "potassium_mg": 0, "magnesium_mg": 0,
+    },
+    {
+        "name": "Black Coffee",
+        "description": "Plain black coffee, no sugar or milk.",
+        "keto_notes": "Zero carb. Counts toward daily water intake.",
+        "servings": 1,
+        "calories": 2, "protein_g": 0, "fat_g": 0, "net_carbs_g": 0,
+        "water_ml": 240, "sodium_mg": 5, "potassium_mg": 116, "magnesium_mg": 7,
+    },
+    {
+        "name": "Broth / Electrolyte Drink",
+        "description": "Warm broth or a simple homemade electrolyte drink (water, salt, a pinch of potassium).",
+        "keto_notes": "Early keto support option. Provides sodium and potassium.",
+        "servings": 1,
+        "calories": 15, "protein_g": 1, "fat_g": 0.5, "net_carbs_g": 0.5,
+        "water_ml": 250, "sodium_mg": 600, "potassium_mg": 300, "magnesium_mg": 10,
+    },
+    # Near-zero-carb snacks
+    {
+        "name": "Pickles (3 spears)",
+        "description": "Dill pickle spears.",
+        "keto_notes": "Near-zero carb starter snack. High sodium.",
+        "servings": 1,
+        "calories": 5, "protein_g": 0.3, "fat_g": 0, "net_carbs_g": 0.5,
+        "water_ml": 0, "sodium_mg": 700, "potassium_mg": 50, "magnesium_mg": 5,
+    },
+    {
+        "name": "Pickled Jalapeños (4 rings)",
+        "description": "Sliced pickled jalapeño rings.",
+        "keto_notes": "Near-zero carb snack option. Adds flavor without carbs.",
+        "servings": 1,
+        "calories": 5, "protein_g": 0.2, "fat_g": 0, "net_carbs_g": 0.5,
+        "water_ml": 0, "sodium_mg": 400, "potassium_mg": 40, "magnesium_mg": 3,
+    },
+    {
+        "name": "Roasted Seaweed Snack (1 pack)",
+        "description": "One snack-size pack of roasted seaweed sheets.",
+        "keto_notes": "Near-zero carb starter snack option.",
+        "servings": 1,
+        "calories": 25, "protein_g": 0.5, "fat_g": 1.5, "net_carbs_g": 0.5,
+        "water_ml": 0, "sodium_mg": 100, "potassium_mg": 60, "magnesium_mg": 15,
+    },
+    {
+        "name": "String Cheese (1 stick)",
+        "description": "One mozzarella string cheese stick.",
+        "keto_notes": "Low-carb snack with protein and fat.",
+        "servings": 1,
+        "calories": 80, "protein_g": 6, "fat_g": 5, "net_carbs_g": 1,
+        "water_ml": 0, "sodium_mg": 200, "potassium_mg": 30, "magnesium_mg": 6,
+    },
+    {
+        "name": "Hard-Boiled Egg",
+        "description": "One hard-boiled egg.",
+        "keto_notes": "Portable near-zero-carb snack.",
+        "servings": 1,
+        "calories": 70, "protein_g": 6, "fat_g": 5, "net_carbs_g": 0.5,
+        "water_ml": 0, "sodium_mg": 60, "potassium_mg": 65, "magnesium_mg": 5,
+    },
+    # Craving-control / rough-day options
+    {
+        "name": "Pork Rinds (1 oz / 28g)",
+        "description": "Plain or salted pork rinds.",
+        "keto_notes": "Zero-carb craving-control snack. High in fat and protein.",
+        "servings": 1,
+        "calories": 150, "protein_g": 17, "fat_g": 9, "net_carbs_g": 0,
+        "water_ml": 0, "sodium_mg": 380, "potassium_mg": 20, "magnesium_mg": 5,
+    },
+    {
+        "name": "Pepperoni Slices (10 slices)",
+        "description": "Standard sliced pepperoni.",
+        "keto_notes": "Near-zero-carb craving-control snack.",
+        "servings": 1,
+        "calories": 90, "protein_g": 5, "fat_g": 8, "net_carbs_g": 0.5,
+        "water_ml": 0, "sodium_mg": 460, "potassium_mg": 60, "magnesium_mg": 5,
+    },
+    {
+        "name": "Cheddar Cheese (1 oz)",
+        "description": "One ounce of cheddar cheese.",
+        "keto_notes": "Low-carb, high-fat craving-control option.",
+        "servings": 1,
+        "calories": 115, "protein_g": 7, "fat_g": 9, "net_carbs_g": 0.5,
+        "water_ml": 0, "sodium_mg": 180, "potassium_mg": 30, "magnesium_mg": 7,
+    },
+]
+
+STARTER_RECIPE_NAMES = {recipe["name"] for recipe in STARTER_RECIPES}
+
+
 ALLOWED_EVENT_TYPES = {"meal", "snack", "drink", "exercise", "supplement", "custom"}
 
 TOTAL_FIELDS = (
@@ -75,13 +207,26 @@ def seed_defaults(conn: sqlite3.Connection) -> None:
     )
 
 
+def ensure_recipe_support_tables(conn: sqlite3.Connection) -> None:
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS starter_recipe_tombstones (
+            name TEXT PRIMARY KEY,
+            deleted_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )
+        """
+    )
+
+
 def init_db() -> None:
     schema = SCHEMA_PATH.read_text(encoding="utf-8")
     recipes_schema = RECIPES_SCHEMA_PATH.read_text(encoding="utf-8")
     with get_connection() as conn:
         conn.executescript(schema)
         conn.executescript(recipes_schema)
+        ensure_recipe_support_tables(conn)
         seed_defaults(conn)
+        seed_starter_recipes(conn)
         conn.commit()
 
 
@@ -91,6 +236,93 @@ def get_targets() -> dict:
         if row is None:
             raise RuntimeError("No targets row found in targets table.")
         return dict(row)
+
+
+def update_targets(
+    *,
+    calories_target: float,
+    protein_target_g: float,
+    fat_target_g: float,
+    net_carbs_target_g: float,
+    water_target_ml: float,
+    sodium_target_mg: float,
+    potassium_target_mg: float,
+    magnesium_target_mg: float,
+    expected_events_per_day: float = 4,
+) -> None:
+    with get_connection() as conn:
+        conn.execute(
+            """
+            UPDATE targets
+            SET
+                calories_target = ?,
+                protein_target_g = ?,
+                fat_target_g = ?,
+                net_carbs_target_g = ?,
+                water_target_ml = ?,
+                sodium_target_mg = ?,
+                potassium_target_mg = ?,
+                magnesium_target_mg = ?,
+                expected_events_per_day = ?,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = 1
+            """,
+            (
+                calories_target,
+                protein_target_g,
+                fat_target_g,
+                net_carbs_target_g,
+                water_target_ml,
+                sodium_target_mg,
+                potassium_target_mg,
+                magnesium_target_mg,
+                expected_events_per_day,
+            ),
+        )
+        conn.commit()
+
+
+def seed_starter_recipes(conn: sqlite3.Connection) -> None:
+    """Ensure starter recipes exist unless the user explicitly deleted them."""
+    ensure_recipe_support_tables(conn)
+
+    existing_names = {
+        row[0]
+        for row in conn.execute("SELECT name FROM recipes").fetchall()
+    }
+    tombstoned_names = {
+        row[0]
+        for row in conn.execute("SELECT name FROM starter_recipe_tombstones").fetchall()
+    }
+
+    for recipe in STARTER_RECIPES:
+        name = recipe["name"]
+        if name in existing_names or name in tombstoned_names:
+            continue
+
+        conn.execute(
+            """
+            INSERT INTO recipes (
+                name, description, keto_notes, servings,
+                calories, protein_g, fat_g, net_carbs_g,
+                water_ml, sodium_mg, potassium_mg, magnesium_mg
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                name,
+                recipe.get("description", ""),
+                recipe.get("keto_notes", ""),
+                recipe.get("servings", 1),
+                recipe.get("calories", 0),
+                recipe.get("protein_g", 0),
+                recipe.get("fat_g", 0),
+                recipe.get("net_carbs_g", 0),
+                recipe.get("water_ml", 0),
+                recipe.get("sodium_mg", 0),
+                recipe.get("potassium_mg", 0),
+                recipe.get("magnesium_mg", 0),
+            ),
+        )
 
 
 def add_event(
@@ -480,6 +712,32 @@ def update_recipe(
 
 def delete_recipe(recipe_id: int) -> bool:
     with get_connection() as conn:
+        ensure_recipe_support_tables(conn)
+
+        row = conn.execute(
+            """
+            SELECT name
+            FROM recipes
+            WHERE id = ?
+            """,
+            (recipe_id,),
+        ).fetchone()
+
+        if row is None:
+            conn.commit()
+            return False
+
+        recipe_name = row[0]
+
+        if recipe_name in STARTER_RECIPE_NAMES:
+            conn.execute(
+                """
+                INSERT OR IGNORE INTO starter_recipe_tombstones (name)
+                VALUES (?)
+                """,
+                (recipe_name,),
+            )
+
         cur = conn.execute(
             """
             DELETE FROM recipes
