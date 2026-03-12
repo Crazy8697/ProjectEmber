@@ -17,7 +17,7 @@ class AddKetoEntryViewModel(private val ketoRepository: KetoRepository) : ViewMo
     companion object {
         private const val DATE_FORMAT = "yyyy-MM-dd"
         private const val TIMESTAMP_FORMAT = "yyyy-MM-dd HH:mm"
-        val EVENT_TYPES = listOf("meal", "drink", "snack")
+        val EVENT_TYPES = listOf("meal", "drink", "snack", "exercise")
 
         private fun parseDoubleOrZero(value: String): Double = value.toDoubleOrNull() ?: 0.0
     }
