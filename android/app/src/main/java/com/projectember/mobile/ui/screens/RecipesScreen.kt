@@ -12,6 +12,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -20,17 +21,22 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.projectember.mobile.data.local.entities.Recipe
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -40,8 +46,11 @@ fun RecipesScreen(
 ) {
     val recipes by viewModel.recipes.collectAsState()
     val selectedRecipe by viewModel.selectedRecipe.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text("Recipes") },
@@ -60,8 +69,24 @@ fun RecipesScreen(
         }
     ) { paddingValues ->
         if (selectedRecipe != null) {
+            val recipe = selectedRecipe!!
             RecipeDetailView(
-                recipe = selectedRecipe!!,
+                recipe = recipe,
+                onLogToKeto = {
+                    viewModel.logRecipeToKeto(
+                        recipe = recipe,
+                        onDone = {
+                            coroutineScope.launch {
+                                snackbarHostState.showSnackbar("\"${recipe.name}\" logged to Keto")
+                            }
+                        },
+                        onError = {
+                            coroutineScope.launch {
+                                snackbarHostState.showSnackbar("Failed to log recipe. Please try again.")
+                            }
+                        }
+                    )
+                },
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues)
@@ -146,7 +171,7 @@ private fun RecipeCard(recipe: Recipe, onClick: () -> Unit) {
 }
 
 @Composable
-private fun RecipeDetailView(recipe: Recipe, modifier: Modifier = Modifier) {
+private fun RecipeDetailView(recipe: Recipe, onLogToKeto: () -> Unit, modifier: Modifier = Modifier) {
     Column(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -205,6 +230,15 @@ private fun RecipeDetailView(recipe: Recipe, modifier: Modifier = Modifier) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
+        }
+
+        Spacer(modifier = Modifier.height(4.dp))
+
+        Button(
+            onClick = onLogToKeto,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Log to Keto")
         }
     }
 }
