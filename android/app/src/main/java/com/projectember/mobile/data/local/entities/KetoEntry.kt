@@ -12,6 +12,10 @@ data class KetoEntry(
     val proteinG: Double,
     val fatG: Double,
     val netCarbsG: Double,
+    val waterMl: Double = 0.0,
+    val sodiumMg: Double = 0.0,
+    val potassiumMg: Double = 0.0,
+    val magnesiumMg: Double = 0.0,
     val entryDate: String,
     val eventTimestamp: String,
     val notes: String? = null

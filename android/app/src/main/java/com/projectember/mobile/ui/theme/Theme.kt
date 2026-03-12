@@ -5,12 +5,18 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 
 private val EmberDarkColorScheme = darkColorScheme(
-    primary = EmberOrange,
+    primary = KetoAccent,
     onPrimary = OnSurface,
-    primaryContainer = EmberOrangeDark,
+    primaryContainer = Color(0xFF0D47A1),
     onPrimaryContainer = OnSurface,
-    secondary = EmberOrangeLight,
-    onSecondary = SurfaceDark,
+    secondary = EmberOrange,
+    onSecondary = OnSurface,
+    secondaryContainer = EmberOrangeDark,
+    onSecondaryContainer = OnSurface,
+    tertiary = SuccessGreen,
+    onTertiary = SurfaceDark,
+    tertiaryContainer = Color(0xFF004D1F),
+    onTertiaryContainer = SuccessGreen,
     background = SurfaceDark,
     onBackground = OnSurface,
     surface = SurfaceMid,

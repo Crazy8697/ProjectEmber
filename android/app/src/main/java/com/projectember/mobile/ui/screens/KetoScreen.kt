@@ -58,6 +58,10 @@ fun KetoScreen(
     val todayProtein = todayEntries.sumOf { it.proteinG }
     val todayFat = todayEntries.sumOf { it.fatG }
     val todayCarbs = todayEntries.sumOf { it.netCarbsG }
+    val todayWater = todayEntries.sumOf { it.waterMl }
+    val todaySodium = todayEntries.sumOf { it.sodiumMg }
+    val todayPotassium = todayEntries.sumOf { it.potassiumMg }
+    val todayMagnesium = todayEntries.sumOf { it.magnesiumMg }
 
     Scaffold(
         topBar = {
@@ -110,6 +114,15 @@ fun KetoScreen(
                         MacroRow(label = "Protein", value = "%.1f g".format(todayProtein))
                         MacroRow(label = "Fat", value = "%.1f g".format(todayFat))
                         MacroRow(label = "Net Carbs", value = "%.1f g".format(todayCarbs))
+                        if (todayWater > 0 || todaySodium > 0 || todayPotassium > 0 || todayMagnesium > 0) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            HorizontalDivider(color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.2f))
+                            Spacer(modifier = Modifier.height(8.dp))
+                            MacroRow(label = "Water", value = "%.0f mL".format(todayWater))
+                            MacroRow(label = "Sodium", value = "%.0f mg".format(todaySodium))
+                            MacroRow(label = "Potassium", value = "%.0f mg".format(todayPotassium))
+                            MacroRow(label = "Magnesium", value = "%.0f mg".format(todayMagnesium))
+                        }
                     }
                 }
             }
@@ -268,6 +281,35 @@ private fun KetoEntryCard(entry: KetoEntry, onEditEntry: (Int) -> Unit) {
                         value = "%.1f g".format(entry.netCarbsG),
                         color = onCardColor
                     )
+                }
+
+                if (entry.waterMl > 0 || entry.sodiumMg > 0 || entry.potassiumMg > 0 || entry.magnesiumMg > 0) {
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                        MacroDetail(
+                            label = "Water",
+                            value = "%.0f mL".format(entry.waterMl),
+                            color = onCardColor
+                        )
+                        MacroDetail(
+                            label = "Na",
+                            value = "%.0f mg".format(entry.sodiumMg),
+                            color = onCardColor
+                        )
+                        MacroDetail(
+                            label = "K",
+                            value = "%.0f mg".format(entry.potassiumMg),
+                            color = onCardColor
+                        )
+                        MacroDetail(
+                            label = "Mg",
+                            value = "%.0f mg".format(entry.magnesiumMg),
+                            color = onCardColor
+                        )
+                    }
                 }
 
                 if (!entry.notes.isNullOrBlank()) {

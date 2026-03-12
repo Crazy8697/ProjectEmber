@@ -9,7 +9,9 @@ from .db import (
     delete_event,
     delete_recipe,
     get_chart_daily,
+    get_chart_monthly,
     get_chart_per_meal,
+    get_chart_weekly,
     get_day_summary,
     get_event_by_id,
     get_recipe_by_id,
@@ -211,8 +213,8 @@ def keto_graphs():
     if not date_from or not date_to:
         return jsonify({"ok": False, "error": "Missing required parameters: from, to"}), 400
 
-    if mode not in ("daily", "per_meal"):
-        return jsonify({"ok": False, "error": "mode must be 'daily' or 'per_meal'"}), 400
+    if mode not in ("daily", "per_meal", "weekly", "monthly"):
+        return jsonify({"ok": False, "error": "mode must be 'daily', 'weekly', 'monthly', or 'per_meal'"}), 400
 
     if avg not in ("none", "7", "14", "30"):
         return jsonify({"ok": False, "error": "avg must be 'none', '7', '14', or '30'"}), 400
@@ -220,6 +222,12 @@ def keto_graphs():
     try:
         if mode == "per_meal":
             rows    = get_chart_per_meal(date_from, date_to)
+            rolling = []
+        elif mode == "weekly":
+            rows    = get_chart_weekly(date_from, date_to)
+            rolling = []
+        elif mode == "monthly":
+            rows    = get_chart_monthly(date_from, date_to)
             rolling = []
         else:
             if avg != "none":

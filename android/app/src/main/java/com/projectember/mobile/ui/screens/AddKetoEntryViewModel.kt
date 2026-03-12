@@ -45,6 +45,14 @@ class AddKetoEntryViewModel(
         private set
     var netCarbsG by mutableStateOf("")
         private set
+    var waterMl by mutableStateOf("")
+        private set
+    var sodiumMg by mutableStateOf("")
+        private set
+    var potassiumMg by mutableStateOf("")
+        private set
+    var magnesiumMg by mutableStateOf("")
+        private set
     var notes by mutableStateOf("")
         private set
 
@@ -65,6 +73,10 @@ class AddKetoEntryViewModel(
                     proteinG = formatDouble(entry.proteinG)
                     fatG = formatDouble(entry.fatG)
                     netCarbsG = formatDouble(entry.netCarbsG)
+                    waterMl = formatDouble(entry.waterMl)
+                    sodiumMg = formatDouble(entry.sodiumMg)
+                    potassiumMg = formatDouble(entry.potassiumMg)
+                    magnesiumMg = formatDouble(entry.magnesiumMg)
                     notes = entry.notes ?: ""
                 }
             }
@@ -85,6 +97,10 @@ class AddKetoEntryViewModel(
     fun onProteinGChange(value: String) { proteinG = value }
     fun onFatGChange(value: String) { fatG = value }
     fun onNetCarbsGChange(value: String) { netCarbsG = value }
+    fun onWaterMlChange(value: String) { waterMl = value }
+    fun onSodiumMgChange(value: String) { sodiumMg = value }
+    fun onPotassiumMgChange(value: String) { potassiumMg = value }
+    fun onMagnesiumMgChange(value: String) { magnesiumMg = value }
     fun onNotesChange(value: String) { notes = value }
 
     fun save(onSuccess: () -> Unit) {
@@ -110,6 +126,10 @@ class AddKetoEntryViewModel(
                         proteinG = parseDoubleOrZero(proteinG),
                         fatG = parseDoubleOrZero(fatG),
                         netCarbsG = parseDoubleOrZero(netCarbsG),
+                        waterMl = parseDoubleOrZero(waterMl),
+                        sodiumMg = parseDoubleOrZero(sodiumMg),
+                        potassiumMg = parseDoubleOrZero(potassiumMg),
+                        magnesiumMg = parseDoubleOrZero(magnesiumMg),
                         notes = notes.trim().ifBlank { null }
                     )
                 )
@@ -123,6 +143,10 @@ class AddKetoEntryViewModel(
                         proteinG = parseDoubleOrZero(proteinG),
                         fatG = parseDoubleOrZero(fatG),
                         netCarbsG = parseDoubleOrZero(netCarbsG),
+                        waterMl = parseDoubleOrZero(waterMl),
+                        sodiumMg = parseDoubleOrZero(sodiumMg),
+                        potassiumMg = parseDoubleOrZero(potassiumMg),
+                        magnesiumMg = parseDoubleOrZero(magnesiumMg),
                         entryDate = now.format(DateTimeFormatter.ofPattern(DATE_FORMAT)),
                         eventTimestamp = now.format(DateTimeFormatter.ofPattern(TIMESTAMP_FORMAT)),
                         notes = notes.trim().ifBlank { null }

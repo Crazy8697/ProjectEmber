@@ -189,6 +189,42 @@ fun AddKetoEntryScreen(
             )
 
             OutlinedTextField(
+                value = viewModel.waterMl,
+                onValueChange = viewModel::onWaterMlChange,
+                label = { Text("Water (mL)") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+
+            OutlinedTextField(
+                value = viewModel.sodiumMg,
+                onValueChange = viewModel::onSodiumMgChange,
+                label = { Text("Sodium (mg)") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+
+            OutlinedTextField(
+                value = viewModel.potassiumMg,
+                onValueChange = viewModel::onPotassiumMgChange,
+                label = { Text("Potassium (mg)") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+
+            OutlinedTextField(
+                value = viewModel.magnesiumMg,
+                onValueChange = viewModel::onMagnesiumMgChange,
+                label = { Text("Magnesium (mg)") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+
+            OutlinedTextField(
                 value = viewModel.notes,
                 onValueChange = viewModel::onNotesChange,
                 label = { Text("Notes (optional)") },
