@@ -2,35 +2,30 @@ package com.projectember.mobile.ui.screens
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -43,8 +38,6 @@ fun AddKetoEntryScreen(
     viewModel: AddKetoEntryViewModel,
     onNavigateBack: () -> Unit
 ) {
-    var eventTypeExpanded by remember { mutableStateOf(false) }
-
     Scaffold(
         topBar = {
             TopAppBar(
@@ -75,40 +68,49 @@ fun AddKetoEntryScreen(
                 onValueChange = viewModel::onLabelChange,
                 label = { Text("Label *") },
                 isError = viewModel.labelError != null,
-                supportingText = viewModel.labelError?.let { { Text(it) } },
+                supportingText = {
+                    viewModel.labelError?.let { Text(it) }
+                },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
             )
 
-            ExposedDropdownMenuBox(
-                expanded = eventTypeExpanded,
-                onExpandedChange = { eventTypeExpanded = it }
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                OutlinedTextField(
-                    value = viewModel.eventType,
-                    onValueChange = {},
-                    readOnly = true,
-                    label = { Text("Event Type *") },
-                    isError = viewModel.eventTypeError != null,
-                    supportingText = viewModel.eventTypeError?.let { { Text(it) } },
-                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = eventTypeExpanded) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .menuAnchor(MenuAnchorType.PrimaryNotEditable)
+                Text(
+                    text = "Event Type *",
+                    style = MaterialTheme.typography.labelLarge
                 )
-                ExposedDropdownMenu(
-                    expanded = eventTypeExpanded,
-                    onDismissRequest = { eventTypeExpanded = false }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     EVENT_TYPES.forEach { type ->
-                        DropdownMenuItem(
-                            text = { Text(type) },
-                            onClick = {
-                                viewModel.onEventTypeChange(type)
-                                eventTypeExpanded = false
-                            }
+                        AssistChip(
+                            onClick = { viewModel.onEventTypeChange(type) },
+                            label = { Text(type) },
+                            modifier = Modifier.wrapContentWidth()
                         )
                     }
+                }
+
+                if (viewModel.eventType.isNotBlank()) {
+                    Text(
+                        text = "Selected: ${viewModel.eventType}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+
+                viewModel.eventTypeError?.let {
+                    Text(
+                        text = it,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error
+                    )
                 }
             }
 
