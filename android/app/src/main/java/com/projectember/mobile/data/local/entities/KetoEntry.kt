@@ -13,5 +13,6 @@ data class KetoEntry(
     val fatG: Double,
     val netCarbsG: Double,
     val entryDate: String,
-    val eventTimestamp: String
+    val eventTimestamp: String,
+    val notes: String? = null
 )

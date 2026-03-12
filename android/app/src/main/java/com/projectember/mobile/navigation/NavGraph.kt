@@ -8,6 +8,9 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.projectember.mobile.EmberApplication
+import com.projectember.mobile.ui.screens.AddKetoEntryScreen
+import com.projectember.mobile.ui.screens.AddKetoEntryViewModelFactory
+import com.projectember.mobile.ui.screens.AddKetoEntryViewModel
 import com.projectember.mobile.ui.screens.EiraScreen
 import com.projectember.mobile.ui.screens.HomeScreen
 import com.projectember.mobile.ui.screens.HomeViewModel
@@ -46,6 +49,17 @@ fun EmberNavGraph(
                 factory = KetoViewModelFactory(app.ketoRepository)
             )
             KetoScreen(
+                viewModel = viewModel,
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToAddEntry = { navController.navigate(Screen.KetoAddEntry.route) }
+            )
+        }
+
+        composable(Screen.KetoAddEntry.route) {
+            val viewModel: AddKetoEntryViewModel = viewModel(
+                factory = AddKetoEntryViewModelFactory(app.ketoRepository)
+            )
+            AddKetoEntryScreen(
                 viewModel = viewModel,
                 onNavigateBack = { navController.popBackStack() }
             )

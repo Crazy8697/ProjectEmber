@@ -39,7 +39,8 @@ import com.projectember.mobile.data.local.entities.KetoEntry
 @Composable
 fun KetoScreen(
     viewModel: KetoViewModel,
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    onNavigateToAddEntry: () -> Unit
 ) {
     val recentEntries by viewModel.recentEntries.collectAsState()
     val todayEntries by viewModel.todayEntries.collectAsState()
@@ -65,7 +66,7 @@ fun KetoScreen(
         },
         floatingActionButton = {
             FloatingActionButton(
-                onClick = { /* TODO: Add entry */ },
+                onClick = onNavigateToAddEntry,
                 containerColor = MaterialTheme.colorScheme.primary
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Add Entry")
