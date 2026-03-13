@@ -813,26 +813,70 @@ def recipe_to_event_payload(recipe: dict, *, event_date: str, event_timestamp: s
 # Chart / Trend data helpers
 # -----------------------------
 
-_CHART_FIELDS = ("calories", "protein_g", "fat_g", "net_carbs_g", "water_ml")
+_CHART_FIELDS = (
+    "calories", "protein_g", "fat_g", "net_carbs_g",
+    "water_ml", "sodium_mg", "potassium_mg", "magnesium_mg",
+)
+
+_CHART_SELECT_COLS = (
+    "COALESCE(SUM(calories), 0)     AS calories,"
+    " COALESCE(SUM(protein_g), 0)    AS protein_g,"
+    " COALESCE(SUM(fat_g), 0)        AS fat_g,"
+    " COALESCE(SUM(net_carbs_g), 0)  AS net_carbs_g,"
+    " COALESCE(SUM(water_ml), 0)     AS water_ml,"
+    " COALESCE(SUM(sodium_mg), 0)    AS sodium_mg,"
+    " COALESCE(SUM(potassium_mg), 0) AS potassium_mg,"
+    " COALESCE(SUM(magnesium_mg), 0) AS magnesium_mg"
+)
 
 
 def get_chart_daily(date_from: str, date_to: str) -> list[dict]:
     """Daily aggregated totals for dates that have events in [date_from, date_to]."""
     with get_connection() as conn:
         rows = conn.execute(
-            """
-            SELECT
-                event_date                    AS date,
-                COALESCE(SUM(calories), 0)    AS calories,
-                COALESCE(SUM(protein_g), 0)   AS protein_g,
-                COALESCE(SUM(fat_g), 0)       AS fat_g,
-                COALESCE(SUM(net_carbs_g), 0) AS net_carbs_g,
-                COALESCE(SUM(water_ml), 0)    AS water_ml
-            FROM events
-            WHERE event_date >= ? AND event_date <= ?
-            GROUP BY event_date
-            ORDER BY event_date ASC
-            """,
+            "SELECT event_date AS date, "
+            + _CHART_SELECT_COLS
+            + " FROM events WHERE event_date >= ? AND event_date <= ?"
+            " GROUP BY event_date ORDER BY event_date ASC",
+            (date_from, date_to),
+        ).fetchall()
+        return [dict(row) for row in rows]
+
+
+def get_chart_weekly(date_from: str, date_to: str) -> list[dict]:
+    """Weekly aggregated totals in [date_from, date_to].
+
+    Groups by calendar week (Monday-based).  The ``date`` column is set to
+    the Monday of each week using SQLite's ``'weekday 0'`` modifier so the
+    front-end can parse it with ``d3.timeParse('%Y-%m-%d')``.
+    """
+    with get_connection() as conn:
+        rows = conn.execute(
+            "SELECT"
+            " date(event_date, 'weekday 0', '-6 days') AS date,"
+            " " + _CHART_SELECT_COLS
+            + " FROM events WHERE event_date >= ? AND event_date <= ?"
+            " GROUP BY date(event_date, 'weekday 0', '-6 days')"
+            " ORDER BY date ASC",
+            (date_from, date_to),
+        ).fetchall()
+        return [dict(row) for row in rows]
+
+
+def get_chart_monthly(date_from: str, date_to: str) -> list[dict]:
+    """Monthly aggregated totals in [date_from, date_to].
+
+    Returns one row per calendar month with ``date`` set to the first day of
+    that month in YYYY-MM-DD format.
+    """
+    with get_connection() as conn:
+        rows = conn.execute(
+            "SELECT"
+            " strftime('%Y-%m-01', event_date) AS date,"
+            " " + _CHART_SELECT_COLS
+            + " FROM events WHERE event_date >= ? AND event_date <= ?"
+            " GROUP BY strftime('%Y-%m', event_date)"
+            " ORDER BY date ASC",
             (date_from, date_to),
         ).fetchall()
         return [dict(row) for row in rows]
@@ -844,15 +888,18 @@ def get_chart_per_meal(date_from: str, date_to: str) -> list[dict]:
         rows = conn.execute(
             """
             SELECT
-                event_date                    AS date,
+                event_date                        AS date,
                 event_timestamp,
                 event_type,
                 label,
-                COALESCE(calories, 0)         AS calories,
-                COALESCE(protein_g, 0)        AS protein_g,
-                COALESCE(fat_g, 0)            AS fat_g,
-                COALESCE(net_carbs_g, 0)      AS net_carbs_g,
-                COALESCE(water_ml, 0)         AS water_ml
+                COALESCE(calories, 0)             AS calories,
+                COALESCE(protein_g, 0)            AS protein_g,
+                COALESCE(fat_g, 0)                AS fat_g,
+                COALESCE(net_carbs_g, 0)          AS net_carbs_g,
+                COALESCE(water_ml, 0)             AS water_ml,
+                COALESCE(sodium_mg, 0)            AS sodium_mg,
+                COALESCE(potassium_mg, 0)         AS potassium_mg,
+                COALESCE(magnesium_mg, 0)         AS magnesium_mg
             FROM events
             WHERE event_date >= ? AND event_date <= ?
               AND event_type IN ('meal', 'snack', 'drink')

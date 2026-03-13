@@ -6,13 +6,16 @@ val EmberOrange = Color(0xFFE85D04)
 val EmberOrangeLight = Color(0xFFFF8C42)
 val EmberOrangeDark = Color(0xFFAF4200)
 
-val SurfaceDark = Color(0xFF1C1C1E)
-val SurfaceMid = Color(0xFF2C2C2E)
-val SurfaceLight = Color(0xFF3A3A3C)
+val SurfaceDark = Color(0xFF0E1117)
+val SurfaceMid = Color(0xFF1E1E2E)
+val SurfaceLight = Color(0xFF3A3A4F)
 
-val OnSurface = Color(0xFFEAEAEA)
-val OnSurfaceVariant = Color(0xFFAEAEB2)
+val OnSurface = Color(0xFFFFFFFF)
+val OnSurfaceVariant = Color(0xFFB0B0B0)
 
-val SuccessGreen = Color(0xFF30D158)
+val KetoAccent = Color(0xFF1A73E8)
+val KetoAccentLight = Color(0xFF4a8fe8)
+
+val SuccessGreen = Color(0xFF00FF66)
 val WarningYellow = Color(0xFFFFD60A)
-val ErrorRed = Color(0xFFFF453A)
+val ErrorRed = Color(0xFFFF4D4D)

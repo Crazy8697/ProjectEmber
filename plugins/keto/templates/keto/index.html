@@ -6,19 +6,19 @@
   <title>Keto Dashboard</title>
   <style>
     :root {
-      --bg: #0a0c10;
-      --card: #0d1117;
-      --border: #1a2332;
-      --text: #e2e8f0;
-      --muted: #94a3b8;
-      --muted2: #4a5568;
-      --accent: #06b6d4;
-      --accentH: #22d3ee;
-      --green: #a3e635;
-      --red: #f87171;
+      --bg: #0E1117;
+      --card: #1E1E2E;
+      --border: #2E2E3E;
+      --text: #FFFFFF;
+      --muted: #B0B0B0;
+      --muted2: #B0B0B0;
+      --accent: #1A73E8;
+      --accentH: #4a8fe8;
+      --green: #00FF66;
+      --red: #FF4D4D;
       --yellow: #facc15;
-      --btn: #111827;
-      --btnH: #1a2332;
+      --btn: #3A3A4F;
+      --btnH: #4A4A5F;
       --mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
       --r: 6px;
     }
@@ -37,13 +37,13 @@
 
     * {
       scrollbar-width: thin;
-      scrollbar-color: #1f2a3d #0a0c10;
+      scrollbar-color: #3A3A4F #0E1117;
     }
 
     *::-webkit-scrollbar { width: 10px; height: 10px; }
-    *::-webkit-scrollbar-track { background: #0a0c10; border-radius: 8px; }
-    *::-webkit-scrollbar-thumb { background: #1f2a3d; border: 2px solid #0a0c10; border-radius: 8px; }
-    *::-webkit-scrollbar-thumb:hover { background: #2a3b57; }
+    *::-webkit-scrollbar-track { background: #0E1117; border-radius: 8px; }
+    *::-webkit-scrollbar-thumb { background: #3A3A4F; border: 2px solid #0E1117; border-radius: 8px; }
+    *::-webkit-scrollbar-thumb:hover { background: #4A4A5F; }
 
     .wrap {
       width: 100%;
@@ -276,7 +276,7 @@
     .btnTab.active {
       color: var(--accentH);
       border-color: var(--accent);
-      background: rgba(6, 182, 212, 0.08);
+      background: rgba(26, 115, 232, 0.12);
     }
 
     .ketoTopbar {
@@ -375,7 +375,7 @@
     .recipeItem:hover,
     .recipeItem.active {
       border-color: var(--accent);
-      background: rgba(6, 182, 212, 0.08);
+      background: rgba(26, 115, 232, 0.08);
     }
 
     .recipeName {
@@ -541,7 +541,7 @@
     .helpBtn:hover {
       border-color: var(--accent);
       color: var(--accent);
-      background: rgba(6,182,212,.1);
+      background: rgba(26, 115, 232, 0.1);
     }
 
     /* ─── Generic keto modal overlay ─── */
@@ -890,12 +890,17 @@
                 <option value="protein_g">Protein (g)</option>
                 <option value="fat_g">Fat (g)</option>
                 <option value="water_ml">Water (mL)</option>
+                <option value="sodium_mg">Sodium (mg)</option>
+                <option value="potassium_mg">Potassium (mg)</option>
+                <option value="magnesium_mg">Magnesium (mg)</option>
               </select>
             </div>
             <div class="field">
               <label for="graphMode">Mode <button class="helpBtn" type="button" onclick="showHelp('graphMode')" title="Daily totals vs per-meal mode" aria-label="Help: graph mode">?</button></label>
               <select id="graphMode">
                 <option value="daily">Daily Totals</option>
+                <option value="weekly">Weekly Totals</option>
+                <option value="monthly">Monthly Totals</option>
                 <option value="per_meal">Per Meal</option>
               </select>
             </div>
@@ -1454,6 +1459,9 @@ const GRAPH_METRIC_LABELS = {
   protein_g:   "Protein (g)",
   fat_g:       "Fat (g)",
   water_ml:    "Water (mL)",
+  sodium_mg:   "Sodium (mg)",
+  potassium_mg: "Potassium (mg)",
+  magnesium_mg: "Magnesium (mg)",
 };
 
 function escHtml(s) {
@@ -1535,7 +1543,14 @@ function drawChart(container, data, metric) {
 
   const parseDate = d3.timeParse("%Y-%m-%d");
   const parseTs   = d3.timeParse("%Y-%m-%dT%H:%M:%S");
-  const fmtAxis   = d3.timeFormat("%b %d");
+  let   fmtAxis;
+  if (mode === "monthly") {
+    fmtAxis = d3.timeFormat("%b %Y");
+  } else if (mode === "weekly") {
+    fmtAxis = d3.timeFormat("%b %d");
+  } else {
+    fmtAxis = d3.timeFormat("%b %d");
+  }
 
   // X domain
   const fromDt = parseDate(data.from);
@@ -1544,7 +1559,7 @@ function drawChart(container, data, metric) {
     toDt = new Date(toDt.getTime() + 24 * 60 * 60 * 1000 - 1);
   }
 
-  // Build series — daily mode fills missing dates with null (creates line gaps)
+  // Build series
   let series;
   if (mode === "daily") {
     const byDate = new Map(rows.map(r => [r.date, r]));
@@ -1556,6 +1571,11 @@ function drawChart(container, data, metric) {
       series.push({ date: ds, val: row != null ? Number(row[metric] ?? 0) : null });
       cur.setDate(cur.getDate() + 1);
     }
+  } else if (mode === "weekly" || mode === "monthly") {
+    series = rows.map(r => ({
+      date: r.date,
+      val:  Number(r[metric] ?? 0),
+    }));
   } else {
     series = rows.map(r => ({
       date: r.date,
@@ -1583,7 +1603,7 @@ function drawChart(container, data, metric) {
     .attr("height", H);
 
   // Inline background so it survives PNG export
-  svg.style("background", "#0d1117");
+  svg.style("background", "#1E1E2E");
 
   const g = svg.append("g").attr("transform", `translate(${mg.left},${mg.top})`);
 
@@ -1592,15 +1612,15 @@ function drawChart(container, data, metric) {
     .call(d3.axisLeft(yScale).ticks(5).tickSize(-iW).tickFormat(""))
     .call(gg => {
       gg.select(".domain").remove();
-      gg.selectAll("line").attr("stroke", "#1a2332").attr("stroke-opacity", "0.6");
+      gg.selectAll("line").attr("stroke", "#2E2E3E").attr("stroke-opacity", "0.6");
     });
 
   // Shared axis styling
   const axisStyle = gg => {
-    gg.select(".domain").attr("stroke", "#1a2332");
-    gg.selectAll(".tick line").attr("stroke", "#1a2332");
+    gg.select(".domain").attr("stroke", "#2E2E3E");
+    gg.selectAll(".tick line").attr("stroke", "#2E2E3E");
     gg.selectAll(".tick text")
-      .attr("fill", "#4a5568")
+      .attr("fill", "#B0B0B0")
       .attr("font-size", "10")
       .attr("font-family", "monospace");
   };
@@ -1619,7 +1639,7 @@ function drawChart(container, data, metric) {
     .attr("x", -(iH / 2))
     .attr("y", -mg.left + 14)
     .attr("text-anchor", "middle")
-    .attr("fill", "#4a5568")
+    .attr("fill", "#B0B0B0")
     .attr("font-size", "10")
     .attr("font-family", "monospace")
     .text(label);
@@ -1642,10 +1662,10 @@ function drawChart(container, data, metric) {
 
     g.append("path")
       .datum(series)
-      .attr("fill", "none").attr("stroke", "#06b6d4").attr("stroke-width", "2")
+      .attr("fill", "none").attr("stroke", "#00FF66").attr("stroke-width", "2")
       .attr("d", lineFn);
 
-    // Rolling average overlay (yellow dashed)
+    // Rolling average overlay (red dashed)
     if (rollSeries.length > 0) {
       const rollFn = d3.line()
         .x(d => xScale(parseDate(d.date)))
@@ -1653,7 +1673,7 @@ function drawChart(container, data, metric) {
 
       g.append("path")
         .datum(rollSeries)
-        .attr("fill", "none").attr("stroke", "#facc15")
+        .attr("fill", "none").attr("stroke", "#FF4D4D")
         .attr("stroke-width", "1.5").attr("stroke-dasharray", "4 3")
         .attr("d", rollFn);
     }
@@ -1665,7 +1685,31 @@ function drawChart(container, data, metric) {
       .attr("r", "3.5")
       .attr("cx", d => xScale(parseDate(d.date)))
       .attr("cy", d => yScale(d.val))
-      .attr("fill", "#06b6d4").attr("stroke", "#0a0c10").attr("stroke-width", "1.5")
+      .attr("fill", "#00FF66").attr("stroke", "#0E1117").attr("stroke-width", "1.5")
+      .style("cursor", "pointer")
+      .on("mousemove", (ev, d) => ttShow(ev,
+        `<strong>${escHtml(d.date)}</strong><br/>${escHtml(label)}: <strong>${d.val.toFixed(1)}</strong>`))
+      .on("mouseleave", ttHide);
+
+  } else if (mode === "weekly" || mode === "monthly") {
+    // Bar chart for weekly/monthly aggregates
+    const MIN_BAR_WIDTH    = 4;
+    const BAR_SPACING      = 2;
+    const SINGLE_BAR_WIDTH = 20;
+    const barData = series.filter(d => d.val !== null && d.val > 0);
+    const bandW   = barData.length > 1
+      ? Math.max(MIN_BAR_WIDTH, iW / barData.length - BAR_SPACING)
+      : SINGLE_BAR_WIDTH;
+
+    g.selectAll(".bar")
+      .data(barData)
+      .enter().append("rect")
+      .attr("class", "bar")
+      .attr("x",     d => xScale(parseDate(d.date)) - bandW / 2)
+      .attr("y",     d => yScale(d.val))
+      .attr("width",  bandW)
+      .attr("height", d => Math.max(0, iH - yScale(d.val)))
+      .attr("fill", "#1A73E8").attr("fill-opacity", "0.85")
       .style("cursor", "pointer")
       .on("mousemove", (ev, d) => ttShow(ev,
         `<strong>${escHtml(d.date)}</strong><br/>${escHtml(label)}: <strong>${d.val.toFixed(1)}</strong>`))
@@ -1682,7 +1726,7 @@ function drawChart(container, data, metric) {
         return xScale(t || parseDate(d.date));
       })
       .attr("cy", d => yScale(d.val))
-      .attr("fill", "#06b6d4").attr("stroke", "#0a0c10").attr("stroke-width", "1.5")
+      .attr("fill", "#1A73E8").attr("stroke", "#0E1117").attr("stroke-width", "1.5")
       .style("cursor", "pointer")
       .on("mousemove", (ev, d) => ttShow(ev,
         `<strong>${escHtml(d.date)}</strong><br/>${escHtml(d.lbl)}<br/>${escHtml(label)}: <strong>${d.val.toFixed(1)}</strong>`))
@@ -1699,8 +1743,8 @@ function exportChartPng() {
   const clone    = svgEl.cloneNode(true);
   const styleTag = document.createElementNS("http://www.w3.org/2000/svg", "style");
   styleTag.textContent =
-    "text{fill:#4a5568;font-size:10px;font-family:monospace}" +
-    ".domain{stroke:#1a2332;fill:none}line{stroke:#1a2332}";
+    "text{fill:#B0B0B0;font-size:10px;font-family:monospace}" +
+    ".domain{stroke:#2E2E3E;fill:none}line{stroke:#2E2E3E}";
   clone.insertBefore(styleTag, clone.firstChild);
 
   const bbox  = svgEl.getBoundingClientRect();
@@ -1720,7 +1764,7 @@ function exportChartPng() {
     const canvas = document.createElement("canvas");
     canvas.width = cw; canvas.height = ch;
     const ctx = canvas.getContext("2d");
-    ctx.fillStyle = "#0d1117";
+    ctx.fillStyle = "#1E1E2E";
     ctx.fillRect(0, 0, cw, ch);
     ctx.scale(scale, scale);
     ctx.drawImage(img, 0, 0);
@@ -1734,12 +1778,12 @@ function exportChartPng() {
   img.src = url;
 }
 
-// Disable rolling-avg selector in per-meal mode
+// Disable rolling-avg selector in per-meal, weekly, and monthly modes
 document.getElementById("graphMode").addEventListener("change", () => {
-  const isPm  = document.getElementById("graphMode").value === "per_meal";
+  const mode  = document.getElementById("graphMode").value;
   const avgEl = document.getElementById("graphAvg");
-  avgEl.disabled = isPm;
-  if (isPm) avgEl.value = "none";
+  avgEl.disabled = (mode !== "daily");
+  if (mode !== "daily") avgEl.value = "none";
 });
 
 document.getElementById("graphLoadBtn").addEventListener("click", loadGraphData);
