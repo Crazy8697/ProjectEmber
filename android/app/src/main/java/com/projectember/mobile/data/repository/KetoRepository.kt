@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.Flow
 class KetoRepository(private val ketoDao: KetoDao) {
     fun getRecentEntries(limit: Int): Flow<List<KetoEntry>> = ketoDao.getRecentEntries(limit)
     fun getEntriesForDate(date: String): Flow<List<KetoEntry>> = ketoDao.getEntriesForDate(date)
+    fun getEntriesFromDate(startDate: String): Flow<List<KetoEntry>> = ketoDao.getEntriesFromDate(startDate)
 
     suspend fun getEntryById(id: Int): KetoEntry? = ketoDao.getEntryById(id)
 
