@@ -3,6 +3,7 @@ package com.projectember.mobile
 import android.app.Application
 import com.projectember.mobile.data.local.db.AppDatabase
 import com.projectember.mobile.data.local.db.DatabaseSeeder
+import com.projectember.mobile.data.local.KetoTargetsStore
 import com.projectember.mobile.data.repository.KetoRepository
 import com.projectember.mobile.data.repository.RecipeRepository
 import com.projectember.mobile.data.repository.SyncRepository
@@ -19,6 +20,7 @@ class EmberApplication : Application() {
     val database by lazy { AppDatabase.getInstance(this) }
 
     val ketoRepository by lazy { KetoRepository(database.ketoDao()) }
+    val ketoTargetsStore by lazy { KetoTargetsStore(this) }
     val recipeRepository by lazy { RecipeRepository(database.recipeDao()) }
     val syncRepository by lazy { SyncRepository(database.syncStatusDao()) }
     val syncManager by lazy { SyncManager(syncRepository) }

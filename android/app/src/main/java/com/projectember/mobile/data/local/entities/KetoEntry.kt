@@ -3,6 +3,10 @@ package com.projectember.mobile.data.local.entities
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
+/** Calories counted toward daily total: negative for exercise, positive otherwise. */
+fun KetoEntry.effectiveCalories(): Double =
+    if (eventType.equals("exercise", ignoreCase = true)) -calories else calories
+
 @Entity(tableName = "keto_entries")
 data class KetoEntry(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,

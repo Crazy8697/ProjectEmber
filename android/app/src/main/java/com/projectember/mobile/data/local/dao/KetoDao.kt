@@ -37,4 +37,7 @@ interface KetoDao {
 
     @Query("SELECT COUNT(*) FROM keto_entries")
     suspend fun count(): Int
+
+    @Query("SELECT * FROM keto_entries WHERE entryDate >= :startDate ORDER BY entryDate ASC, eventTimestamp ASC")
+    fun getEntriesFromDate(startDate: String): Flow<List<KetoEntry>>
 }
