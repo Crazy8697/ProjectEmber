@@ -1,6 +1,7 @@
 package com.projectember.mobile.ui.screens
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -15,6 +16,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -268,36 +270,11 @@ fun KetoScreen(
                     NakRatioBlock(
                         modifier = Modifier.weight(1f),
                         nakRatio = nakRatio,
+                        todaySodium = todaySodium,
                         todayPotassium = todayPotassium,
                         onClick = { onNavigateToTrends("sodium") }
                     )
                 }
-            }
-
-            // ── Daily Totals section ─────────────────────────────────────────
-            item {
-                SummaryTableCard(
-                    title = "Daily Totals",
-                    rows = listOf(
-                        SummaryRow("Calories",  "%.0f".format(todayCalories),  "%.0f".format(targets.caloriesKcal),  todayCalories - targets.caloriesKcal,  false),
-                        SummaryRow("Protein",   "%.1fg".format(todayProtein),  "%.0fg".format(targets.proteinG),    todayProtein - targets.proteinG,   true),
-                        SummaryRow("Fat",       "%.1fg".format(todayFat),      "%.0fg".format(targets.fatG),        todayFat - targets.fatG,           false),
-                        SummaryRow("Net Carbs", "%.1fg".format(todayCarbs),    "%.0fg".format(targets.netCarbsG),   todayCarbs - targets.netCarbsG,    false)
-                    )
-                )
-            }
-
-            // ── Electrolytes + Water section ─────────────────────────────────
-            item {
-                SummaryTableCard(
-                    title = "Electrolytes + Water",
-                    rows = listOf(
-                        SummaryRow("Water",     "%.0f mL".format(todayWater),    "%.0f mL".format(targets.waterMl),    todayWater - targets.waterMl,       true),
-                        SummaryRow("Sodium",    "%.0f mg".format(todaySodium),   "%.0f mg".format(targets.sodiumMg),   todaySodium - targets.sodiumMg,     false),
-                        SummaryRow("Potassium", "%.0f mg".format(todayPotassium),"%.0f mg".format(targets.potassiumMg),todayPotassium - targets.potassiumMg,true),
-                        SummaryRow("Magnesium", "%.0f mg".format(todayMagnesium),"%.0f mg".format(targets.magnesiumMg),todayMagnesium - targets.magnesiumMg,true)
-                    )
-                )
             }
 
             // ── Entries header ────────────────────────────────────────────────
@@ -464,9 +441,44 @@ private fun HydrationBlock(
 private fun NakRatioBlock(
     modifier: Modifier = Modifier,
     nakRatio: String,
+    todaySodium: Double,
     todayPotassium: Double,
     onClick: () -> Unit
 ) {
+    // If potassium is 0 but sodium > 0 → treat as max ratio (fully Na-heavy)
+    // If both are 0 → neutral (no data)
+    val ratio: Double
+    val position: Float
+    val ratioColor: Color
+    val dotColor: Color
+    when {
+        todayPotassium > 0 -> {
+            ratio = todaySodium / todayPotassium
+            // position: 0.0 = K-heavy, 0.5 = ideal (1:1), 1.0 = Na-heavy (scale up to 2:1)
+            position = (ratio / 2.0).coerceIn(0.0, 1.0).toFloat()
+            ratioColor = when {
+                ratio <= 1.0 -> SuccessGreen
+                ratio <= 2.0 -> WarningYellow
+                else         -> ErrorRed
+            }
+            dotColor = ratioColor
+        }
+        todaySodium > 0 -> {
+            // Sodium present but no potassium – worst case Na-heavy
+            ratio = Double.MAX_VALUE
+            position = 1.0f
+            ratioColor = ErrorRed
+            dotColor = ErrorRed
+        }
+        else -> {
+            // No data
+            ratio = 0.0
+            position = 0.0f
+            ratioColor = OnSurface
+            dotColor = KetoMuted
+        }
+    }
+
     Card(
         modifier = modifier.clickable { onClick() },
         colors = CardDefaults.cardColors(containerColor = KetoCard),
@@ -484,65 +496,46 @@ private fun NakRatioBlock(
                 text = nakRatio,
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
-                color = OnSurface
+                color = ratioColor
             )
             Spacer(modifier = Modifier.height(2.dp))
             Text(
-                text = if (todayPotassium <= 0) "need potassium" else "Na \u00f7 K",
+                text = when {
+                        todayPotassium <= 0 && todaySodium > 0 -> "no potassium logged"
+                        todayPotassium <= 0                    -> "need data"
+                        else                                   -> "Na \u00f7 K"
+                    },
                 style = MaterialTheme.typography.labelSmall,
                 color = KetoMuted,
                 fontSize = 10.sp
             )
-        }
-    }
-}
-
-// ── Summary table card ────────────────────────────────────────────────────────
-private data class SummaryRow(
-    val metric: String,
-    val total: String,
-    val target: String,
-    val diff: Double,
-    val isGoal: Boolean
-)
-
-@Composable
-private fun SummaryTableCard(title: String, rows: List<SummaryRow>) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = KetoCard),
-        border = BorderStroke(1.dp, KetoBorderC)
-    ) {
-        Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp)) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.SemiBold,
-                color = KetoAccent
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Row(modifier = Modifier.fillMaxWidth()) {
-                Text("METRIC", Modifier.weight(2f), style = MaterialTheme.typography.labelSmall, color = KetoMuted)
-                Text("TOTAL",  Modifier.weight(2f), style = MaterialTheme.typography.labelSmall, color = KetoMuted)
-                Text("TARGET", Modifier.weight(2f), style = MaterialTheme.typography.labelSmall, color = KetoMuted)
-                Text("DIFF",   Modifier.weight(2f), style = MaterialTheme.typography.labelSmall, color = KetoMuted)
-            }
             Spacer(modifier = Modifier.height(4.dp))
-            HorizontalDivider(color = KetoBorderC)
-            rows.forEach { row ->
-                Spacer(modifier = Modifier.height(6.dp))
-                val diffColor = when {
-                    row.diff == 0.0 -> KetoMuted
-                    row.isGoal      -> if (row.diff >= 0) SuccessGreen else ErrorRed
-                    else            -> if (row.diff <= 0) SuccessGreen else ErrorRed
+            // Balance indicator bar: left = K-heavy, center = balanced, right = Na-heavy
+            Box(modifier = Modifier.fillMaxWidth()) {
+                Canvas(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(4.dp)
+                ) {
+                    // Track
+                    drawRoundRect(
+                        color = KetoBorderC,
+                        size = size,
+                        cornerRadius = androidx.compose.ui.geometry.CornerRadius(2.dp.toPx())
+                    )
+                    // Indicator dot
+                    val x = position * size.width
+                    val r = size.height
+                    drawCircle(color = dotColor, radius = r, center = Offset(x, size.height / 2))
                 }
-                val diffText = if (row.diff >= 0) "+%.1f".format(row.diff) else "%.1f".format(row.diff)
-                Row(modifier = Modifier.fillMaxWidth()) {
-                    Text(row.metric, Modifier.weight(2f), style = MaterialTheme.typography.bodySmall, color = OnSurface)
-                    Text(row.total,  Modifier.weight(2f), style = MaterialTheme.typography.bodySmall, color = OnSurface)
-                    Text(row.target, Modifier.weight(2f), style = MaterialTheme.typography.bodySmall, color = KetoMuted)
-                    Text(diffText,   Modifier.weight(2f), style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold, color = diffColor)
-                }
+            }
+            Spacer(modifier = Modifier.height(2.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("K", style = MaterialTheme.typography.labelSmall, color = SuccessGreen, fontSize = 9.sp)
+                Text("Na", style = MaterialTheme.typography.labelSmall, color = ErrorRed, fontSize = 9.sp)
             }
         }
     }
@@ -556,6 +549,18 @@ private fun KetoHelpDialog(onDismiss: () -> Unit) {
         title = { Text("Keto Field Guide") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Surface(
+                    color = KetoCard,
+                    shape = MaterialTheme.shapes.small,
+                    border = BorderStroke(1.dp, KetoBorderC)
+                ) {
+                    Text(
+                        text = "\u26a0\ufe0f Not medical advice. This tracker is for informational purposes only. Consult a healthcare professional before making dietary changes.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = KetoMuted,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp)
+                    )
+                }
                 HelpSection(
                     title = "Net Carbs",
                     body = "Total carbohydrates minus dietary fiber. On keto, aim to stay below your daily target (commonly 20\u201350 g) to maintain ketosis."
@@ -593,22 +598,20 @@ private fun HelpSection(title: String, body: String) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun KetoEntryCard(entry: KetoEntry, onEditEntry: (Int) -> Unit) {
-    val isExercise = entry.eventType.equals("exercise", ignoreCase = true)
+    val isExercise   = entry.eventType.equals("exercise",   ignoreCase = true)
+    val isSupplement = entry.eventType.equals("supplement", ignoreCase = true)
     var expanded by remember { mutableStateOf(false) }
 
-    val cardColor = if (isExercise)
-        MaterialTheme.colorScheme.tertiaryContainer
+    // Exercise: dark card with a subtle green accent border; all others: standard card
+    val cardBorder = if (isExercise)
+        BorderStroke(1.dp, SuccessGreen.copy(alpha = 0.4f))
     else
-        MaterialTheme.colorScheme.surfaceVariant
-
-    val onCardColor = if (isExercise)
-        MaterialTheme.colorScheme.onTertiaryContainer
-    else
-        MaterialTheme.colorScheme.onSurfaceVariant
+        BorderStroke(1.dp, KetoBorderC)
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = cardColor),
+        colors = CardDefaults.cardColors(containerColor = KetoCard),
+        border = cardBorder,
         onClick = { expanded = !expanded }
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
@@ -621,7 +624,7 @@ private fun KetoEntryCard(entry: KetoEntry, onEditEntry: (Int) -> Unit) {
                     text = entry.label,
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.SemiBold,
-                    color = onCardColor,
+                    color = OnSurface,
                     modifier = Modifier.weight(1f)
                 )
                 EventTypeBadge(type = entry.eventType)
@@ -634,16 +637,26 @@ private fun KetoEntryCard(entry: KetoEntry, onEditEntry: (Int) -> Unit) {
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                val caloriesText = if (isExercise)
-                    "\u2212%.0f kcal".format(entry.calories)
-                else
-                    "%.0f kcal".format(entry.calories)
-                Text(
-                    text = caloriesText,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium,
-                    color = onCardColor
-                )
+                when {
+                    isSupplement -> Text(
+                        text = "Tap for details",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium,
+                        color = KetoMuted
+                    )
+                    isExercise -> Text(
+                        text = "\u2212%.0f kcal".format(entry.calories),
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium,
+                        color = SuccessGreen
+                    )
+                    else -> Text(
+                        text = "%.0f kcal".format(entry.calories),
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium,
+                        color = OnSurface
+                    )
+                }
                 val timeText = if (entry.eventTimestamp.length >= 16)
                     entry.eventTimestamp.substring(11, 16)
                 else
@@ -651,22 +664,22 @@ private fun KetoEntryCard(entry: KetoEntry, onEditEntry: (Int) -> Unit) {
                 Text(
                     text = timeText,
                     style = MaterialTheme.typography.labelSmall,
-                    color = onCardColor
+                    color = KetoMuted
                 )
             }
 
             if (expanded) {
                 Spacer(modifier = Modifier.height(8.dp))
-                HorizontalDivider(color = onCardColor.copy(alpha = 0.2f))
+                HorizontalDivider(color = KetoBorderC)
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
-                    MacroDetail(label = "Protein", value = "%.1f g".format(entry.proteinG), color = onCardColor)
-                    MacroDetail(label = "Fat", value = "%.1f g".format(entry.fatG), color = onCardColor)
-                    MacroDetail(label = "Net Carbs", value = "%.1f g".format(entry.netCarbsG), color = onCardColor)
+                    MacroDetail(label = "Protein",    value = "%.1f g".format(entry.proteinG),  color = OnSurface)
+                    MacroDetail(label = "Fat",        value = "%.1f g".format(entry.fatG),      color = OnSurface)
+                    MacroDetail(label = "Net Carbs",  value = "%.1f g".format(entry.netCarbsG), color = OnSurface)
                 }
 
                 if (entry.waterMl > 0 || entry.sodiumMg > 0 || entry.potassiumMg > 0 || entry.magnesiumMg > 0) {
@@ -675,29 +688,29 @@ private fun KetoEntryCard(entry: KetoEntry, onEditEntry: (Int) -> Unit) {
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
-                        MacroDetail(label = "Water", value = "%.0f mL".format(entry.waterMl), color = onCardColor)
-                        MacroDetail(label = "Na", value = "%.0f mg".format(entry.sodiumMg), color = onCardColor)
-                        MacroDetail(label = "K", value = "%.0f mg".format(entry.potassiumMg), color = onCardColor)
-                        MacroDetail(label = "Mg", value = "%.0f mg".format(entry.magnesiumMg), color = onCardColor)
+                        MacroDetail(label = "Water", value = "%.0f mL".format(entry.waterMl),    color = OnSurface)
+                        MacroDetail(label = "Na",    value = "%.0f mg".format(entry.sodiumMg),   color = OnSurface)
+                        MacroDetail(label = "K",     value = "%.0f mg".format(entry.potassiumMg),color = OnSurface)
+                        MacroDetail(label = "Mg",    value = "%.0f mg".format(entry.magnesiumMg),color = OnSurface)
                     }
                 }
 
                 if (!entry.notes.isNullOrBlank()) {
                     Spacer(modifier = Modifier.height(6.dp))
-                    Text(text = entry.notes, style = MaterialTheme.typography.bodySmall, color = onCardColor)
+                    Text(text = entry.notes, style = MaterialTheme.typography.bodySmall, color = OnSurface)
                 }
 
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = entry.eventTimestamp,
                     style = MaterialTheme.typography.labelSmall,
-                    color = onCardColor.copy(alpha = 0.6f)
+                    color = KetoMuted
                 )
 
                 Spacer(modifier = Modifier.height(4.dp))
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                     TextButton(onClick = { onEditEntry(entry.id) }) {
-                        Text("Edit", color = onCardColor)
+                        Text("Edit", color = KetoAccent)
                     }
                 }
             }
@@ -726,7 +739,7 @@ private fun EventTypeBadge(type: String) {
 }
 
 @Composable
-private fun MacroDetail(label: String, value: String, color: Color) {
+private fun MacroDetail(label: String, value: String, color: Color = OnSurface) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(text = value, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold, color = color)
         Text(text = label, style = MaterialTheme.typography.labelSmall, color = color.copy(alpha = 0.7f))
