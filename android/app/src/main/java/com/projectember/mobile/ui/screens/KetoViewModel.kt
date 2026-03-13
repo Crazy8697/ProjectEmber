@@ -8,8 +8,11 @@ import com.projectember.mobile.data.local.KetoTargetsStore
 import com.projectember.mobile.data.local.entities.KetoEntry
 import com.projectember.mobile.data.local.entities.effectiveCalories
 import com.projectember.mobile.data.repository.KetoRepository
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import java.time.LocalDate
@@ -31,16 +34,16 @@ class KetoViewModel(
     val today: String = LocalDate.now().format(dateFormatter)
     private val sevenDaysAgo: String = LocalDate.now().minusDays(6).format(dateFormatter)
 
-    val recentEntries: StateFlow<List<KetoEntry>> = ketoRepository
-        .getRecentEntries(20)
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5_000),
-            initialValue = emptyList()
-        )
+    private val _selectedDate = MutableStateFlow(today)
+    val selectedDate: StateFlow<String> = _selectedDate.asStateFlow()
 
-    val todayEntries: StateFlow<List<KetoEntry>> = ketoRepository
-        .getEntriesForDate(today)
+    fun setSelectedDate(date: String) {
+        _selectedDate.value = date
+    }
+
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    val selectedDateEntries: StateFlow<List<KetoEntry>> = _selectedDate
+        .flatMapLatest { date -> ketoRepository.getEntriesForDate(date) }
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),

@@ -8,6 +8,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Help
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.ShowChart
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -15,9 +16,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.projectember.mobile.data.local.KetoTargets
 import com.projectember.mobile.data.local.entities.KetoEntry
 import com.projectember.mobile.data.local.entities.effectiveCalories
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 
 // Status color helpers
 private val StatusGreen = Color(0xFF00C853)
@@ -54,23 +56,26 @@ fun KetoScreen(
     onNavigateBack: () -> Unit,
     onNavigateToAddEntry: () -> Unit,
     onNavigateToEditEntry: (Int) -> Unit,
-    onNavigateToTargets: () -> Unit
+    onNavigateToTargets: () -> Unit,
+    onNavigateToTrends: () -> Unit
 ) {
-    val recentEntries by viewModel.recentEntries.collectAsState()
-    val todayEntries by viewModel.todayEntries.collectAsState()
+    val selectedDateEntries by viewModel.selectedDateEntries.collectAsState()
+    val selectedDate by viewModel.selectedDate.collectAsState()
     val targets by viewModel.targets.collectAsState()
-    val weeklyData by viewModel.weeklyData.collectAsState()
 
     var showHelp by remember { mutableStateOf(false) }
+    var showDatePicker by remember { mutableStateOf(false) }
 
-    val todayCalories = todayEntries.sumOf { it.effectiveCalories() }
-    val todayProtein = todayEntries.sumOf { it.proteinG }
-    val todayFat = todayEntries.sumOf { it.fatG }
-    val todayCarbs = todayEntries.sumOf { it.netCarbsG }
-    val todayWater = todayEntries.sumOf { it.waterMl }
-    val todaySodium = todayEntries.sumOf { it.sodiumMg }
-    val todayPotassium = todayEntries.sumOf { it.potassiumMg }
-    val todayMagnesium = todayEntries.sumOf { it.magnesiumMg }
+    val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+
+    val todayCalories = selectedDateEntries.sumOf { it.effectiveCalories() }
+    val todayProtein = selectedDateEntries.sumOf { it.proteinG }
+    val todayFat = selectedDateEntries.sumOf { it.fatG }
+    val todayCarbs = selectedDateEntries.sumOf { it.netCarbsG }
+    val todayWater = selectedDateEntries.sumOf { it.waterMl }
+    val todaySodium = selectedDateEntries.sumOf { it.sodiumMg }
+    val todayPotassium = selectedDateEntries.sumOf { it.potassiumMg }
+    val todayMagnesium = selectedDateEntries.sumOf { it.magnesiumMg }
 
     val nakRatio: String = if (todayPotassium > 0) {
         "%.1f : 1".format(todaySodium / todayPotassium)
@@ -80,6 +85,32 @@ fun KetoScreen(
 
     if (showHelp) {
         KetoHelpDialog(onDismiss = { showHelp = false })
+    }
+
+    if (showDatePicker) {
+        val initialMillis = try {
+            LocalDate.parse(selectedDate, dateFormatter).toEpochDay() * 86_400_000L
+        } catch (_: Exception) {
+            System.currentTimeMillis()
+        }
+        val datePickerState = rememberDatePickerState(initialSelectedDateMillis = initialMillis)
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    showDatePicker = false
+                    datePickerState.selectedDateMillis?.let { millis ->
+                        val date = LocalDate.ofEpochDay(millis / 86_400_000L)
+                        viewModel.setSelectedDate(date.format(dateFormatter))
+                    }
+                }) { Text("OK") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) { Text("Cancel") }
+            }
+        ) {
+            DatePicker(state = datePickerState)
+        }
     }
 
     Scaffold(
@@ -92,6 +123,9 @@ fun KetoScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = onNavigateToTrends) {
+                        Icon(Icons.Default.ShowChart, contentDescription = "Trends")
+                    }
                     IconButton(onClick = { showHelp = true }) {
                         Icon(Icons.Default.Help, contentDescription = "Help")
                     }
@@ -122,7 +156,7 @@ fun KetoScreen(
         ) {
             item { Spacer(modifier = Modifier.height(8.dp)) }
 
-            // Today's summary card
+            // Summary card with tappable date selector
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -131,11 +165,16 @@ fun KetoScreen(
                     )
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        Text(
-                            text = "Today — ${viewModel.today}",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.SemiBold
-                        )
+                        TextButton(
+                            onClick = { showDatePicker = true },
+                            contentPadding = PaddingValues(0.dp)
+                        ) {
+                            Text(
+                                text = selectedDate,
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
                         Spacer(modifier = Modifier.height(12.dp))
                         StatusMacroRow(
                             label = "Calories",
@@ -207,51 +246,15 @@ fun KetoScreen(
                 }
             }
 
-            // Weekly trend charts
-            if (weeklyData.isNotEmpty()) {
-                item {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant
-                        )
-                    ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Text(
-                                text = "7-Day Trends",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                            Spacer(modifier = Modifier.height(12.dp))
-                            WeeklyTrendCard(
-                                title = "Calories (kcal)",
-                                data = weeklyData.map { it.label to it.calories.toFloat() },
-                                barColor = MaterialTheme.colorScheme.primary,
-                                unit = "kcal",
-                                targetValue = targets.caloriesKcal.toFloat()
-                            )
-                            Spacer(modifier = Modifier.height(16.dp))
-                            WeeklyTrendCard(
-                                title = "Net Carbs (g)",
-                                data = weeklyData.map { it.label to it.netCarbsG.toFloat() },
-                                barColor = MaterialTheme.colorScheme.tertiary,
-                                unit = "g",
-                                targetValue = targets.netCarbsG.toFloat()
-                            )
-                        }
-                    }
-                }
-            }
-
             item {
                 Text(
-                    text = "Recent Entries",
+                    text = "Entries",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.SemiBold
                 )
             }
 
-            if (recentEntries.isEmpty()) {
+            if (selectedDateEntries.isEmpty()) {
                 item {
                     Column(
                         modifier = Modifier
@@ -261,19 +264,19 @@ fun KetoScreen(
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Text(
-                            text = "No entries yet",
+                            text = "No entries for this date",
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
-                            text = "Tap + to log your first keto entry.",
+                            text = "Tap + to log a keto entry.",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
             } else {
-                items(recentEntries) { entry ->
+                items(selectedDateEntries) { entry ->
                     KetoEntryCard(entry = entry, onEditEntry = onNavigateToEditEntry)
                 }
             }
