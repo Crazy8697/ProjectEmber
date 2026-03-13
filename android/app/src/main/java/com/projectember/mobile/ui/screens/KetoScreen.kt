@@ -17,6 +17,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.projectember.mobile.data.local.KetoTargets
 import com.projectember.mobile.data.local.entities.KetoEntry
+import com.projectember.mobile.data.local.entities.effectiveCalories
 
 // Status color helpers
 private val StatusGreen = Color(0xFF00C853)
@@ -62,10 +63,7 @@ fun KetoScreen(
 
     var showHelp by remember { mutableStateOf(false) }
 
-    // Exercise entries subtract from the daily calorie total
-    val todayCalories = todayEntries.sumOf { entry ->
-        if (entry.eventType.equals("exercise", ignoreCase = true)) -entry.calories else entry.calories
-    }
+    val todayCalories = todayEntries.sumOf { it.effectiveCalories() }
     val todayProtein = todayEntries.sumOf { it.proteinG }
     val todayFat = todayEntries.sumOf { it.fatG }
     val todayCarbs = todayEntries.sumOf { it.netCarbsG }

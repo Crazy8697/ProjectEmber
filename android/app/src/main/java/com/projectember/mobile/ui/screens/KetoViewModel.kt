@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.projectember.mobile.data.local.KetoTargets
 import com.projectember.mobile.data.local.KetoTargetsStore
 import com.projectember.mobile.data.local.entities.KetoEntry
+import com.projectember.mobile.data.local.entities.effectiveCalories
 import com.projectember.mobile.data.repository.KetoRepository
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -56,9 +57,7 @@ class KetoViewModel(
                 val date = LocalDate.now().minusDays(6 - offset.toLong())
                 val dateStr = date.format(dateFormatter)
                 val dayEntries = entries.filter { it.entryDate == dateStr }
-                val cals = dayEntries.sumOf {
-                    if (it.eventType.equals("exercise", ignoreCase = true)) -it.calories else it.calories
-                }
+                val cals = dayEntries.sumOf { it.effectiveCalories() }
                 DayTotals(
                     label = date.format(dayShortFmt),
                     date = dateStr,
