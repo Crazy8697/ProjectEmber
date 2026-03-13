@@ -20,6 +20,9 @@ import com.projectember.mobile.ui.screens.HomeViewModelFactory
 import com.projectember.mobile.ui.screens.KetoScreen
 import com.projectember.mobile.ui.screens.KetoViewModel
 import com.projectember.mobile.ui.screens.KetoViewModelFactory
+import com.projectember.mobile.ui.screens.KetoTargetsScreen
+import com.projectember.mobile.ui.screens.KetoTargetsViewModel
+import com.projectember.mobile.ui.screens.KetoTargetsViewModelFactory
 import com.projectember.mobile.ui.screens.RecipesScreen
 import com.projectember.mobile.ui.screens.RecipesViewModel
 import com.projectember.mobile.ui.screens.RecipesViewModelFactory
@@ -48,7 +51,7 @@ fun EmberNavGraph(
 
         composable(Screen.Keto.route) {
             val viewModel: KetoViewModel = viewModel(
-                factory = KetoViewModelFactory(app.ketoRepository)
+                factory = KetoViewModelFactory(app.ketoRepository, app.ketoTargetsStore)
             )
             KetoScreen(
                 viewModel = viewModel,
@@ -56,7 +59,8 @@ fun EmberNavGraph(
                 onNavigateToAddEntry = { navController.navigate(Screen.KetoAddEntry.route) },
                 onNavigateToEditEntry = { entryId ->
                     navController.navigate(Screen.KetoEditEntry.createRoute(entryId))
-                }
+                },
+                onNavigateToTargets = { navController.navigate(Screen.KetoTargets.route) }
             )
         }
 
@@ -100,6 +104,16 @@ fun EmberNavGraph(
 
         composable(Screen.Eira.route) {
             EiraScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Screen.KetoTargets.route) {
+            val viewModel: KetoTargetsViewModel = viewModel(
+                factory = KetoTargetsViewModelFactory(app.ketoTargetsStore)
+            )
+            KetoTargetsScreen(
+                viewModel = viewModel,
                 onNavigateBack = { navController.popBackStack() }
             )
         }
