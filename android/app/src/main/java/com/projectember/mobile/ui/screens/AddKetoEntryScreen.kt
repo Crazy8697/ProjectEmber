@@ -126,7 +126,19 @@ fun AddKetoEntryScreen(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    EVENT_TYPES.forEach { type ->
+                    EVENT_TYPES.take(3).forEach { type ->
+                        AssistChip(
+                            onClick = { viewModel.onEventTypeChange(type) },
+                            label = { Text(type) },
+                            modifier = Modifier.wrapContentWidth()
+                        )
+                    }
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    EVENT_TYPES.drop(3).forEach { type ->
                         AssistChip(
                             onClick = { viewModel.onEventTypeChange(type) },
                             label = { Text(type) },

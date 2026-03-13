@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -22,7 +23,13 @@ data class DayTotals(
     val label: String,
     val date: String,
     val calories: Double,
-    val netCarbsG: Double
+    val netCarbsG: Double,
+    val proteinG: Double = 0.0,
+    val fatG: Double = 0.0,
+    val waterMl: Double = 0.0,
+    val sodiumMg: Double = 0.0,
+    val potassiumMg: Double = 0.0,
+    val magnesiumMg: Double = 0.0
 )
 
 class KetoViewModel(
@@ -52,6 +59,73 @@ class KetoViewModel(
 
     val targets: StateFlow<KetoTargets> = targetsStore.targets
 
+    // ── Trends controls ──────────────────────────────────────────────────────
+    private val _trendsMetric = MutableStateFlow("calories")
+    val trendsMetric: StateFlow<String> = _trendsMetric.asStateFlow()
+
+    private val _trendsFromDate = MutableStateFlow(sevenDaysAgo)
+    val trendsFromDate: StateFlow<String> = _trendsFromDate.asStateFlow()
+
+    private val _trendsToDate = MutableStateFlow(today)
+    val trendsToDate: StateFlow<String> = _trendsToDate.asStateFlow()
+
+    private val _trendsMode = MutableStateFlow("daily") // "daily" or "rolling"
+    val trendsMode: StateFlow<String> = _trendsMode.asStateFlow()
+
+    private val _trendsRollingDays = MutableStateFlow(3)
+    val trendsRollingDays: StateFlow<Int> = _trendsRollingDays.asStateFlow()
+
+    fun setTrendsMetric(metric: String) { _trendsMetric.value = metric }
+    fun setTrendsFromDate(date: String) { _trendsFromDate.value = date }
+    fun setTrendsToDate(date: String) { _trendsToDate.value = date }
+    fun setTrendsMode(mode: String) { _trendsMode.value = mode }
+    fun setTrendsRollingDays(days: Int) { _trendsRollingDays.value = days }
+
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    val trendsData: StateFlow<List<DayTotals>> =
+        combine(_trendsFromDate, _trendsToDate) { from, to -> from to to }
+            .flatMapLatest { (fromDate, toDate) ->
+                ketoRepository.getEntriesFromDate(fromDate)
+                    .map { entries ->
+                        val from = try {
+                            LocalDate.parse(fromDate, dateFormatter)
+                        } catch (_: Exception) {
+                            LocalDate.now().minusDays(6)
+                        }
+                        val to = try {
+                            LocalDate.parse(toDate, dateFormatter)
+                        } catch (_: Exception) {
+                            LocalDate.now()
+                        }
+                        val numDays = ((to.toEpochDay() - from.toEpochDay() + 1)
+                            .toInt()).coerceIn(1, 90)
+                        val dayShortFmt = DateTimeFormatter.ofPattern("EEE")
+                        (0 until numDays).map { offset ->
+                            val date = from.plusDays(offset.toLong())
+                            val dateStr = date.format(dateFormatter)
+                            val dayEntries = entries.filter { it.entryDate == dateStr }
+                            DayTotals(
+                                label = date.format(dayShortFmt),
+                                date = dateStr,
+                                calories = dayEntries.sumOf { it.effectiveCalories() }
+                                    .coerceAtLeast(0.0),
+                                netCarbsG = dayEntries.sumOf { it.netCarbsG },
+                                proteinG = dayEntries.sumOf { it.proteinG },
+                                fatG = dayEntries.sumOf { it.fatG },
+                                waterMl = dayEntries.sumOf { it.waterMl },
+                                sodiumMg = dayEntries.sumOf { it.sodiumMg },
+                                potassiumMg = dayEntries.sumOf { it.potassiumMg },
+                                magnesiumMg = dayEntries.sumOf { it.magnesiumMg }
+                            )
+                        }
+                    }
+            }
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5_000),
+                initialValue = emptyList()
+            )
+
     val weeklyData: StateFlow<List<DayTotals>> = ketoRepository
         .getEntriesFromDate(sevenDaysAgo)
         .map { entries ->
@@ -65,7 +139,13 @@ class KetoViewModel(
                     label = date.format(dayShortFmt),
                     date = dateStr,
                     calories = cals.coerceAtLeast(0.0),
-                    netCarbsG = dayEntries.sumOf { it.netCarbsG }
+                    netCarbsG = dayEntries.sumOf { it.netCarbsG },
+                    proteinG = dayEntries.sumOf { it.proteinG },
+                    fatG = dayEntries.sumOf { it.fatG },
+                    waterMl = dayEntries.sumOf { it.waterMl },
+                    sodiumMg = dayEntries.sumOf { it.sodiumMg },
+                    potassiumMg = dayEntries.sumOf { it.potassiumMg },
+                    magnesiumMg = dayEntries.sumOf { it.magnesiumMg }
                 )
             }
         }
