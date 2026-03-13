@@ -220,11 +220,14 @@ fun KetoTrendsScreen(
                                 selected = selected,
                                 onClick = { viewModel.setTrendsMetric(key) },
                                 label = {
-                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                        Text(abbr, fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                                        Text(fullName, fontSize = 8.sp, color = if (selected) OnSurface.copy(alpha = 0.8f) else KetoMuted)
-                                    }
-                                },
+                                     Column(
+                                         modifier = Modifier.fillMaxWidth(),
+                                         horizontalAlignment = Alignment.CenterHorizontally
+                                     ) {
+                                         Text(abbr, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                         Text(fullName, fontSize = 8.sp, color = if (selected) OnSurface.copy(alpha = 0.8f) else KetoMuted)
+                                     }
+                                 },
                                 modifier = Modifier.weight(1f),
                                 colors = FilterChipDefaults.filterChipColors(
                                     selectedContainerColor = KetoAccent,
@@ -245,11 +248,14 @@ fun KetoTrendsScreen(
                                 selected = selected,
                                 onClick = { viewModel.setTrendsMetric(key) },
                                 label = {
-                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                        Text(abbr, fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                                        Text(fullName, fontSize = 8.sp, color = if (selected) OnSurface.copy(alpha = 0.8f) else KetoMuted)
-                                    }
-                                },
+                                     Column(
+                                         modifier = Modifier.fillMaxWidth(),
+                                         horizontalAlignment = Alignment.CenterHorizontally
+                                     ) {
+                                         Text(abbr, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                         Text(fullName, fontSize = 8.sp, color = if (selected) OnSurface.copy(alpha = 0.8f) else KetoMuted)
+                                     }
+                                 },
                                 modifier = Modifier.weight(1f),
                                 colors = FilterChipDefaults.filterChipColors(
                                     selectedContainerColor = KetoAccent,

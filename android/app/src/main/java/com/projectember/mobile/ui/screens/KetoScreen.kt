@@ -432,6 +432,14 @@ private fun HydrationBlock(
                 color = barColor,
                 trackColor = KetoBorderC
             )
+            Spacer(modifier = Modifier.height(2.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("0%", style = MaterialTheme.typography.labelSmall, color = KetoMuted, fontSize = 9.sp)
+                Text("100%", style = MaterialTheme.typography.labelSmall, color = KetoMuted, fontSize = 9.sp)
+            }
         }
     }
 }
