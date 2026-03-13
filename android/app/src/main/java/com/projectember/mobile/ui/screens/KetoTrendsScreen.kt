@@ -13,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.projectember.mobile.ui.theme.KetoBorder
 import com.projectember.mobile.ui.theme.KetoAccent
 import com.projectember.mobile.ui.theme.SurfaceMid
@@ -28,14 +29,14 @@ private val KetoBorderC = KetoBorder
 private val KetoMuted   = OnSurfaceVariant
 
 private val METRIC_OPTIONS = listOf(
-    "calories"  to "Calories",
-    "protein"   to "Protein",
-    "fat"       to "Fat",
-    "net_carbs" to "Net Carbs",
-    "hydration" to "Water",
-    "sodium"    to "Sodium",
-    "potassium" to "Potassium",
-    "magnesium" to "Magnesium"
+    Triple("calories",  "C",    "Calories"),
+    Triple("protein",   "P",    "Protein"),
+    Triple("fat",       "F",    "Fat"),
+    Triple("net_carbs", "NC",   "Net Carbs"),
+    Triple("hydration", "H2O",  "Water"),
+    Triple("sodium",    "Na",   "Sodium"),
+    Triple("potassium", "K",    "Potassium"),
+    Triple("magnesium", "Mg",   "Magnesium")
 )
 
 private fun DayTotals.selectMetric(metric: String): Float = when (metric) {
@@ -213,12 +214,20 @@ fun KetoTrendsScreen(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        METRIC_OPTIONS.take(4).forEach { (key, label) ->
+                        METRIC_OPTIONS.take(4).forEach { (key, abbr, fullName) ->
                             val selected = trendsMetric == key
                             FilterChip(
                                 selected = selected,
                                 onClick = { viewModel.setTrendsMetric(key) },
-                                label = { Text(label) },
+                                label = {
+                                     Column(
+                                         modifier = Modifier.fillMaxWidth(),
+                                         horizontalAlignment = Alignment.CenterHorizontally
+                                     ) {
+                                         Text(abbr, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                         Text(fullName, fontSize = 8.sp, color = if (selected) OnSurface.copy(alpha = 0.8f) else KetoMuted)
+                                     }
+                                 },
                                 modifier = Modifier.weight(1f),
                                 colors = FilterChipDefaults.filterChipColors(
                                     selectedContainerColor = KetoAccent,
@@ -233,12 +242,20 @@ fun KetoTrendsScreen(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        METRIC_OPTIONS.drop(4).forEach { (key, label) ->
+                        METRIC_OPTIONS.drop(4).forEach { (key, abbr, fullName) ->
                             val selected = trendsMetric == key
                             FilterChip(
                                 selected = selected,
                                 onClick = { viewModel.setTrendsMetric(key) },
-                                label = { Text(label) },
+                                label = {
+                                     Column(
+                                         modifier = Modifier.fillMaxWidth(),
+                                         horizontalAlignment = Alignment.CenterHorizontally
+                                     ) {
+                                         Text(abbr, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                         Text(fullName, fontSize = 8.sp, color = if (selected) OnSurface.copy(alpha = 0.8f) else KetoMuted)
+                                     }
+                                 },
                                 modifier = Modifier.weight(1f),
                                 colors = FilterChipDefaults.filterChipColors(
                                     selectedContainerColor = KetoAccent,
@@ -349,7 +366,7 @@ fun KetoTrendsScreen(
 
             // ── Chart card ───────────────────────────────────────────────────
             if (chartData.isNotEmpty()) {
-                val metricLabel = METRIC_OPTIONS.firstOrNull { it.first == trendsMetric }?.second ?: trendsMetric
+                val metricLabel = METRIC_OPTIONS.firstOrNull { it.first == trendsMetric }?.third ?: trendsMetric
                 val unit = metricUnit(trendsMetric)
                 val barColor = metricBarColor(trendsMetric)
 

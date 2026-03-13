@@ -56,6 +56,16 @@ class AddKetoEntryViewModel(
     var notes by mutableStateOf("")
         private set
 
+    // Exercise-specific optional fields
+    var distanceKm by mutableStateOf("")
+        private set
+    var pace by mutableStateOf("")
+        private set
+    var steps by mutableStateOf("")
+        private set
+    var activitySubtype by mutableStateOf("")
+        private set
+
     var labelError by mutableStateOf<String?>(null)
         private set
     var eventTypeError by mutableStateOf<String?>(null)
@@ -103,6 +113,12 @@ class AddKetoEntryViewModel(
     fun onMagnesiumMgChange(value: String) { magnesiumMg = value }
     fun onNotesChange(value: String) { notes = value }
 
+    // Exercise-specific handlers
+    fun onDistanceKmChange(value: String) { distanceKm = value }
+    fun onPaceChange(value: String) { pace = value }
+    fun onStepsChange(value: String) { steps = value }
+    fun onActivitySubtypeChange(value: String) { activitySubtype = value }
+
     fun save(onSuccess: () -> Unit) {
         var valid = true
         if (label.isBlank()) {
@@ -114,6 +130,8 @@ class AddKetoEntryViewModel(
             valid = false
         }
         if (!valid) return
+
+        val resolvedNotes = buildResolvedNotes()
 
         viewModelScope.launch {
             val existing = originalEntry
@@ -130,7 +148,7 @@ class AddKetoEntryViewModel(
                         sodiumMg = parseDoubleOrZero(sodiumMg),
                         potassiumMg = parseDoubleOrZero(potassiumMg),
                         magnesiumMg = parseDoubleOrZero(magnesiumMg),
-                        notes = notes.trim().ifBlank { null }
+                        notes = resolvedNotes
                     )
                 )
             } else {
@@ -149,12 +167,31 @@ class AddKetoEntryViewModel(
                         magnesiumMg = parseDoubleOrZero(magnesiumMg),
                         entryDate = now.format(DateTimeFormatter.ofPattern(DATE_FORMAT)),
                         eventTimestamp = now.format(DateTimeFormatter.ofPattern(TIMESTAMP_FORMAT)),
-                        notes = notes.trim().ifBlank { null }
+                        notes = resolvedNotes
                     )
                 )
             }
             onSuccess()
         }
+    }
+
+    /** Builds the notes string, appending optional exercise extras when event type is exercise. */
+    private fun buildResolvedNotes(): String? {
+        val base = notes.trim()
+        if (eventType.equals("exercise", ignoreCase = true)) {
+            val extras = buildList {
+                if (distanceKm.isNotBlank()) add("Distance: ${distanceKm.trim()} km")
+                if (pace.isNotBlank())       add("Pace: ${pace.trim()}")
+                if (steps.isNotBlank())      add("Steps: ${steps.trim()}")
+                if (activitySubtype.isNotBlank()) add("Activity: ${activitySubtype.trim()}")
+            }
+            val parts = buildList {
+                if (base.isNotBlank()) add(base)
+                if (extras.isNotEmpty()) add(extras.joinToString(" | "))
+            }
+            return parts.joinToString("\n").ifBlank { null }
+        }
+        return base.ifBlank { null }
     }
 
     fun deleteEntry(onSuccess: () -> Unit) {

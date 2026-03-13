@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Icon background – matches the dark app surface (#0E1117) -->
+    <color name="ic_launcher_background">#FF0E1117</color>
+</resources>

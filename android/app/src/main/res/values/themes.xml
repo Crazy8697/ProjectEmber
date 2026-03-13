@@ -1,4 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.ProjectEmber" parent="android:Theme.Material.Light.NoActionBar" />
+
+    <style name="Theme.ProjectEmber" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">#000000</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/splash_ember</item>
+        <item name="postSplashScreenTheme">@style/Theme.ProjectEmber.Main</item>
+    </style>
+
+    <style name="Theme.ProjectEmber.Main" parent="android:Theme.Material.Light.NoActionBar" />
+    
 </resources>
