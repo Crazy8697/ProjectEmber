@@ -62,7 +62,7 @@ fun EmberNavGraph(
                     navController.navigate(Screen.KetoEditEntry.createRoute(entryId))
                 },
                 onNavigateToTargets = { navController.navigate(Screen.KetoTargets.route) },
-                onNavigateToTrends = { navController.navigate(Screen.KetoTrends.route) }
+                onNavigateToTrends = { metric -> navController.navigate(Screen.KetoTrends.createRoute(metric)) }
             )
         }
 
@@ -120,12 +120,20 @@ fun EmberNavGraph(
             )
         }
 
-        composable(Screen.KetoTrends.route) {
+        composable(
+            route = Screen.KetoTrends.route,
+            arguments = listOf(navArgument("metric") {
+                type = NavType.StringType
+                defaultValue = ""
+            })
+        ) { backStackEntry ->
+            val metric = backStackEntry.arguments?.getString("metric") ?: ""
             val viewModel: KetoViewModel = viewModel(
                 factory = KetoViewModelFactory(app.ketoRepository, app.ketoTargetsStore)
             )
             KetoTrendsScreen(
                 viewModel = viewModel,
+                initialMetric = metric,
                 onNavigateBack = { navController.popBackStack() }
             )
         }
