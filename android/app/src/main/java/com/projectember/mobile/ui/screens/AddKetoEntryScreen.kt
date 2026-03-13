@@ -16,6 +16,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
+import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -37,6 +38,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.projectember.mobile.ui.theme.KetoAccent
+import com.projectember.mobile.ui.theme.OnSurface
 
 private val EVENT_TYPES = AddKetoEntryViewModel.EVENT_TYPES
 
@@ -101,6 +104,7 @@ fun AddKetoEntryScreen(
         ) {
             Spacer(modifier = Modifier.height(4.dp))
 
+            // ── Label ────────────────────────────────────────────────────────
             OutlinedTextField(
                 value = viewModel.label,
                 onValueChange = viewModel::onLabelChange,
@@ -113,6 +117,7 @@ fun AddKetoEntryScreen(
                 singleLine = true
             )
 
+            // ── Event type ───────────────────────────────────────────────────
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -126,21 +131,35 @@ fun AddKetoEntryScreen(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    EVENT_TYPES.forEach { type ->
+                    EVENT_TYPES.take(3).forEach { type ->
+                        val isSelected = viewModel.eventType == type
                         AssistChip(
                             onClick = { viewModel.onEventTypeChange(type) },
                             label = { Text(type) },
-                            modifier = Modifier.wrapContentWidth()
+                            modifier = Modifier.wrapContentWidth(),
+                            colors = AssistChipDefaults.assistChipColors(
+                                containerColor = if (isSelected) KetoAccent else MaterialTheme.colorScheme.surfaceVariant,
+                                labelColor = if (isSelected) OnSurface else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         )
                     }
                 }
-
-                if (viewModel.eventType.isNotBlank()) {
-                    Text(
-                        text = "Selected: ${viewModel.eventType}",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.primary
-                    )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    EVENT_TYPES.drop(3).forEach { type ->
+                        val isSelected = viewModel.eventType == type
+                        AssistChip(
+                            onClick = { viewModel.onEventTypeChange(type) },
+                            label = { Text(type) },
+                            modifier = Modifier.wrapContentWidth(),
+                            colors = AssistChipDefaults.assistChipColors(
+                                containerColor = if (isSelected) KetoAccent else MaterialTheme.colorScheme.surfaceVariant,
+                                labelColor = if (isSelected) OnSurface else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        )
+                    }
                 }
 
                 viewModel.eventTypeError?.let {
@@ -152,86 +171,12 @@ fun AddKetoEntryScreen(
                 }
             }
 
-            OutlinedTextField(
-                value = viewModel.calories,
-                onValueChange = viewModel::onCaloriesChange,
-                label = { Text("Calories (kcal)") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true
-            )
-
-            OutlinedTextField(
-                value = viewModel.proteinG,
-                onValueChange = viewModel::onProteinGChange,
-                label = { Text("Protein (g)") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true
-            )
-
-            OutlinedTextField(
-                value = viewModel.fatG,
-                onValueChange = viewModel::onFatGChange,
-                label = { Text("Fat (g)") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true
-            )
-
-            OutlinedTextField(
-                value = viewModel.netCarbsG,
-                onValueChange = viewModel::onNetCarbsGChange,
-                label = { Text("Net Carbs (g)") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true
-            )
-
-            OutlinedTextField(
-                value = viewModel.waterMl,
-                onValueChange = viewModel::onWaterMlChange,
-                label = { Text("Water (mL)") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true
-            )
-
-            OutlinedTextField(
-                value = viewModel.sodiumMg,
-                onValueChange = viewModel::onSodiumMgChange,
-                label = { Text("Sodium (mg)") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true
-            )
-
-            OutlinedTextField(
-                value = viewModel.potassiumMg,
-                onValueChange = viewModel::onPotassiumMgChange,
-                label = { Text("Potassium (mg)") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true
-            )
-
-            OutlinedTextField(
-                value = viewModel.magnesiumMg,
-                onValueChange = viewModel::onMagnesiumMgChange,
-                label = { Text("Magnesium (mg)") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true
-            )
-
-            OutlinedTextField(
-                value = viewModel.notes,
-                onValueChange = viewModel::onNotesChange,
-                label = { Text("Notes (optional)") },
-                modifier = Modifier.fillMaxWidth(),
-                minLines = 2,
-                maxLines = 4
-            )
+            // ── Type-adaptive fields ─────────────────────────────────────────
+            when (viewModel.eventType) {
+                "exercise" -> ExerciseFields(viewModel)
+                "supplement" -> SupplementFields(viewModel)
+                else -> if (viewModel.eventType.isNotBlank()) NutritionFields(viewModel)
+            }
 
             Spacer(modifier = Modifier.height(8.dp))
 
@@ -257,4 +202,170 @@ fun AddKetoEntryScreen(
             Spacer(modifier = Modifier.height(24.dp))
         }
     }
+}
+
+// ── Nutrition fields (Meal / Drink / Snack) ──────────────────────────────────
+@Composable
+private fun NutritionFields(viewModel: AddKetoEntryViewModel) {
+    OutlinedTextField(
+        value = viewModel.calories,
+        onValueChange = viewModel::onCaloriesChange,
+        label = { Text("Calories (kcal)") },
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+        modifier = Modifier.fillMaxWidth(),
+        singleLine = true
+    )
+    OutlinedTextField(
+        value = viewModel.proteinG,
+        onValueChange = viewModel::onProteinGChange,
+        label = { Text("Protein (g)") },
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+        modifier = Modifier.fillMaxWidth(),
+        singleLine = true
+    )
+    OutlinedTextField(
+        value = viewModel.fatG,
+        onValueChange = viewModel::onFatGChange,
+        label = { Text("Fat (g)") },
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+        modifier = Modifier.fillMaxWidth(),
+        singleLine = true
+    )
+    OutlinedTextField(
+        value = viewModel.netCarbsG,
+        onValueChange = viewModel::onNetCarbsGChange,
+        label = { Text("Net Carbs (g)") },
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+        modifier = Modifier.fillMaxWidth(),
+        singleLine = true
+    )
+    OutlinedTextField(
+        value = viewModel.waterMl,
+        onValueChange = viewModel::onWaterMlChange,
+        label = { Text("Water (mL)") },
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+        modifier = Modifier.fillMaxWidth(),
+        singleLine = true
+    )
+    OutlinedTextField(
+        value = viewModel.sodiumMg,
+        onValueChange = viewModel::onSodiumMgChange,
+        label = { Text("Sodium (mg)") },
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+        modifier = Modifier.fillMaxWidth(),
+        singleLine = true
+    )
+    OutlinedTextField(
+        value = viewModel.potassiumMg,
+        onValueChange = viewModel::onPotassiumMgChange,
+        label = { Text("Potassium (mg)") },
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+        modifier = Modifier.fillMaxWidth(),
+        singleLine = true
+    )
+    OutlinedTextField(
+        value = viewModel.magnesiumMg,
+        onValueChange = viewModel::onMagnesiumMgChange,
+        label = { Text("Magnesium (mg)") },
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+        modifier = Modifier.fillMaxWidth(),
+        singleLine = true
+    )
+    OutlinedTextField(
+        value = viewModel.notes,
+        onValueChange = viewModel::onNotesChange,
+        label = { Text("Notes (optional)") },
+        modifier = Modifier.fillMaxWidth(),
+        minLines = 2,
+        maxLines = 4
+    )
+}
+
+// ── Exercise fields ──────────────────────────────────────────────────────────
+@Composable
+private fun ExerciseFields(viewModel: AddKetoEntryViewModel) {
+    OutlinedTextField(
+        value = viewModel.calories,
+        onValueChange = viewModel::onCaloriesChange,
+        label = { Text("Calories burned (kcal)") },
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+        modifier = Modifier.fillMaxWidth(),
+        singleLine = true
+    )
+    OutlinedTextField(
+        value = viewModel.distanceKm,
+        onValueChange = viewModel::onDistanceKmChange,
+        label = { Text("Distance (km, optional)") },
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+        modifier = Modifier.fillMaxWidth(),
+        singleLine = true
+    )
+    OutlinedTextField(
+        value = viewModel.notes,
+        onValueChange = viewModel::onNotesChange,
+        label = { Text("Notes (optional)") },
+        modifier = Modifier.fillMaxWidth(),
+        minLines = 2,
+        maxLines = 4
+    )
+    // Optional advanced fields
+    OutlinedTextField(
+        value = viewModel.activitySubtype,
+        onValueChange = viewModel::onActivitySubtypeChange,
+        label = { Text("Activity type (optional, e.g. run, cycle, swim)") },
+        modifier = Modifier.fillMaxWidth(),
+        singleLine = true
+    )
+    OutlinedTextField(
+        value = viewModel.pace,
+        onValueChange = viewModel::onPaceChange,
+        label = { Text("Pace (optional, e.g. 5:30 /km)") },
+        modifier = Modifier.fillMaxWidth(),
+        singleLine = true
+    )
+    OutlinedTextField(
+        value = viewModel.steps,
+        onValueChange = viewModel::onStepsChange,
+        label = { Text("Steps (optional)") },
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+        modifier = Modifier.fillMaxWidth(),
+        singleLine = true
+    )
+}
+
+// ── Supplement fields ────────────────────────────────────────────────────────
+@Composable
+private fun SupplementFields(viewModel: AddKetoEntryViewModel) {
+    OutlinedTextField(
+        value = viewModel.notes,
+        onValueChange = viewModel::onNotesChange,
+        label = { Text("Notes (e.g. dosage, brand, purpose)") },
+        modifier = Modifier.fillMaxWidth(),
+        minLines = 2,
+        maxLines = 4
+    )
+    OutlinedTextField(
+        value = viewModel.sodiumMg,
+        onValueChange = viewModel::onSodiumMgChange,
+        label = { Text("Sodium (mg, optional)") },
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+        modifier = Modifier.fillMaxWidth(),
+        singleLine = true
+    )
+    OutlinedTextField(
+        value = viewModel.potassiumMg,
+        onValueChange = viewModel::onPotassiumMgChange,
+        label = { Text("Potassium (mg, optional)") },
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+        modifier = Modifier.fillMaxWidth(),
+        singleLine = true
+    )
+    OutlinedTextField(
+        value = viewModel.magnesiumMg,
+        onValueChange = viewModel::onMagnesiumMgChange,
+        label = { Text("Magnesium (mg, optional)") },
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+        modifier = Modifier.fillMaxWidth(),
+        singleLine = true
+    )
 }

@@ -3,11 +3,12 @@ package com.projectember.mobile.ui.theme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 
 private val EmberDarkColorScheme = darkColorScheme(
     primary = KetoAccent,
     onPrimary = OnSurface,
-    primaryContainer = Color(0xFF0D47A1),
+    primaryContainer = SurfaceMid,
     onPrimaryContainer = OnSurface,
     secondary = EmberOrange,
     onSecondary = OnSurface,

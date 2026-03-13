@@ -18,6 +18,7 @@ import com.projectember.mobile.ui.screens.HomeScreen
 import com.projectember.mobile.ui.screens.HomeViewModel
 import com.projectember.mobile.ui.screens.HomeViewModelFactory
 import com.projectember.mobile.ui.screens.KetoScreen
+import com.projectember.mobile.ui.screens.KetoTrendsScreen
 import com.projectember.mobile.ui.screens.KetoViewModel
 import com.projectember.mobile.ui.screens.KetoViewModelFactory
 import com.projectember.mobile.ui.screens.KetoTargetsScreen
@@ -60,7 +61,8 @@ fun EmberNavGraph(
                 onNavigateToEditEntry = { entryId ->
                     navController.navigate(Screen.KetoEditEntry.createRoute(entryId))
                 },
-                onNavigateToTargets = { navController.navigate(Screen.KetoTargets.route) }
+                onNavigateToTargets = { navController.navigate(Screen.KetoTargets.route) },
+                onNavigateToTrends = { metric -> navController.navigate(Screen.KetoTrends.createRoute(metric)) }
             )
         }
 
@@ -114,6 +116,24 @@ fun EmberNavGraph(
             )
             KetoTargetsScreen(
                 viewModel = viewModel,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(
+            route = Screen.KetoTrends.route,
+            arguments = listOf(navArgument("metric") {
+                type = NavType.StringType
+                defaultValue = ""
+            })
+        ) { backStackEntry ->
+            val metric = backStackEntry.arguments?.getString("metric") ?: ""
+            val viewModel: KetoViewModel = viewModel(
+                factory = KetoViewModelFactory(app.ketoRepository, app.ketoTargetsStore)
+            )
+            KetoTrendsScreen(
+                viewModel = viewModel,
+                initialMetric = metric,
                 onNavigateBack = { navController.popBackStack() }
             )
         }
