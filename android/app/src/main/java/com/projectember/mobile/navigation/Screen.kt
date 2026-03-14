@@ -19,4 +19,12 @@ sealed class Screen(val route: String) {
     data object Eira : Screen("eira")
     data object KetoTargets : Screen("keto_targets")
     data object Settings : Screen("settings")
+    data object Exercise : Screen("exercise")
+    data object ExerciseAddEntry : Screen("exercise_add_entry?initialDate={initialDate}") {
+        fun createRoute(initialDate: String = "") =
+            if (initialDate.isBlank()) "exercise_add_entry" else "exercise_add_entry?initialDate=$initialDate"
+    }
+    data object ExerciseEditEntry : Screen("exercise_edit_entry/{entryId}") {
+        fun createRoute(entryId: Int) = "exercise_edit_entry/$entryId"
+    }
 }

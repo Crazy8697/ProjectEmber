@@ -1,5 +1,6 @@
 package com.projectember.mobile.data.local.db
 
+import com.projectember.mobile.data.local.entities.ExerciseCategory
 import com.projectember.mobile.data.local.entities.KetoEntry
 import com.projectember.mobile.data.local.entities.Recipe
 import com.projectember.mobile.data.local.entities.SyncStatus
@@ -12,6 +13,7 @@ object DatabaseSeeder {
         val ketoDao = database.ketoDao()
         val recipeDao = database.recipeDao()
         val syncDao = database.syncStatusDao()
+        val exerciseCategoryDao = database.exerciseCategoryDao()
 
         val today = LocalDate.now()
         val yesterday = today.minusDays(1)
@@ -167,5 +169,15 @@ object DatabaseSeeder {
                 updatedAt = LocalDateTime.now().format(dateTimeFormatter)
             )
         )
+
+        if (exerciseCategoryDao.count() == 0) {
+            val builtIns = listOf(
+                "Cardio", "Strength", "Recovery", "Outdoor",
+                "House Work", "Rehab", "Other"
+            )
+            exerciseCategoryDao.insertAll(
+                builtIns.map { ExerciseCategory(name = it, isBuiltIn = true) }
+            )
+        }
     }
 }

@@ -10,6 +10,9 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.projectember.mobile.EmberApplication
+import com.projectember.mobile.ui.screens.AddEditExerciseScreen
+import com.projectember.mobile.ui.screens.AddEditExerciseViewModelFactory
+import com.projectember.mobile.ui.screens.AddEditExerciseViewModel
 import com.projectember.mobile.ui.screens.AddEditRecipeScreen
 import com.projectember.mobile.ui.screens.AddEditRecipeViewModelFactory
 import com.projectember.mobile.ui.screens.AddEditRecipeViewModel
@@ -17,6 +20,9 @@ import com.projectember.mobile.ui.screens.AddKetoEntryScreen
 import com.projectember.mobile.ui.screens.AddKetoEntryViewModelFactory
 import com.projectember.mobile.ui.screens.AddKetoEntryViewModel
 import com.projectember.mobile.ui.screens.EiraScreen
+import com.projectember.mobile.ui.screens.ExerciseScreen
+import com.projectember.mobile.ui.screens.ExerciseViewModel
+import com.projectember.mobile.ui.screens.ExerciseViewModelFactory
 import com.projectember.mobile.ui.screens.HomeScreen
 import com.projectember.mobile.ui.screens.KetoScreen
 import com.projectember.mobile.ui.screens.KetoTrendsScreen
@@ -46,6 +52,7 @@ fun EmberNavGraph(
             HomeScreen(
                 onNavigateToKeto = { navController.navigate(Screen.Keto.route) },
                 onNavigateToRecipes = { navController.navigate(Screen.Recipes.route) },
+                onNavigateToExercise = { navController.navigate(Screen.Exercise.route) },
                 onNavigateToSettings = { navController.navigate(Screen.Settings.route) }
             )
         }
@@ -175,6 +182,69 @@ fun EmberNavGraph(
                 factory = SettingsViewModelFactory(app.syncRepository, app.syncManager)
             )
             SettingsScreen(
+                viewModel = viewModel,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        // ── Exercise ──────────────────────────────────────────────────────────
+        composable(Screen.Exercise.route) {
+            val viewModel: ExerciseViewModel = viewModel(
+                factory = ExerciseViewModelFactory(
+                    app.exerciseRepository,
+                    app.exerciseCategoryRepository
+                )
+            )
+            ExerciseScreen(
+                viewModel = viewModel,
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToAddEntry = { date ->
+                    navController.navigate(Screen.ExerciseAddEntry.createRoute(date))
+                },
+                onNavigateToEditEntry = { entryId ->
+                    navController.navigate(Screen.ExerciseEditEntry.createRoute(entryId))
+                }
+            )
+        }
+
+        composable(
+            route = Screen.ExerciseAddEntry.route,
+            arguments = listOf(navArgument("initialDate") {
+                type = NavType.StringType
+                defaultValue = ""
+            })
+        ) { backStackEntry ->
+            val initialDate = backStackEntry.arguments?.getString("initialDate")?.takeIf { it.isNotBlank() }
+            val viewModel: AddEditExerciseViewModel = viewModel(
+                factory = AddEditExerciseViewModelFactory(
+                    app.exerciseRepository,
+                    app.exerciseCategoryRepository,
+                    initialDate = initialDate
+                )
+            )
+            AddEditExerciseScreen(
+                viewModel = viewModel,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(
+            route = Screen.ExerciseEditEntry.route,
+            arguments = listOf(navArgument("entryId") { type = NavType.IntType })
+        ) { backStackEntry ->
+            val entryId = backStackEntry.arguments?.getInt("entryId")
+            if (entryId == null) {
+                navController.popBackStack()
+                return@composable
+            }
+            val viewModel: AddEditExerciseViewModel = viewModel(
+                factory = AddEditExerciseViewModelFactory(
+                    app.exerciseRepository,
+                    app.exerciseCategoryRepository,
+                    editEntryId = entryId
+                )
+            )
+            AddEditExerciseScreen(
                 viewModel = viewModel,
                 onNavigateBack = { navController.popBackStack() }
             )
