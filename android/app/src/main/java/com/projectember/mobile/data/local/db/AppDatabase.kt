@@ -11,16 +11,19 @@ import com.projectember.mobile.data.local.dao.ExerciseEntryDao
 import com.projectember.mobile.data.local.dao.KetoDao
 import com.projectember.mobile.data.local.dao.RecipeDao
 import com.projectember.mobile.data.local.dao.SyncStatusDao
+import com.projectember.mobile.data.local.dao.WeightDao
 import com.projectember.mobile.data.local.entities.ExerciseCategory
 import com.projectember.mobile.data.local.entities.ExerciseEntry
 import com.projectember.mobile.data.local.entities.KetoEntry
 import com.projectember.mobile.data.local.entities.Recipe
 import com.projectember.mobile.data.local.entities.SyncStatus
+import com.projectember.mobile.data.local.entities.WeightEntry
 
 @Database(
     entities = [KetoEntry::class, Recipe::class, SyncStatus::class,
-                ExerciseCategory::class, ExerciseEntry::class],
-    version = 7,
+                ExerciseCategory::class, ExerciseEntry::class,
+                WeightEntry::class],
+    version = 8,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -29,6 +32,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun syncStatusDao(): SyncStatusDao
     abstract fun exerciseCategoryDao(): ExerciseCategoryDao
     abstract fun exerciseEntryDao(): ExerciseEntryDao
+    abstract fun weightDao(): WeightDao
 
     companion object {
         @Volatile
@@ -102,6 +106,22 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL(
+                    """CREATE TABLE IF NOT EXISTS `weight_entries` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `entryDate` TEXT NOT NULL,
+                        `weightKg` REAL NOT NULL
+                    )"""
+                )
+                database.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_weight_entries_entryDate` " +
+                        "ON `weight_entries` (`entryDate`)"
+                )
+            }
+        }
+
         fun getInstance(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 INSTANCE ?: Room.databaseBuilder(
@@ -111,7 +131,8 @@ abstract class AppDatabase : RoomDatabase() {
                 )
                     .addMigrations(
                         MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4,
-                        MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7
+                        MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7,
+                        MIGRATION_7_8
                     )
                     .build().also { INSTANCE = it }
             }

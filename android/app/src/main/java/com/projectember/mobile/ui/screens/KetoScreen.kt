@@ -10,6 +10,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.Help
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.ShowChart
@@ -23,7 +24,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.projectember.mobile.data.local.WeightStore
+import com.projectember.mobile.data.local.entities.WeightEntry
 import com.projectember.mobile.data.local.entities.KetoEntry
 import com.projectember.mobile.data.local.entities.effectiveCalories
 import com.projectember.mobile.ui.theme.KetoBorder
@@ -73,7 +74,8 @@ fun KetoScreen(
     onNavigateToAddEntry: () -> Unit,
     onNavigateToEditEntry: (Int) -> Unit,
     onNavigateToTargets: () -> Unit,
-    onNavigateToTrends: (String) -> Unit
+    onNavigateToTrends: (String) -> Unit,
+    onNavigateToLogExercise: (String) -> Unit
 ) {
     val selectedDateEntries by viewModel.selectedDateEntries.collectAsState()
     val selectedDate by viewModel.selectedDate.collectAsState()
@@ -356,6 +358,22 @@ fun KetoScreen(
                             showWeightDialog = true
                         }
                     )
+                }
+            }
+
+            // ── Quick-action: Log Exercise ────────────────────────────────────
+            item {
+                OutlinedButton(
+                    onClick = { onNavigateToLogExercise(selectedDate) },
+                    modifier = Modifier.fillMaxWidth(),
+                    border = BorderStroke(1.dp, KetoBorderC)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.FitnessCenter,
+                        contentDescription = null,
+                        modifier = Modifier.padding(end = 8.dp)
+                    )
+                    Text("Log Exercise")
                 }
             }
 
@@ -840,7 +858,7 @@ private fun MacroDetail(label: String, value: String, color: Color = OnSurface) 
 @Composable
 private fun WeightBlock(
     modifier: Modifier = Modifier,
-    lastEntry: WeightStore.WeightEntry?,
+    lastEntry: WeightEntry?,
     onClick: () -> Unit
 ) {
     Card(
@@ -864,7 +882,7 @@ private fun WeightBlock(
             )
             Spacer(modifier = Modifier.height(2.dp))
             Text(
-                text = if (lastEntry != null) lastEntry.date else "tap to log",
+                text = if (lastEntry != null) lastEntry.entryDate else "tap to log",
                 style = MaterialTheme.typography.labelSmall,
                 color = KetoMuted,
                 fontSize = 10.sp

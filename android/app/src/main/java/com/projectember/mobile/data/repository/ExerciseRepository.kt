@@ -11,4 +11,7 @@ class ExerciseRepository(private val dao: ExerciseEntryDao) {
     suspend fun insertEntry(entry: ExerciseEntry) = dao.insert(entry)
     suspend fun updateEntry(entry: ExerciseEntry) = dao.update(entry)
     suspend fun deleteEntry(entry: ExerciseEntry) = dao.delete(entry)
+    suspend fun countEntriesForCategory(categoryId: Int): Int =
+        dao.countEntriesForCategory(categoryId)
 }
+

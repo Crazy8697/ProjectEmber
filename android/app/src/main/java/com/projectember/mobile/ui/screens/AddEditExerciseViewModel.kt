@@ -137,15 +137,55 @@ class AddEditExerciseViewModel(
     fun onCaloriesBurnedChange(value: String) { caloriesBurned = value }
     fun onNotesChange(value: String) { notes = value }
 
+    /** Create a custom category and auto-select it. Returns an error message, or null on success. */
+    suspend fun createCategoryValidated(name: String): String? {
+        val trimmed = name.trim()
+        if (trimmed.isBlank()) return "Category name cannot be empty"
+        if (categoryRepository.nameExists(trimmed)) {
+            return "A category named \"$trimmed\" already exists"
+        }
+        val newId = categoryRepository.insert(
+            ExerciseCategory(name = trimmed, isBuiltIn = false)
+        ).toInt()
+        selectedCategoryId = newId
+        categoryError = null
+        return null
+    }
+
     /** Create a custom category and auto-select it. */
     fun createCategory(name: String) {
         viewModelScope.launch {
-            val newId = categoryRepository.insert(
-                ExerciseCategory(name = name.trim(), isBuiltIn = false)
-            ).toInt()
-            selectedCategoryId = newId
-            categoryError = null
+            val error = createCategoryValidated(name)
+            if (error != null) {
+                categoryError = error
+            }
         }
+    }
+
+    /**
+     * Safely delete a custom category.
+     *
+     * Returns a [DeleteCategoryResult] describing the outcome:
+     *  - [DeleteCategoryResult.Deleted] on success
+     *  - [DeleteCategoryResult.BuiltInProtected] if the category is a built-in
+     *  - [DeleteCategoryResult.InUse] if exercise entries reference it (includes count)
+     */
+    suspend fun deleteCategory(categoryId: Int): DeleteCategoryResult {
+        val cat = categoryRepository.getById(categoryId)
+            ?: return DeleteCategoryResult.Deleted // already gone
+        if (cat.isBuiltIn) return DeleteCategoryResult.BuiltInProtected
+        val usageCount = exerciseRepository.countEntriesForCategory(categoryId)
+        if (usageCount > 0) return DeleteCategoryResult.InUse(usageCount)
+        categoryRepository.delete(cat)
+        // If the deleted category was selected, reset selection
+        if (selectedCategoryId == categoryId) selectedCategoryId = 0
+        return DeleteCategoryResult.Deleted
+    }
+
+    sealed interface DeleteCategoryResult {
+        data object Deleted : DeleteCategoryResult
+        data object BuiltInProtected : DeleteCategoryResult
+        data class InUse(val entryCount: Int) : DeleteCategoryResult
     }
 
     /** Validate and persist. Calls [onSuccess] on success, [onValidationFailed] if invalid. */

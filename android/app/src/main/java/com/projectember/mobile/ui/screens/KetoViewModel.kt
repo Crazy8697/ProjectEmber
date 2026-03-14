@@ -5,10 +5,12 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.projectember.mobile.data.local.KetoTargets
 import com.projectember.mobile.data.local.KetoTargetsStore
-import com.projectember.mobile.data.local.WeightStore
 import com.projectember.mobile.data.local.entities.KetoEntry
+import com.projectember.mobile.data.local.entities.WeightEntry
 import com.projectember.mobile.data.local.entities.effectiveCalories
 import com.projectember.mobile.data.repository.KetoRepository
+import com.projectember.mobile.data.repository.WeightRepository
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -17,6 +19,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
@@ -30,13 +33,15 @@ data class DayTotals(
     val waterMl: Double = 0.0,
     val sodiumMg: Double = 0.0,
     val potassiumMg: Double = 0.0,
-    val magnesiumMg: Double = 0.0
+    val magnesiumMg: Double = 0.0,
+    /** Weight logged on this day (kg), or null if none. */
+    val weightKg: Double? = null
 )
 
 class KetoViewModel(
     private val ketoRepository: KetoRepository,
     val targetsStore: KetoTargetsStore,
-    private val weightStore: WeightStore
+    private val weightRepository: WeightRepository
 ) : ViewModel() {
 
     private val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
@@ -61,12 +66,20 @@ class KetoViewModel(
 
     val targets: StateFlow<KetoTargets> = targetsStore.targets
 
-    /** Last logged body weight. */
-    val lastWeightEntry: StateFlow<WeightStore.WeightEntry?> = weightStore.lastEntry
+    /** Latest logged body weight entry from Room. */
+    val lastWeightEntry: StateFlow<WeightEntry?> = weightRepository
+        .getLatestEntry()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = null
+        )
 
     fun logWeight(weightKg: Double) {
         val date = LocalDate.now().format(dateFormatter)
-        weightStore.save(weightKg, date)
+        viewModelScope.launch(Dispatchers.IO) {
+            weightRepository.insert(WeightEntry(entryDate = date, weightKg = weightKg))
+        }
     }
 
     // ── Trends controls ──────────────────────────────────────────────────────
@@ -95,40 +108,50 @@ class KetoViewModel(
     val trendsData: StateFlow<List<DayTotals>> =
         combine(_trendsFromDate, _trendsToDate) { from, to -> from to to }
             .flatMapLatest { (fromDate, toDate) ->
-                ketoRepository.getEntriesFromDate(fromDate)
-                    .map { entries ->
-                        val from = try {
-                            LocalDate.parse(fromDate, dateFormatter)
-                        } catch (_: Exception) {
-                            LocalDate.now().minusDays(6)
-                        }
-                        val to = try {
-                            LocalDate.parse(toDate, dateFormatter)
-                        } catch (_: Exception) {
-                            LocalDate.now()
-                        }
-                        val numDays = ((to.toEpochDay() - from.toEpochDay() + 1)
-                            .toInt()).coerceIn(1, 90)
-                        val dayShortFmt = DateTimeFormatter.ofPattern("EEE")
-                        (0 until numDays).map { offset ->
-                            val date = from.plusDays(offset.toLong())
-                            val dateStr = date.format(dateFormatter)
-                            val dayEntries = entries.filter { it.entryDate == dateStr }
-                            DayTotals(
-                                label = date.format(dayShortFmt),
-                                date = dateStr,
-                                calories = dayEntries.sumOf { it.effectiveCalories() }
-                                    .coerceAtLeast(0.0),
-                                netCarbsG = dayEntries.sumOf { it.netCarbsG },
-                                proteinG = dayEntries.sumOf { it.proteinG },
-                                fatG = dayEntries.sumOf { it.fatG },
-                                waterMl = dayEntries.sumOf { it.waterMl },
-                                sodiumMg = dayEntries.sumOf { it.sodiumMg },
-                                potassiumMg = dayEntries.sumOf { it.potassiumMg },
-                                magnesiumMg = dayEntries.sumOf { it.magnesiumMg }
-                            )
-                        }
+                combine(
+                    ketoRepository.getEntriesFromDate(fromDate),
+                    weightRepository.getEntriesInRange(fromDate, toDate)
+                ) { ketoEntries, weightEntries ->
+                    val from = try {
+                        LocalDate.parse(fromDate, dateFormatter)
+                    } catch (_: Exception) {
+                        LocalDate.now().minusDays(6)
                     }
+                    val to = try {
+                        LocalDate.parse(toDate, dateFormatter)
+                    } catch (_: Exception) {
+                        LocalDate.now()
+                    }
+                    val numDays = ((to.toEpochDay() - from.toEpochDay() + 1)
+                        .toInt()).coerceIn(1, 90)
+                    val dayShortFmt = DateTimeFormatter.ofPattern("EEE")
+                    // Build a map from date → latest weight for that day (by highest id).
+                    val weightByDate: Map<String, Double> = weightEntries
+                        .groupBy { it.entryDate }
+                        .mapValues { (_, entries) ->
+                            // Use maxByOrNull so the most recently inserted entry per day wins.
+                            entries.maxByOrNull { it.id }!!.weightKg
+                        }
+                    (0 until numDays).map { offset ->
+                        val date = from.plusDays(offset.toLong())
+                        val dateStr = date.format(dateFormatter)
+                        val dayEntries = ketoEntries.filter { it.entryDate == dateStr }
+                        DayTotals(
+                            label = date.format(dayShortFmt),
+                            date = dateStr,
+                            calories = dayEntries.sumOf { it.effectiveCalories() }
+                                .coerceAtLeast(0.0),
+                            netCarbsG = dayEntries.sumOf { it.netCarbsG },
+                            proteinG = dayEntries.sumOf { it.proteinG },
+                            fatG = dayEntries.sumOf { it.fatG },
+                            waterMl = dayEntries.sumOf { it.waterMl },
+                            sodiumMg = dayEntries.sumOf { it.sodiumMg },
+                            potassiumMg = dayEntries.sumOf { it.potassiumMg },
+                            magnesiumMg = dayEntries.sumOf { it.magnesiumMg },
+                            weightKg = weightByDate[dateStr]
+                        )
+                    }
+                }
             }
             .stateIn(
                 scope = viewModelScope,
@@ -169,9 +192,9 @@ class KetoViewModel(
 class KetoViewModelFactory(
     private val ketoRepository: KetoRepository,
     private val targetsStore: KetoTargetsStore,
-    private val weightStore: WeightStore
+    private val weightRepository: WeightRepository
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T =
-        KetoViewModel(ketoRepository, targetsStore, weightStore) as T
+        KetoViewModel(ketoRepository, targetsStore, weightRepository) as T
 }
