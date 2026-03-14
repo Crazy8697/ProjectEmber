@@ -1,6 +1,7 @@
 package com.projectember.mobile.ui.screens
 
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -13,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -32,6 +34,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -48,6 +51,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -158,11 +162,16 @@ fun RecipesScreen(
     ) { paddingValues ->
         if (selectedRecipe != null) {
             val recipe = selectedRecipe!!
+            var logServingsInput by remember(recipe.id) { mutableStateOf("1") }
             RecipeDetailView(
                 recipe = recipe,
+                logServingsInput = logServingsInput,
+                onLogServingsChange = { logServingsInput = it },
                 onLogToKeto = {
+                    val consumed = logServingsInput.toDoubleOrNull()?.coerceAtLeast(0.1) ?: 1.0
                     viewModel.logRecipeToKeto(
                         recipe = recipe,
+                        servingsConsumed = consumed,
                         onDone = {
                             coroutineScope.launch {
                                 snackbarHostState.showSnackbar("\"${recipe.name}\" logged to Keto")
@@ -308,19 +317,38 @@ private fun RecipeCard(recipe: Recipe, onClick: () -> Unit) {
                 )
             }
             Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = "%.0f kcal  |  P: %.0fg  |  F: %.0fg  |  C: %.0fg".format(
-                    recipe.calories, recipe.proteinG, recipe.fatG, recipe.netCarbsG
-                ),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.primary
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "%.0f kcal  |  P: %.0fg  |  F: %.0fg  |  C: %.0fg".format(
+                        recipe.calories, recipe.proteinG, recipe.fatG, recipe.netCarbsG
+                    ),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    text = if (recipe.servings == recipe.servings.toLong().toDouble())
+                        "${recipe.servings.toLong()} srv"
+                    else "%.1f srv".format(recipe.servings),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = KetoAccent
+                )
+            }
         }
     }
 }
 
 @Composable
-private fun RecipeDetailView(recipe: Recipe, onLogToKeto: () -> Unit, modifier: Modifier = Modifier) {
+private fun RecipeDetailView(
+    recipe: Recipe,
+    logServingsInput: String,
+    onLogServingsChange: (String) -> Unit,
+    onLogToKeto: () -> Unit,
+    modifier: Modifier = Modifier
+) {
     val ingredients = remember(recipe.ingredientsRaw) { decodeIngredients(recipe.ingredientsRaw) }
 
     Column(
@@ -352,11 +380,26 @@ private fun RecipeDetailView(recipe: Recipe, onLogToKeto: () -> Unit, modifier: 
 
         HorizontalDivider()
 
-        Text(
-            text = "Macros (per serving)",
-            style = MaterialTheme.typography.titleLarge
-        )
+        // ── Servings header ──────────────────────────────────────────────────
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Nutrition",
+                style = MaterialTheme.typography.titleLarge
+            )
+            Text(
+                text = if (recipe.servings == recipe.servings.toLong().toDouble())
+                    "${recipe.servings.toLong()} serving${if (recipe.servings != 1.0) "s" else ""}"
+                else "%.1f servings".format(recipe.servings),
+                style = MaterialTheme.typography.labelMedium,
+                color = KetoAccent
+            )
+        }
 
+        val srv = recipe.servings.coerceAtLeast(1.0)
         Card(
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surface
@@ -364,13 +407,32 @@ private fun RecipeDetailView(recipe: Recipe, onLogToKeto: () -> Unit, modifier: 
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
-                MacroDetailRow("Calories", "%.0f kcal".format(recipe.calories))
-                MacroDetailRow("Protein", "%.1f g".format(recipe.proteinG))
-                MacroDetailRow("Fat", "%.1f g".format(recipe.fatG))
-                MacroDetailRow("Total Carbs", "%.1f g".format(recipe.totalCarbsG))
-                MacroDetailRow("Fiber", "%.1f g".format(recipe.fiberG))
-                MacroDetailRow("Net Carbs", "%.1f g".format(recipe.netCarbsG))
-                MacroDetailRow("Servings", "%.1f".format(recipe.servings))
+                // Header row
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text("", modifier = Modifier.weight(1f))
+                    Text(
+                        text = "Whole Recipe",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Text(
+                        text = "Per Serving",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = KetoAccent,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+                HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+                NutritionRow("Calories",    "%.0f kcal".format(recipe.calories),    "%.0f kcal".format(recipe.calories    / srv))
+                NutritionRow("Protein",     "%.1f g".format(recipe.proteinG),       "%.1f g".format(recipe.proteinG     / srv))
+                NutritionRow("Fat",         "%.1f g".format(recipe.fatG),           "%.1f g".format(recipe.fatG         / srv))
+                NutritionRow("Total Carbs", "%.1f g".format(recipe.totalCarbsG),    "%.1f g".format(recipe.totalCarbsG  / srv))
+                NutritionRow("Fiber",       "%.1f g".format(recipe.fiberG),         "%.1f g".format(recipe.fiberG       / srv))
+                NutritionRow("Net Carbs",   "%.1f g".format(recipe.netCarbsG),      "%.1f g".format(recipe.netCarbsG    / srv))
             }
         }
 
@@ -389,14 +451,33 @@ private fun RecipeDetailView(recipe: Recipe, onLogToKeto: () -> Unit, modifier: 
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("", modifier = Modifier.weight(1f))
+                        Text(
+                            text = "Whole Recipe",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.weight(1f)
+                        )
+                        Text(
+                            text = "Per Serving",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = KetoAccent,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
                     if (recipe.sodiumMg > 0.0)
-                        MacroDetailRow("Sodium", "%.0f mg".format(recipe.sodiumMg))
+                        NutritionRow("Sodium",    "%.0f mg".format(recipe.sodiumMg),    "%.0f mg".format(recipe.sodiumMg    / srv))
                     if (recipe.potassiumMg > 0.0)
-                        MacroDetailRow("Potassium", "%.0f mg".format(recipe.potassiumMg))
+                        NutritionRow("Potassium", "%.0f mg".format(recipe.potassiumMg), "%.0f mg".format(recipe.potassiumMg / srv))
                     if (recipe.magnesiumMg > 0.0)
-                        MacroDetailRow("Magnesium", "%.0f mg".format(recipe.magnesiumMg))
+                        NutritionRow("Magnesium", "%.0f mg".format(recipe.magnesiumMg), "%.0f mg".format(recipe.magnesiumMg / srv))
                     if (recipe.waterMl > 0.0)
-                        MacroDetailRow("Water", "%.0f mL".format(recipe.waterMl))
+                        NutritionRow("Water",     "%.0f mL".format(recipe.waterMl),     "%.0f mL".format(recipe.waterMl    / srv))
                 }
             }
         }
@@ -461,11 +542,33 @@ private fun RecipeDetailView(recipe: Recipe, onLogToKeto: () -> Unit, modifier: 
 
         Spacer(modifier = Modifier.height(4.dp))
 
-        Button(
-            onClick = onLogToKeto,
-            modifier = Modifier.fillMaxWidth()
+        HorizontalDivider()
+
+        // ── Log to Keto ──────────────────────────────────────────────────────
+        Text(
+            text = "Log to Keto",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("Log to Keto")
+            OutlinedTextField(
+                value = logServingsInput,
+                onValueChange = onLogServingsChange,
+                label = { Text("Servings") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                modifier = Modifier.width(120.dp),
+                singleLine = true
+            )
+            Button(
+                onClick = onLogToKeto,
+                modifier = Modifier.weight(1f)
+            ) {
+                Text("Log to Keto")
+            }
         }
 
         Spacer(modifier = Modifier.height(24.dp))
@@ -488,6 +591,36 @@ private fun MacroDetailRow(label: String, value: String) {
             text = value,
             style = MaterialTheme.typography.bodyLarge,
             fontWeight = FontWeight.SemiBold
+        )
+    }
+}
+
+@Composable
+private fun NutritionRow(label: String, total: String, perServing: String) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 3.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.weight(1f)
+        )
+        Text(
+            text = total,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.weight(1f)
+        )
+        Text(
+            text = perServing,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = KetoAccent,
+            modifier = Modifier.weight(1f)
         )
     }
 }

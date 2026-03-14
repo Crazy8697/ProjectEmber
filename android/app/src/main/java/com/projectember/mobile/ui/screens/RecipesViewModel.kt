@@ -79,21 +79,30 @@ class RecipesViewModel(
         }
     }
 
-    fun logRecipeToKeto(recipe: Recipe, onDone: () -> Unit, onError: ((Throwable) -> Unit)? = null) {
+    fun logRecipeToKeto(recipe: Recipe, servingsConsumed: Double = 1.0, onDone: () -> Unit, onError: ((Throwable) -> Unit)? = null) {
         viewModelScope.launch {
             try {
                 val now = LocalDateTime.now()
+                // Divide total recipe nutrition by recipe servings to get a per-serving snapshot.
+                // This is stored on the KetoEntry so it remains stable even if the recipe is later edited.
+                val recipeServings = recipe.servings.coerceAtLeast(1.0)
                 ketoRepository.insertEntry(
                     KetoEntry(
                         label = recipe.name,
                         eventType = "meal",
-                        calories = recipe.calories,
-                        proteinG = recipe.proteinG,
-                        fatG = recipe.fatG,
-                        netCarbsG = recipe.netCarbsG,
+                        calories     = recipe.calories     / recipeServings,
+                        proteinG     = recipe.proteinG     / recipeServings,
+                        fatG         = recipe.fatG         / recipeServings,
+                        netCarbsG    = recipe.netCarbsG    / recipeServings,
+                        waterMl      = recipe.waterMl      / recipeServings,
+                        sodiumMg     = recipe.sodiumMg     / recipeServings,
+                        potassiumMg  = recipe.potassiumMg  / recipeServings,
+                        magnesiumMg  = recipe.magnesiumMg  / recipeServings,
                         entryDate = now.format(DateTimeFormatter.ofPattern(DATE_FORMAT)),
                         eventTimestamp = now.format(DateTimeFormatter.ofPattern(TIMESTAMP_FORMAT)),
-                        notes = recipe.ketoNotes
+                        notes = recipe.ketoNotes,
+                        servings = servingsConsumed.coerceAtLeast(0.1),
+                        recipeId = recipe.id
                     )
                 )
                 onDone()

@@ -1,0 +1,37 @@
+package com.projectember.mobile.data.local.dao
+
+import androidx.room.Dao
+import androidx.room.Insert
+import androidx.room.OnConflictStrategy
+import androidx.room.Query
+import com.projectember.mobile.data.local.entities.WeightEntry
+import kotlinx.coroutines.flow.Flow
+
+@Dao
+interface WeightDao {
+
+    /** Latest entry by insertion order — used for the dashboard weight card. */
+    @Query("SELECT * FROM weight_entries ORDER BY id DESC LIMIT 1")
+    fun getLatestEntry(): Flow<WeightEntry?>
+
+    /** All entries with an entryDate on or after [fromDate], sorted oldest → newest. */
+    @Query(
+        "SELECT * FROM weight_entries WHERE entryDate >= :fromDate " +
+            "ORDER BY entryDate ASC, id ASC"
+    )
+    fun getEntriesFromDate(fromDate: String): Flow<List<WeightEntry>>
+
+    /** All entries within an inclusive date range, sorted oldest → newest. */
+    @Query(
+        "SELECT * FROM weight_entries " +
+            "WHERE entryDate >= :fromDate AND entryDate <= :toDate " +
+            "ORDER BY entryDate ASC, id ASC"
+    )
+    fun getEntriesInRange(fromDate: String, toDate: String): Flow<List<WeightEntry>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insert(entry: WeightEntry)
+
+    @Query("SELECT COUNT(*) FROM weight_entries")
+    suspend fun count(): Int
+}

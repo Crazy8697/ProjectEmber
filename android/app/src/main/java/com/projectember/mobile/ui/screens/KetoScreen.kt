@@ -10,6 +10,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.Help
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.ShowChart
@@ -23,9 +24,16 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.projectember.mobile.data.local.WeightStore
+import com.projectember.mobile.data.local.entities.WeightEntry
 import com.projectember.mobile.data.local.entities.KetoEntry
 import com.projectember.mobile.data.local.entities.effectiveCalories
+import com.projectember.mobile.data.local.entities.effectiveFat
+import com.projectember.mobile.data.local.entities.effectiveMagnesium
+import com.projectember.mobile.data.local.entities.effectiveNetCarbs
+import com.projectember.mobile.data.local.entities.effectivePotassium
+import com.projectember.mobile.data.local.entities.effectiveProtein
+import com.projectember.mobile.data.local.entities.effectiveSodium
+import com.projectember.mobile.data.local.entities.effectiveWater
 import com.projectember.mobile.ui.theme.KetoBorder
 import com.projectember.mobile.ui.theme.KetoAccent
 import com.projectember.mobile.ui.theme.KetoAccentLight
@@ -72,8 +80,10 @@ fun KetoScreen(
     onNavigateBack: () -> Unit,
     onNavigateToAddEntry: () -> Unit,
     onNavigateToEditEntry: (Int) -> Unit,
+    onNavigateToEditExercise: (Int) -> Unit,
     onNavigateToTargets: () -> Unit,
-    onNavigateToTrends: (String) -> Unit
+    onNavigateToTrends: (String) -> Unit,
+    onNavigateToLogExercise: (String) -> Unit
 ) {
     val selectedDateEntries by viewModel.selectedDateEntries.collectAsState()
     val selectedDate by viewModel.selectedDate.collectAsState()
@@ -88,13 +98,13 @@ fun KetoScreen(
     val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
 
     val todayCalories  = selectedDateEntries.sumOf { it.effectiveCalories() }
-    val todayProtein   = selectedDateEntries.sumOf { it.proteinG }
-    val todayFat       = selectedDateEntries.sumOf { it.fatG }
-    val todayCarbs     = selectedDateEntries.sumOf { it.netCarbsG }
-    val todayWater     = selectedDateEntries.sumOf { it.waterMl }
-    val todaySodium    = selectedDateEntries.sumOf { it.sodiumMg }
-    val todayPotassium = selectedDateEntries.sumOf { it.potassiumMg }
-    val todayMagnesium = selectedDateEntries.sumOf { it.magnesiumMg }
+    val todayProtein   = selectedDateEntries.sumOf { it.effectiveProtein() }
+    val todayFat       = selectedDateEntries.sumOf { it.effectiveFat() }
+    val todayCarbs     = selectedDateEntries.sumOf { it.effectiveNetCarbs() }
+    val todayWater     = selectedDateEntries.sumOf { it.effectiveWater() }
+    val todaySodium    = selectedDateEntries.sumOf { it.effectiveSodium() }
+    val todayPotassium = selectedDateEntries.sumOf { it.effectivePotassium() }
+    val todayMagnesium = selectedDateEntries.sumOf { it.effectiveMagnesium() }
 
     val hydrationPct = if (targets.waterMl > 0)
         (todayWater / targets.waterMl * 100).toInt() else 0
@@ -359,6 +369,22 @@ fun KetoScreen(
                 }
             }
 
+            // ── Quick-action: Log Exercise ────────────────────────────────────
+            item {
+                OutlinedButton(
+                    onClick = { onNavigateToLogExercise(selectedDate) },
+                    modifier = Modifier.fillMaxWidth(),
+                    border = BorderStroke(1.dp, KetoBorderC)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.FitnessCenter,
+                        contentDescription = null,
+                        modifier = Modifier.padding(end = 8.dp)
+                    )
+                    Text("Log Exercise")
+                }
+            }
+
             // ── Entries header ────────────────────────────────────────────────
             item {
                 Text(
@@ -391,7 +417,15 @@ fun KetoScreen(
                 }
             } else {
                 items(selectedDateEntries) { entry ->
-                    KetoEntryCard(entry = entry, onEditEntry = onNavigateToEditEntry)
+                    KetoEntryCard(
+                        entry = entry,
+                        onEditEntry = { id ->
+                            // Negative ids mark exercise entries mapped from exercise_entries table.
+                            // Route them to the Exercise edit screen; positive ids go to Keto edit.
+                        if (id < 0) onNavigateToEditExercise(kotlin.math.abs(id))
+                            else onNavigateToEditEntry(id)
+                        }
+                    )
                 }
             }
 
@@ -692,6 +726,12 @@ private fun KetoEntryCard(entry: KetoEntry, onEditEntry: (Int) -> Unit) {
     val isSupplement = entry.eventType.equals("supplement", ignoreCase = true)
     var expanded by remember { mutableStateOf(false) }
 
+    // Format servings consistently: show as integer when whole, one decimal otherwise.
+    val servingsLabel = if (entry.servings == entry.servings.toLong().toDouble())
+        "${entry.servings.toLong()} srv"
+    else
+        "%.1f srv".format(entry.servings)
+
     // Exercise: dark card with a subtle green accent border; all others: standard card
     val cardBorder = if (isExercise)
         BorderStroke(1.dp, SuccessGreen.copy(alpha = 0.4f))
@@ -735,13 +775,13 @@ private fun KetoEntryCard(entry: KetoEntry, onEditEntry: (Int) -> Unit) {
                         color = KetoMuted
                     )
                     isExercise -> Text(
-                        text = "\u2212%.0f kcal".format(entry.calories),
+                        text = "\u2212%.0f kcal".format(entry.calories * entry.servings),
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Medium,
                         color = SuccessGreen
                     )
                     else -> Text(
-                        text = "%.0f kcal".format(entry.calories),
+                        text = "%.0f kcal".format(entry.calories * entry.servings),
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Medium,
                         color = OnSurface
@@ -751,11 +791,23 @@ private fun KetoEntryCard(entry: KetoEntry, onEditEntry: (Int) -> Unit) {
                     entry.eventTimestamp.substring(11, 16)
                 else
                     entry.eventTimestamp
-                Text(
-                    text = timeText,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = KetoMuted
-                )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    if (!isSupplement && !isExercise) {
+                        Text(
+                            text = servingsLabel,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = KetoMuted
+                        )
+                    }
+                    Text(
+                        text = timeText,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = KetoMuted
+                    )
+                }
             }
 
             if (expanded) {
@@ -767,9 +819,16 @@ private fun KetoEntryCard(entry: KetoEntry, onEditEntry: (Int) -> Unit) {
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
-                    MacroDetail(label = "Protein",    value = "%.1f g".format(entry.proteinG),  color = OnSurface)
-                    MacroDetail(label = "Fat",        value = "%.1f g".format(entry.fatG),      color = OnSurface)
-                    MacroDetail(label = "Net Carbs",  value = "%.1f g".format(entry.netCarbsG), color = OnSurface)
+                    MacroDetail(label = "Protein",   value = "%.1f g".format(entry.proteinG   * entry.servings), color = OnSurface)
+                    MacroDetail(label = "Fat",       value = "%.1f g".format(entry.fatG       * entry.servings), color = OnSurface)
+                    MacroDetail(label = "Net Carbs", value = "%.1f g".format(entry.netCarbsG  * entry.servings), color = OnSurface)
+                    if (!isSupplement && !isExercise) {
+                        MacroDetail(
+                            label = "Servings",
+                            value = servingsLabel,
+                            color = OnSurface
+                        )
+                    }
                 }
 
                 if (entry.waterMl > 0 || entry.sodiumMg > 0 || entry.potassiumMg > 0 || entry.magnesiumMg > 0) {
@@ -778,10 +837,10 @@ private fun KetoEntryCard(entry: KetoEntry, onEditEntry: (Int) -> Unit) {
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
-                        MacroDetail(label = "Water", value = "%.0f mL".format(entry.waterMl),    color = OnSurface)
-                        MacroDetail(label = "Na",    value = "%.0f mg".format(entry.sodiumMg),   color = OnSurface)
-                        MacroDetail(label = "K",     value = "%.0f mg".format(entry.potassiumMg),color = OnSurface)
-                        MacroDetail(label = "Mg",    value = "%.0f mg".format(entry.magnesiumMg),color = OnSurface)
+                        MacroDetail(label = "Water", value = "%.0f mL".format(entry.waterMl    * entry.servings), color = OnSurface)
+                        MacroDetail(label = "Na",    value = "%.0f mg".format(entry.sodiumMg   * entry.servings), color = OnSurface)
+                        MacroDetail(label = "K",     value = "%.0f mg".format(entry.potassiumMg* entry.servings), color = OnSurface)
+                        MacroDetail(label = "Mg",    value = "%.0f mg".format(entry.magnesiumMg* entry.servings), color = OnSurface)
                     }
                 }
 
@@ -840,7 +899,7 @@ private fun MacroDetail(label: String, value: String, color: Color = OnSurface) 
 @Composable
 private fun WeightBlock(
     modifier: Modifier = Modifier,
-    lastEntry: WeightStore.WeightEntry?,
+    lastEntry: WeightEntry?,
     onClick: () -> Unit
 ) {
     Card(
@@ -864,7 +923,7 @@ private fun WeightBlock(
             )
             Spacer(modifier = Modifier.height(2.dp))
             Text(
-                text = if (lastEntry != null) lastEntry.date else "tap to log",
+                text = if (lastEntry != null) lastEntry.entryDate else "tap to log",
                 style = MaterialTheme.typography.labelSmall,
                 color = KetoMuted,
                 fontSize = 10.sp

@@ -36,7 +36,8 @@ private val METRIC_OPTIONS = listOf(
     Triple("hydration", "H2O",  "Water"),
     Triple("sodium",    "Na",   "Sodium"),
     Triple("potassium", "K",    "Potassium"),
-    Triple("magnesium", "Mg",   "Magnesium")
+    Triple("magnesium", "Mg",   "Magnesium"),
+    Triple("weight",    "Wt",   "Weight")
 )
 
 private fun DayTotals.selectMetric(metric: String): Float = when (metric) {
@@ -48,6 +49,7 @@ private fun DayTotals.selectMetric(metric: String): Float = when (metric) {
     "sodium"    -> sodiumMg.toFloat()
     "potassium" -> potassiumMg.toFloat()
     "magnesium" -> magnesiumMg.toFloat()
+    "weight"    -> weightKg?.toFloat() ?: 0f
     else        -> calories.toFloat()
 }
 
@@ -55,6 +57,7 @@ private fun metricUnit(metric: String): String = when (metric) {
     "calories"  -> "kcal"
     "hydration" -> "mL"
     "sodium", "potassium", "magnesium" -> "mg"
+    "weight"    -> "kg"
     else        -> "g"
 }
 
@@ -67,6 +70,7 @@ private fun metricBarColor(metric: String): Color = when (metric) {
     "sodium"    -> WarningYellow
     "potassium" -> SuccessGreen
     "magnesium" -> Color(0xFF4A8FE8)
+    "weight"    -> Color(0xFF9C69E2)
     else        -> KetoAccent
 }
 
@@ -122,6 +126,7 @@ fun KetoTrendsScreen(
         "sodium"    -> targets.sodiumMg.toFloat()
         "potassium" -> targets.potassiumMg.toFloat()
         "magnesium" -> targets.magnesiumMg.toFloat()
+        "weight"    -> null   // No fixed target for body weight
         else        -> null
     }
 
@@ -209,7 +214,7 @@ fun KetoTrendsScreen(
                         color = KetoMuted
                     )
                     Spacer(modifier = Modifier.height(8.dp))
-                    // First row of 4 metrics
+                    // Row 1: Calories, Protein, Fat, Net Carbs
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -237,12 +242,12 @@ fun KetoTrendsScreen(
                         }
                     }
                     Spacer(modifier = Modifier.height(6.dp))
-                    // Second row of 4 metrics
+                    // Row 2: Water, Sodium, Potassium, Magnesium
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        METRIC_OPTIONS.drop(4).forEach { (key, abbr, fullName) ->
+                        METRIC_OPTIONS.subList(4, 8).forEach { (key, abbr, fullName) ->
                             val selected = trendsMetric == key
                             FilterChip(
                                 selected = selected,
@@ -263,6 +268,37 @@ fun KetoTrendsScreen(
                                 )
                             )
                         }
+                    }
+                    Spacer(modifier = Modifier.height(6.dp))
+                    // Row 3: Weight (single chip, left-aligned)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        val (key, abbr, fullName) = METRIC_OPTIONS.last()
+                        val selected = trendsMetric == key
+                        FilterChip(
+                            selected = selected,
+                            onClick = { viewModel.setTrendsMetric(key) },
+                            label = {
+                                 Column(
+                                     modifier = Modifier.fillMaxWidth(),
+                                     horizontalAlignment = Alignment.CenterHorizontally
+                                 ) {
+                                     Text(abbr, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                     Text(fullName, fontSize = 8.sp, color = if (selected) OnSurface.copy(alpha = 0.8f) else KetoMuted)
+                                 }
+                             },
+                            modifier = Modifier.weight(1f),
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = Color(0xFF9C69E2),
+                                selectedLabelColor = OnSurface
+                            )
+                        )
+                        // Empty spacers to keep chip width consistent with rows above
+                        Spacer(modifier = Modifier.weight(1f))
+                        Spacer(modifier = Modifier.weight(1f))
+                        Spacer(modifier = Modifier.weight(1f))
                     }
                 }
             }
@@ -365,7 +401,13 @@ fun KetoTrendsScreen(
             }
 
             // ── Chart card ───────────────────────────────────────────────────
-            if (chartData.isNotEmpty()) {
+            // For weight metric: treat all-null weightKg as "no weight data" even if there are
+            // date slots.  We check the source trendsData rather than the converted float values
+            // so that a hypothetical 0.0 kg entry (not physically meaningful but technically
+            // possible) would still render rather than triggering the empty state.
+            val hasData = chartData.isNotEmpty() &&
+                (trendsMetric != "weight" || trendsData.any { it.weightKg != null })
+            if (hasData) {
                 val metricLabel = METRIC_OPTIONS.firstOrNull { it.first == trendsMetric }?.third ?: trendsMetric
                 val unit = metricUnit(trendsMetric)
                 val barColor = metricBarColor(trendsMetric)
