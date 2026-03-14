@@ -308,13 +308,25 @@ private fun RecipeCard(recipe: Recipe, onClick: () -> Unit) {
                 )
             }
             Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = "%.0f kcal  |  P: %.0fg  |  F: %.0fg  |  C: %.0fg".format(
-                    recipe.calories, recipe.proteinG, recipe.fatG, recipe.netCarbsG
-                ),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.primary
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "%.0f kcal  |  P: %.0fg  |  F: %.0fg  |  C: %.0fg".format(
+                        recipe.calories, recipe.proteinG, recipe.fatG, recipe.netCarbsG
+                    ),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    text = if (recipe.servings == 1.0) "1 srv"
+                        else "%.1g srv".format(recipe.servings),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = KetoAccent
+                )
+            }
         }
     }
 }

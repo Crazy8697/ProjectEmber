@@ -93,7 +93,8 @@ class RecipesViewModel(
                         netCarbsG = recipe.netCarbsG,
                         entryDate = now.format(DateTimeFormatter.ofPattern(DATE_FORMAT)),
                         eventTimestamp = now.format(DateTimeFormatter.ofPattern(TIMESTAMP_FORMAT)),
-                        notes = recipe.ketoNotes
+                        notes = recipe.ketoNotes,
+                        servings = 1.0
                     )
                 )
                 onDone()

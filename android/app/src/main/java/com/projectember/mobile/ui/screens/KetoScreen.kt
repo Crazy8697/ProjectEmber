@@ -719,6 +719,12 @@ private fun KetoEntryCard(entry: KetoEntry, onEditEntry: (Int) -> Unit) {
     val isSupplement = entry.eventType.equals("supplement", ignoreCase = true)
     var expanded by remember { mutableStateOf(false) }
 
+    // Format servings consistently: show as integer when whole, one decimal otherwise.
+    val servingsLabel = if (entry.servings == entry.servings.toLong().toDouble())
+        "${entry.servings.toLong()} srv"
+    else
+        "%.1f srv".format(entry.servings)
+
     // Exercise: dark card with a subtle green accent border; all others: standard card
     val cardBorder = if (isExercise)
         BorderStroke(1.dp, SuccessGreen.copy(alpha = 0.4f))
@@ -778,11 +784,23 @@ private fun KetoEntryCard(entry: KetoEntry, onEditEntry: (Int) -> Unit) {
                     entry.eventTimestamp.substring(11, 16)
                 else
                     entry.eventTimestamp
-                Text(
-                    text = timeText,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = KetoMuted
-                )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    if (!isSupplement && !isExercise) {
+                        Text(
+                            text = servingsLabel,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = KetoMuted
+                        )
+                    }
+                    Text(
+                        text = timeText,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = KetoMuted
+                    )
+                }
             }
 
             if (expanded) {
@@ -797,6 +815,13 @@ private fun KetoEntryCard(entry: KetoEntry, onEditEntry: (Int) -> Unit) {
                     MacroDetail(label = "Protein",    value = "%.1f g".format(entry.proteinG),  color = OnSurface)
                     MacroDetail(label = "Fat",        value = "%.1f g".format(entry.fatG),      color = OnSurface)
                     MacroDetail(label = "Net Carbs",  value = "%.1f g".format(entry.netCarbsG), color = OnSurface)
+                    if (!isSupplement && !isExercise) {
+                        MacroDetail(
+                            label = "Servings",
+                            value = servingsLabel,
+                            color = OnSurface
+                        )
+                    }
                 }
 
                 if (entry.waterMl > 0 || entry.sodiumMg > 0 || entry.potassiumMg > 0 || entry.magnesiumMg > 0) {

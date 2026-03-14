@@ -57,6 +57,8 @@ class AddKetoEntryViewModel(
         private set
     var notes by mutableStateOf("")
         private set
+    var servings by mutableStateOf("1")
+        private set
 
     // Editable date and time for the entry
     var entryDate by mutableStateOf(
@@ -105,6 +107,7 @@ class AddKetoEntryViewModel(
                         entry.eventTimestamp.substring(11, 16)
                     else
                         LocalTime.now().format(DateTimeFormatter.ofPattern(TIME_FORMAT))
+                    servings = formatDouble(entry.servings).ifBlank { "1" }
                 }
             }
         }
@@ -131,6 +134,7 @@ class AddKetoEntryViewModel(
     fun onNotesChange(value: String) { notes = value }
     fun onDateChange(value: String) { entryDate = value }
     fun onTimeChange(value: String) { entryTime = value }
+    fun onServingsChange(value: String) { servings = value }
 
     // Exercise-specific handlers
     fun onDistanceKmChange(value: String) { distanceKm = value }
@@ -177,7 +181,8 @@ class AddKetoEntryViewModel(
                         magnesiumMg = parseDoubleOrZero(magnesiumMg),
                         entryDate = dateStr,
                         eventTimestamp = ts,
-                        notes = resolvedNotes
+                        notes = resolvedNotes,
+                        servings = servings.toDoubleOrNull()?.coerceAtLeast(0.1) ?: 1.0
                     )
                 )
             } else {
@@ -195,7 +200,8 @@ class AddKetoEntryViewModel(
                         magnesiumMg = parseDoubleOrZero(magnesiumMg),
                         entryDate = dateStr,
                         eventTimestamp = ts,
-                        notes = resolvedNotes
+                        notes = resolvedNotes,
+                        servings = servings.toDoubleOrNull()?.coerceAtLeast(0.1) ?: 1.0
                     )
                 )
             }

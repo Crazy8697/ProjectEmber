@@ -22,5 +22,9 @@ data class KetoEntry(
     val magnesiumMg: Double = 0.0,
     val entryDate: String,
     val eventTimestamp: String,
-    val notes: String? = null
+    val notes: String? = null,
+    /** Number of servings consumed when this entry was logged.
+     *  Stored for display purposes only — the calories and macro values already reflect
+     *  the full amount consumed (i.e. per-serving values × servings). */
+    val servings: Double = 1.0
 )

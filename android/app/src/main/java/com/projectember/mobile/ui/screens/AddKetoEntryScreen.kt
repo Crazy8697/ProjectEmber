@@ -321,6 +321,14 @@ fun AddKetoEntryScreen(
 @Composable
 private fun NutritionFields(viewModel: AddKetoEntryViewModel) {
     OutlinedTextField(
+        value = viewModel.servings,
+        onValueChange = viewModel::onServingsChange,
+        label = { Text("Servings") },
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+        modifier = Modifier.fillMaxWidth(),
+        singleLine = true
+    )
+    OutlinedTextField(
         value = viewModel.calories,
         onValueChange = viewModel::onCaloriesChange,
         label = { Text("Calories (kcal)") },
