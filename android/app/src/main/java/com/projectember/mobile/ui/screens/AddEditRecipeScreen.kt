@@ -1,0 +1,362 @@
+package com.projectember.mobile.ui.screens
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.AssistChipDefaults
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.dp
+import com.projectember.mobile.ui.theme.KetoAccent
+import com.projectember.mobile.ui.theme.OnSurface
+
+private val CATEGORIES = AddEditRecipeViewModel.CATEGORIES
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@Composable
+fun AddEditRecipeScreen(
+    viewModel: AddEditRecipeViewModel,
+    onNavigateBack: () -> Unit
+) {
+    var showDeleteDialog by remember { mutableStateOf(false) }
+
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("Delete Recipe") },
+            text = {
+                Text(
+                    "Are you sure you want to delete \"${viewModel.name}\"? " +
+                        "This action cannot be undone."
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDeleteDialog = false
+                        viewModel.deleteRecipe(onSuccess = onNavigateBack)
+                    }
+                ) {
+                    Text("Delete", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(if (viewModel.isEditMode) "Edit Recipe" else "Add Recipe") },
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Cancel")
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                )
+            )
+        }
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .padding(horizontal = 16.dp)
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Spacer(modifier = Modifier.height(4.dp))
+
+            // ── Name ─────────────────────────────────────────────────────────
+            OutlinedTextField(
+                value = viewModel.name,
+                onValueChange = viewModel::onNameChange,
+                label = { Text("Recipe Name *") },
+                isError = viewModel.nameError != null,
+                supportingText = {
+                    viewModel.nameError?.let { Text(it) }
+                },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+
+            // ── Category ─────────────────────────────────────────────────────
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = "Category",
+                    style = MaterialTheme.typography.labelLarge
+                )
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    CATEGORIES.forEach { cat ->
+                        val isSelected = viewModel.category == cat
+                        AssistChip(
+                            onClick = { viewModel.onCategoryChange(cat) },
+                            label = { Text(cat) },
+                            colors = AssistChipDefaults.assistChipColors(
+                                containerColor = if (isSelected) KetoAccent
+                                    else MaterialTheme.colorScheme.surfaceVariant,
+                                labelColor = if (isSelected) OnSurface
+                                    else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        )
+                    }
+                }
+            }
+
+            // ── Macros ───────────────────────────────────────────────────────
+            Text(
+                text = "Nutrition (per serving)",
+                style = MaterialTheme.typography.labelLarge
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                OutlinedTextField(
+                    value = viewModel.calories,
+                    onValueChange = viewModel::onCaloriesChange,
+                    label = { Text("Calories (kcal)") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier.weight(1f),
+                    singleLine = true
+                )
+                OutlinedTextField(
+                    value = viewModel.proteinG,
+                    onValueChange = viewModel::onProteinGChange,
+                    label = { Text("Protein (g)") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier.weight(1f),
+                    singleLine = true
+                )
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                OutlinedTextField(
+                    value = viewModel.fatG,
+                    onValueChange = viewModel::onFatGChange,
+                    label = { Text("Fat (g)") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier.weight(1f),
+                    singleLine = true
+                )
+                OutlinedTextField(
+                    value = viewModel.totalCarbsG,
+                    onValueChange = viewModel::onTotalCarbsGChange,
+                    label = { Text("Total Carbs (g)") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier.weight(1f),
+                    singleLine = true
+                )
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                OutlinedTextField(
+                    value = viewModel.fiberG,
+                    onValueChange = viewModel::onFiberGChange,
+                    label = { Text("Fiber (g)") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier.weight(1f),
+                    singleLine = true
+                )
+                // Net Carbs is derived; show a read-only hint so the user knows it is computed
+                val derivedNetCarbs = run {
+                    val tc = viewModel.totalCarbsG.toDoubleOrNull() ?: 0.0
+                    val fb = viewModel.fiberG.toDoubleOrNull() ?: 0.0
+                    maxOf(0.0, tc - fb)
+                }
+                OutlinedTextField(
+                    value = if (viewModel.totalCarbsG.isNotBlank() || viewModel.fiberG.isNotBlank())
+                        "%.1f".format(derivedNetCarbs) else "",
+                    onValueChange = {},
+                    label = { Text("Net Carbs (g)") },
+                    modifier = Modifier.weight(1f),
+                    singleLine = true,
+                    readOnly = true,
+                    enabled = false
+                )
+            }
+
+            // ── Extended Nutrition ───────────────────────────────────────────
+            Text(
+                text = "Minerals & Hydration (per serving)",
+                style = MaterialTheme.typography.labelLarge
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                OutlinedTextField(
+                    value = viewModel.sodiumMg,
+                    onValueChange = viewModel::onSodiumMgChange,
+                    label = { Text("Sodium (mg)") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier.weight(1f),
+                    singleLine = true
+                )
+                OutlinedTextField(
+                    value = viewModel.potassiumMg,
+                    onValueChange = viewModel::onPotassiumMgChange,
+                    label = { Text("Potassium (mg)") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier.weight(1f),
+                    singleLine = true
+                )
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                OutlinedTextField(
+                    value = viewModel.magnesiumMg,
+                    onValueChange = viewModel::onMagnesiumMgChange,
+                    label = { Text("Magnesium (mg)") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier.weight(1f),
+                    singleLine = true
+                )
+                OutlinedTextField(
+                    value = viewModel.waterMl,
+                    onValueChange = viewModel::onWaterMlChange,
+                    label = { Text("Water (mL)") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier.weight(1f),
+                    singleLine = true
+                )
+            }
+
+            // ── Notes / Instructions ─────────────────────────────────────────
+            OutlinedTextField(
+                value = viewModel.description,
+                onValueChange = viewModel::onDescriptionChange,
+                label = { Text("Notes / Instructions (optional)") },
+                modifier = Modifier.fillMaxWidth(),
+                minLines = 3,
+                maxLines = 6
+            )
+
+            // ── Ingredients ──────────────────────────────────────────────────
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = "Ingredients",
+                    style = MaterialTheme.typography.labelLarge
+                )
+
+                viewModel.ingredients.forEachIndexed { index, ingredient ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        OutlinedTextField(
+                            value = ingredient.name,
+                            onValueChange = { viewModel.updateIngredientName(index, it) },
+                            label = { Text("Ingredient") },
+                            modifier = Modifier.weight(1f),
+                            singleLine = true
+                        )
+                        OutlinedTextField(
+                            value = ingredient.amount,
+                            onValueChange = { viewModel.updateIngredientAmount(index, it) },
+                            label = { Text("Amount") },
+                            modifier = Modifier.width(100.dp),
+                            singleLine = true
+                        )
+                        IconButton(onClick = { viewModel.removeIngredient(index) }) {
+                            Icon(
+                                Icons.Default.Close,
+                                contentDescription = "Remove ingredient",
+                                tint = MaterialTheme.colorScheme.error
+                            )
+                        }
+                    }
+                }
+
+                OutlinedButton(
+                    onClick = { viewModel.addIngredient() },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("+ Add Ingredient")
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // ── Save / Delete ────────────────────────────────────────────────
+            Button(
+                onClick = { viewModel.save(onSuccess = onNavigateBack) },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(if (viewModel.isEditMode) "Save Changes" else "Save Recipe")
+            }
+
+            if (viewModel.isEditMode) {
+                OutlinedButton(
+                    onClick = { showDeleteDialog = true },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Text("Delete Recipe")
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+        }
+    }
+}
+

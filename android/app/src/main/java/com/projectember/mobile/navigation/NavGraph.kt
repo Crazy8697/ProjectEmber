@@ -10,6 +10,9 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.projectember.mobile.EmberApplication
+import com.projectember.mobile.ui.screens.AddEditRecipeScreen
+import com.projectember.mobile.ui.screens.AddEditRecipeViewModelFactory
+import com.projectember.mobile.ui.screens.AddEditRecipeViewModel
 import com.projectember.mobile.ui.screens.AddKetoEntryScreen
 import com.projectember.mobile.ui.screens.AddKetoEntryViewModelFactory
 import com.projectember.mobile.ui.screens.AddKetoEntryViewModel
@@ -96,6 +99,38 @@ fun EmberNavGraph(
                 factory = RecipesViewModelFactory(app.recipeRepository, app.ketoRepository)
             )
             RecipesScreen(
+                viewModel = viewModel,
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToAddRecipe = { navController.navigate(Screen.RecipeAdd.route) },
+                onNavigateToEditRecipe = { recipeId ->
+                    navController.navigate(Screen.RecipeEdit.createRoute(recipeId))
+                }
+            )
+        }
+
+        composable(Screen.RecipeAdd.route) {
+            val viewModel: AddEditRecipeViewModel = viewModel(
+                factory = AddEditRecipeViewModelFactory(app.recipeRepository)
+            )
+            AddEditRecipeScreen(
+                viewModel = viewModel,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(
+            route = Screen.RecipeEdit.route,
+            arguments = listOf(navArgument("recipeId") { type = NavType.IntType })
+        ) { backStackEntry ->
+            val recipeId = backStackEntry.arguments?.getInt("recipeId")
+            if (recipeId == null) {
+                navController.popBackStack()
+                return@composable
+            }
+            val viewModel: AddEditRecipeViewModel = viewModel(
+                factory = AddEditRecipeViewModelFactory(app.recipeRepository, recipeId)
+            )
+            AddEditRecipeScreen(
                 viewModel = viewModel,
                 onNavigateBack = { navController.popBackStack() }
             )
