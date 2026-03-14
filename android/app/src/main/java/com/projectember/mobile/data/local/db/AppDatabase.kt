@@ -15,7 +15,7 @@ import com.projectember.mobile.data.local.entities.SyncStatus
 
 @Database(
     entities = [KetoEntry::class, Recipe::class, SyncStatus::class],
-    version = 5,
+    version = 6,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -54,6 +54,17 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("ALTER TABLE recipes ADD COLUMN totalCarbsG REAL NOT NULL DEFAULT 0.0")
+                database.execSQL("ALTER TABLE recipes ADD COLUMN fiberG REAL NOT NULL DEFAULT 0.0")
+                database.execSQL("ALTER TABLE recipes ADD COLUMN sodiumMg REAL NOT NULL DEFAULT 0.0")
+                database.execSQL("ALTER TABLE recipes ADD COLUMN potassiumMg REAL NOT NULL DEFAULT 0.0")
+                database.execSQL("ALTER TABLE recipes ADD COLUMN magnesiumMg REAL NOT NULL DEFAULT 0.0")
+                database.execSQL("ALTER TABLE recipes ADD COLUMN waterMl REAL NOT NULL DEFAULT 0.0")
+            }
+        }
+
         fun getInstance(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 INSTANCE ?: Room.databaseBuilder(
@@ -61,7 +72,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "project_ember_mobile.db"
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
                     .build().also { INSTANCE = it }
             }
         }

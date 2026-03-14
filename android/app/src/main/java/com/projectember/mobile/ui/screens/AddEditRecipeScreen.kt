@@ -152,7 +152,7 @@ fun AddEditRecipeScreen(
 
             // ── Macros ───────────────────────────────────────────────────────
             Text(
-                text = "Macros (per serving)",
+                text = "Nutrition (per serving)",
                 style = MaterialTheme.typography.labelLarge
             )
             Row(
@@ -189,9 +189,86 @@ fun AddEditRecipeScreen(
                     singleLine = true
                 )
                 OutlinedTextField(
-                    value = viewModel.netCarbsG,
-                    onValueChange = viewModel::onNetCarbsGChange,
+                    value = viewModel.totalCarbsG,
+                    onValueChange = viewModel::onTotalCarbsGChange,
+                    label = { Text("Total Carbs (g)") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier.weight(1f),
+                    singleLine = true
+                )
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                OutlinedTextField(
+                    value = viewModel.fiberG,
+                    onValueChange = viewModel::onFiberGChange,
+                    label = { Text("Fiber (g)") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier.weight(1f),
+                    singleLine = true
+                )
+                // Net Carbs is derived; show a read-only hint so the user knows it is computed
+                val derivedNetCarbs = run {
+                    val tc = viewModel.totalCarbsG.toDoubleOrNull() ?: 0.0
+                    val fb = viewModel.fiberG.toDoubleOrNull() ?: 0.0
+                    maxOf(0.0, tc - fb)
+                }
+                OutlinedTextField(
+                    value = if (viewModel.totalCarbsG.isNotBlank() || viewModel.fiberG.isNotBlank())
+                        "%.1f".format(derivedNetCarbs) else "",
+                    onValueChange = {},
                     label = { Text("Net Carbs (g)") },
+                    modifier = Modifier.weight(1f),
+                    singleLine = true,
+                    readOnly = true,
+                    enabled = false
+                )
+            }
+
+            // ── Extended Nutrition ───────────────────────────────────────────
+            Text(
+                text = "Minerals & Hydration (per serving)",
+                style = MaterialTheme.typography.labelLarge
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                OutlinedTextField(
+                    value = viewModel.sodiumMg,
+                    onValueChange = viewModel::onSodiumMgChange,
+                    label = { Text("Sodium (mg)") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier.weight(1f),
+                    singleLine = true
+                )
+                OutlinedTextField(
+                    value = viewModel.potassiumMg,
+                    onValueChange = viewModel::onPotassiumMgChange,
+                    label = { Text("Potassium (mg)") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier.weight(1f),
+                    singleLine = true
+                )
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                OutlinedTextField(
+                    value = viewModel.magnesiumMg,
+                    onValueChange = viewModel::onMagnesiumMgChange,
+                    label = { Text("Magnesium (mg)") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier.weight(1f),
+                    singleLine = true
+                )
+                OutlinedTextField(
+                    value = viewModel.waterMl,
+                    onValueChange = viewModel::onWaterMlChange,
+                    label = { Text("Water (mL)") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier.weight(1f),
                     singleLine = true

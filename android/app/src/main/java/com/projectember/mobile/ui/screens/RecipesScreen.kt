@@ -367,8 +367,37 @@ private fun RecipeDetailView(recipe: Recipe, onLogToKeto: () -> Unit, modifier: 
                 MacroDetailRow("Calories", "%.0f kcal".format(recipe.calories))
                 MacroDetailRow("Protein", "%.1f g".format(recipe.proteinG))
                 MacroDetailRow("Fat", "%.1f g".format(recipe.fatG))
+                MacroDetailRow("Total Carbs", "%.1f g".format(recipe.totalCarbsG))
+                MacroDetailRow("Fiber", "%.1f g".format(recipe.fiberG))
                 MacroDetailRow("Net Carbs", "%.1f g".format(recipe.netCarbsG))
                 MacroDetailRow("Servings", "%.1f".format(recipe.servings))
+            }
+        }
+
+        val hasExtendedNutrition = recipe.sodiumMg > 0.0 || recipe.potassiumMg > 0.0 ||
+            recipe.magnesiumMg > 0.0 || recipe.waterMl > 0.0
+        if (hasExtendedNutrition) {
+            HorizontalDivider()
+            Text(
+                text = "Minerals & Hydration",
+                style = MaterialTheme.typography.titleLarge
+            )
+            Card(
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                ),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    if (recipe.sodiumMg > 0.0)
+                        MacroDetailRow("Sodium", "%.0f mg".format(recipe.sodiumMg))
+                    if (recipe.potassiumMg > 0.0)
+                        MacroDetailRow("Potassium", "%.0f mg".format(recipe.potassiumMg))
+                    if (recipe.magnesiumMg > 0.0)
+                        MacroDetailRow("Magnesium", "%.0f mg".format(recipe.magnesiumMg))
+                    if (recipe.waterMl > 0.0)
+                        MacroDetailRow("Water", "%.0f mL".format(recipe.waterMl))
+                }
             }
         }
 

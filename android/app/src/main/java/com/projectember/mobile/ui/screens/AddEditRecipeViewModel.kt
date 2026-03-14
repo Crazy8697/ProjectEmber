@@ -55,7 +55,21 @@ class AddEditRecipeViewModel(
         private set
     var fatG by mutableStateOf("")
         private set
-    var netCarbsG by mutableStateOf("")
+
+    // Carb fields — netCarbsG is derived (totalCarbsG − fiberG) on save
+    var totalCarbsG by mutableStateOf("")
+        private set
+    var fiberG by mutableStateOf("")
+        private set
+
+    // Extended nutrition fields
+    var sodiumMg by mutableStateOf("")
+        private set
+    var potassiumMg by mutableStateOf("")
+        private set
+    var magnesiumMg by mutableStateOf("")
+        private set
+    var waterMl by mutableStateOf("")
         private set
 
     // Ingredient list
@@ -77,7 +91,12 @@ class AddEditRecipeViewModel(
                     calories = formatDouble(recipe.calories)
                     proteinG = formatDouble(recipe.proteinG)
                     fatG = formatDouble(recipe.fatG)
-                    netCarbsG = formatDouble(recipe.netCarbsG)
+                    totalCarbsG = formatDouble(recipe.totalCarbsG)
+                    fiberG = formatDouble(recipe.fiberG)
+                    sodiumMg = formatDouble(recipe.sodiumMg)
+                    potassiumMg = formatDouble(recipe.potassiumMg)
+                    magnesiumMg = formatDouble(recipe.magnesiumMg)
+                    waterMl = formatDouble(recipe.waterMl)
                     ingredients = decodeIngredients(recipe.ingredientsRaw)
                 }
             }
@@ -94,7 +113,12 @@ class AddEditRecipeViewModel(
     fun onCaloriesChange(value: String) { calories = value }
     fun onProteinGChange(value: String) { proteinG = value }
     fun onFatGChange(value: String) { fatG = value }
-    fun onNetCarbsGChange(value: String) { netCarbsG = value }
+    fun onTotalCarbsGChange(value: String) { totalCarbsG = value }
+    fun onFiberGChange(value: String) { fiberG = value }
+    fun onSodiumMgChange(value: String) { sodiumMg = value }
+    fun onPotassiumMgChange(value: String) { potassiumMg = value }
+    fun onMagnesiumMgChange(value: String) { magnesiumMg = value }
+    fun onWaterMlChange(value: String) { waterMl = value }
 
     fun addIngredient() {
         ingredients = ingredients + RecipeIngredient("", "")
@@ -124,6 +148,9 @@ class AddEditRecipeViewModel(
 
         viewModelScope.launch {
             val encodedIngredients = encodeIngredients(ingredients)
+            val parsedTotalCarbs = parseDoubleOrZero(totalCarbsG)
+            val parsedFiber = parseDoubleOrZero(fiberG)
+            val derivedNetCarbs = maxOf(0.0, parsedTotalCarbs - parsedFiber)
             val existing = originalRecipe
             if (existing != null) {
                 recipeRepository.updateRecipe(
@@ -134,7 +161,13 @@ class AddEditRecipeViewModel(
                         calories = parseDoubleOrZero(calories),
                         proteinG = parseDoubleOrZero(proteinG),
                         fatG = parseDoubleOrZero(fatG),
-                        netCarbsG = parseDoubleOrZero(netCarbsG),
+                        totalCarbsG = parsedTotalCarbs,
+                        fiberG = parsedFiber,
+                        netCarbsG = derivedNetCarbs,
+                        sodiumMg = parseDoubleOrZero(sodiumMg),
+                        potassiumMg = parseDoubleOrZero(potassiumMg),
+                        magnesiumMg = parseDoubleOrZero(magnesiumMg),
+                        waterMl = parseDoubleOrZero(waterMl),
                         ingredientsRaw = encodedIngredients
                     )
                 )
@@ -147,7 +180,13 @@ class AddEditRecipeViewModel(
                         calories = parseDoubleOrZero(calories),
                         proteinG = parseDoubleOrZero(proteinG),
                         fatG = parseDoubleOrZero(fatG),
-                        netCarbsG = parseDoubleOrZero(netCarbsG),
+                        totalCarbsG = parsedTotalCarbs,
+                        fiberG = parsedFiber,
+                        netCarbsG = derivedNetCarbs,
+                        sodiumMg = parseDoubleOrZero(sodiumMg),
+                        potassiumMg = parseDoubleOrZero(potassiumMg),
+                        magnesiumMg = parseDoubleOrZero(magnesiumMg),
+                        waterMl = parseDoubleOrZero(waterMl),
                         ingredientsRaw = encodedIngredients
                     )
                 )
