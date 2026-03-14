@@ -59,7 +59,7 @@ fun EmberNavGraph(
 
         composable(Screen.Keto.route) {
             val viewModel: KetoViewModel = viewModel(
-                factory = KetoViewModelFactory(app.ketoRepository, app.ketoTargetsStore)
+                factory = KetoViewModelFactory(app.ketoRepository, app.ketoTargetsStore, app.weightStore)
             )
             KetoScreen(
                 viewModel = viewModel,
@@ -168,7 +168,7 @@ fun EmberNavGraph(
         ) { backStackEntry ->
             val metric = backStackEntry.arguments?.getString("metric") ?: ""
             val viewModel: KetoViewModel = viewModel(
-                factory = KetoViewModelFactory(app.ketoRepository, app.ketoTargetsStore)
+                factory = KetoViewModelFactory(app.ketoRepository, app.ketoTargetsStore, app.weightStore)
             )
             KetoTrendsScreen(
                 viewModel = viewModel,

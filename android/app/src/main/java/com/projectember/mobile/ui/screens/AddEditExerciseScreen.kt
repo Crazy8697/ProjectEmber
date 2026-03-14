@@ -278,6 +278,18 @@ fun AddEditExerciseScreen(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
+                    // "None" chip — always shown first so subtype can be explicitly cleared
+                    val noneSelected = viewModel.subtype.isBlank()
+                    AssistChip(
+                        onClick = { viewModel.onSubtypeSelected("") },
+                        label = { Text("None") },
+                        colors = AssistChipDefaults.assistChipColors(
+                            containerColor = if (noneSelected) KetoAccent
+                                else MaterialTheme.colorScheme.surfaceVariant,
+                            labelColor = if (noneSelected) OnSurface
+                                else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    )
                     subtypes.forEach { st ->
                         val isSelected = viewModel.subtype == st
                         AssistChip(

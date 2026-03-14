@@ -12,6 +12,8 @@ import com.projectember.mobile.data.repository.ExerciseCategoryRepository
 import com.projectember.mobile.data.repository.ExerciseRepository
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -101,6 +103,15 @@ class AddEditExerciseViewModel(
                     caloriesBurned = entry.caloriesBurned?.toBigDecimal()
                         ?.stripTrailingZeros()?.toPlainString() ?: ""
                     notes = entry.notes ?: ""
+                }
+            }
+        } else {
+            // Quick-log: auto-select a sensible default category when categories arrive
+            viewModelScope.launch {
+                val cats = categories.filter { it.isNotEmpty() }.first()
+                if (selectedCategoryId <= 0) {
+                    val default = cats.firstOrNull { it.name == "Other" } ?: cats.first()
+                    selectedCategoryId = default.id
                 }
             }
         }
