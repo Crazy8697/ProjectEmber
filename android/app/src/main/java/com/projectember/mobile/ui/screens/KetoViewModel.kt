@@ -8,6 +8,13 @@ import com.projectember.mobile.data.local.KetoTargetsStore
 import com.projectember.mobile.data.local.entities.KetoEntry
 import com.projectember.mobile.data.local.entities.WeightEntry
 import com.projectember.mobile.data.local.entities.effectiveCalories
+import com.projectember.mobile.data.local.entities.effectiveFat
+import com.projectember.mobile.data.local.entities.effectiveMagnesium
+import com.projectember.mobile.data.local.entities.effectiveNetCarbs
+import com.projectember.mobile.data.local.entities.effectivePotassium
+import com.projectember.mobile.data.local.entities.effectiveProtein
+import com.projectember.mobile.data.local.entities.effectiveSodium
+import com.projectember.mobile.data.local.entities.effectiveWater
 import com.projectember.mobile.data.repository.ExerciseRepository
 import com.projectember.mobile.data.repository.KetoRepository
 import com.projectember.mobile.data.repository.WeightRepository
@@ -173,13 +180,13 @@ class KetoViewModel(
                             date = dateStr,
                             calories = dayEntries.sumOf { it.effectiveCalories() }
                                 .coerceAtLeast(0.0),
-                            netCarbsG = dayEntries.sumOf { it.netCarbsG },
-                            proteinG = dayEntries.sumOf { it.proteinG },
-                            fatG = dayEntries.sumOf { it.fatG },
-                            waterMl = dayEntries.sumOf { it.waterMl },
-                            sodiumMg = dayEntries.sumOf { it.sodiumMg },
-                            potassiumMg = dayEntries.sumOf { it.potassiumMg },
-                            magnesiumMg = dayEntries.sumOf { it.magnesiumMg },
+                            netCarbsG = dayEntries.sumOf { it.effectiveNetCarbs() },
+                            proteinG = dayEntries.sumOf { it.effectiveProtein() },
+                            fatG = dayEntries.sumOf { it.effectiveFat() },
+                            waterMl = dayEntries.sumOf { it.effectiveWater() },
+                            sodiumMg = dayEntries.sumOf { it.effectiveSodium() },
+                            potassiumMg = dayEntries.sumOf { it.effectivePotassium() },
+                            magnesiumMg = dayEntries.sumOf { it.effectiveMagnesium() },
                             weightKg = weightByDate[dateStr]
                         )
                     }
@@ -204,13 +211,13 @@ class KetoViewModel(
                     label = date.format(dayShortFmt),
                     date = dateStr,
                     calories = cals.coerceAtLeast(0.0),
-                    netCarbsG = dayEntries.sumOf { it.netCarbsG },
-                    proteinG = dayEntries.sumOf { it.proteinG },
-                    fatG = dayEntries.sumOf { it.fatG },
-                    waterMl = dayEntries.sumOf { it.waterMl },
-                    sodiumMg = dayEntries.sumOf { it.sodiumMg },
-                    potassiumMg = dayEntries.sumOf { it.potassiumMg },
-                    magnesiumMg = dayEntries.sumOf { it.magnesiumMg }
+                    netCarbsG = dayEntries.sumOf { it.effectiveNetCarbs() },
+                    proteinG = dayEntries.sumOf { it.effectiveProtein() },
+                    fatG = dayEntries.sumOf { it.effectiveFat() },
+                    waterMl = dayEntries.sumOf { it.effectiveWater() },
+                    sodiumMg = dayEntries.sumOf { it.effectiveSodium() },
+                    potassiumMg = dayEntries.sumOf { it.effectivePotassium() },
+                    magnesiumMg = dayEntries.sumOf { it.effectiveMagnesium() }
                 )
             }
         }

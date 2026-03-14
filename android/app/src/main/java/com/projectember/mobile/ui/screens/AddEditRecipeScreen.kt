@@ -156,10 +156,17 @@ fun AddEditRecipeScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = "Nutrition (per serving)",
-                    style = MaterialTheme.typography.labelLarge
-                )
+                Column {
+                    Text(
+                        text = "Total Recipe Nutrition",
+                        style = MaterialTheme.typography.labelLarge
+                    )
+                    Text(
+                        text = "Enter totals for the whole recipe",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
                 OutlinedTextField(
                     value = viewModel.servings,
                     onValueChange = viewModel::onServingsChange,
