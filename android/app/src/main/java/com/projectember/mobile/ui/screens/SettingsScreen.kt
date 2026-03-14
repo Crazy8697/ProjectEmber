@@ -1,0 +1,289 @@
+package com.projectember.mobile.ui.screens
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Sync
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import com.projectember.mobile.BuildConfig
+import com.projectember.mobile.ui.theme.SuccessGreen
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SettingsScreen(
+    viewModel: SettingsViewModel,
+    onNavigateBack: () -> Unit
+) {
+    val syncStatus by viewModel.syncStatus.collectAsState()
+    val isSyncing by viewModel.isSyncing.collectAsState()
+
+    // Danger Zone confirmation state
+    var showResetConfirm1 by remember { mutableStateOf(false) }
+    var showResetConfirm2 by remember { mutableStateOf(false) }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(
+                        text = "Settings",
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                },
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back"
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                )
+            )
+        }
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .padding(horizontal = 16.dp)
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Spacer(modifier = Modifier.height(4.dp))
+
+            // ── Sync ────────────────────────────────────────────────────────
+            SettingsSection(title = "Sync") {
+                val statusText = when {
+                    isSyncing -> "Syncing..."
+                    syncStatus?.status == "success" -> "✅ Synced"
+                    syncStatus?.status == "error" -> "❌ Sync error"
+                    else -> "⏳ Never synced"
+                }
+
+                SettingsRow(label = "Sync Status", value = statusText)
+
+                syncStatus?.lastSyncTime?.let { time ->
+                    SettingsRow(label = "Last Sync Time", value = time)
+                } ?: SettingsRow(label = "Last Sync Time", value = "—")
+
+                syncStatus?.message?.let { msg ->
+                    SettingsRow(label = "Message", value = msg)
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Button(
+                    onClick = { viewModel.triggerSync() },
+                    enabled = !isSyncing,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    if (isSyncing) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Icons.Default.Sync,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                    Text(
+                        text = if (isSyncing) "  Syncing..." else "  Manual Sync",
+                        modifier = Modifier.padding(start = 4.dp)
+                    )
+                }
+            }
+
+            // ── Appearance ──────────────────────────────────────────────────
+            SettingsSection(title = "Appearance") {
+                SettingsRow(label = "Theme", value = "Dark (default)")
+            }
+
+            // ── Data Management ─────────────────────────────────────────────
+            SettingsSection(title = "Data Management") {
+                OutlinedButton(
+                    onClick = { /* TODO: implement export data */ },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Export Data")
+                }
+                Spacer(modifier = Modifier.height(4.dp))
+                OutlinedButton(
+                    onClick = { /* TODO: implement import data */ },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Import Data")
+                }
+            }
+
+            // ── Account ─────────────────────────────────────────────────────
+            SettingsSection(title = "Account") {
+                SettingsRow(label = "Pro Status", value = "Free")
+            }
+
+            // ── System ──────────────────────────────────────────────────────
+            SettingsSection(title = "System") {
+                SettingsRow(label = "App Version", value = BuildConfig.VERSION_NAME)
+                SettingsRow(label = "Build", value = BuildConfig.VERSION_CODE.toString())
+            }
+
+            // ── Danger Zone ─────────────────────────────────────────────────
+            SettingsSection(
+                title = "Danger Zone",
+                titleColor = MaterialTheme.colorScheme.error
+            ) {
+                Button(
+                    onClick = { showResetConfirm1 = true },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Reset App")
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+        }
+    }
+
+    // First confirmation dialog
+    if (showResetConfirm1) {
+        AlertDialog(
+            onDismissRequest = { showResetConfirm1 = false },
+            title = { Text("Reset App?") },
+            text = { Text("This will erase all local data. Are you sure you want to continue?") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showResetConfirm1 = false
+                    showResetConfirm2 = true
+                }) {
+                    Text("Continue", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showResetConfirm1 = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    // Second (final) confirmation dialog
+    if (showResetConfirm2) {
+        AlertDialog(
+            onDismissRequest = { showResetConfirm2 = false },
+            title = { Text("Are you absolutely sure?") },
+            text = { Text("This action cannot be undone. All app data will be permanently deleted.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showResetConfirm2 = false
+                    // TODO: implement reset logic
+                }) {
+                    Text("Reset Everything", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showResetConfirm2 = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+}
+
+@Composable
+private fun SettingsSection(
+    title: String,
+    titleColor: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.primary,
+    content: @Composable Column.() -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(0.dp)) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.labelLarge,
+            color = titleColor,
+            modifier = Modifier.padding(bottom = 4.dp)
+        )
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant
+            )
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                content()
+            }
+        }
+    }
+}
+
+@Composable
+private fun SettingsRow(label: String, value: String) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 6.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Medium,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+    }
+    HorizontalDivider(
+        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+        thickness = 0.5.dp
+    )
+}

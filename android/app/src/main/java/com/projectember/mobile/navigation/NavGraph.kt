@@ -15,8 +15,6 @@ import com.projectember.mobile.ui.screens.AddKetoEntryViewModelFactory
 import com.projectember.mobile.ui.screens.AddKetoEntryViewModel
 import com.projectember.mobile.ui.screens.EiraScreen
 import com.projectember.mobile.ui.screens.HomeScreen
-import com.projectember.mobile.ui.screens.HomeViewModel
-import com.projectember.mobile.ui.screens.HomeViewModelFactory
 import com.projectember.mobile.ui.screens.KetoScreen
 import com.projectember.mobile.ui.screens.KetoTrendsScreen
 import com.projectember.mobile.ui.screens.KetoViewModel
@@ -27,6 +25,9 @@ import com.projectember.mobile.ui.screens.KetoTargetsViewModelFactory
 import com.projectember.mobile.ui.screens.RecipesScreen
 import com.projectember.mobile.ui.screens.RecipesViewModel
 import com.projectember.mobile.ui.screens.RecipesViewModelFactory
+import com.projectember.mobile.ui.screens.SettingsScreen
+import com.projectember.mobile.ui.screens.SettingsViewModel
+import com.projectember.mobile.ui.screens.SettingsViewModelFactory
 
 @Composable
 fun EmberNavGraph(
@@ -39,14 +40,10 @@ fun EmberNavGraph(
         startDestination = Screen.Home.route
     ) {
         composable(Screen.Home.route) {
-            val viewModel: HomeViewModel = viewModel(
-                factory = HomeViewModelFactory(app.syncRepository, app.syncManager)
-            )
             HomeScreen(
-                viewModel = viewModel,
                 onNavigateToKeto = { navController.navigate(Screen.Keto.route) },
                 onNavigateToRecipes = { navController.navigate(Screen.Recipes.route) },
-                onNavigateToEira = { navController.navigate(Screen.Eira.route) }
+                onNavigateToSettings = { navController.navigate(Screen.Settings.route) }
             )
         }
 
@@ -134,6 +131,16 @@ fun EmberNavGraph(
             KetoTrendsScreen(
                 viewModel = viewModel,
                 initialMetric = metric,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Screen.Settings.route) {
+            val viewModel: SettingsViewModel = viewModel(
+                factory = SettingsViewModelFactory(app.syncRepository, app.syncManager)
+            )
+            SettingsScreen(
+                viewModel = viewModel,
                 onNavigateBack = { navController.popBackStack() }
             )
         }
