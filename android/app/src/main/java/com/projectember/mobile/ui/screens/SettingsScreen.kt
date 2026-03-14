@@ -236,7 +236,7 @@ fun SettingsScreen(
 private fun SettingsSection(
     title: String,
     titleColor: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.primary,
-    content: @Composable Column.() -> Unit
+    content: @Composable () -> Unit
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(0.dp)) {
         Text(
