@@ -14,5 +14,6 @@ data class Recipe(
     val fatG: Double,
     val netCarbsG: Double,
     val servings: Double = 1.0,
-    val ketoNotes: String? = null
+    val ketoNotes: String? = null,
+    val ingredientsRaw: String? = null
 )

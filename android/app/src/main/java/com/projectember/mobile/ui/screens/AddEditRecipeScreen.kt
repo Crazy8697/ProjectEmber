@@ -4,15 +4,19 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
@@ -34,7 +38,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.projectember.mobile.ui.theme.KetoAccent
 import com.projectember.mobile.ui.theme.OnSurface
@@ -102,6 +108,7 @@ fun AddEditRecipeScreen(
         ) {
             Spacer(modifier = Modifier.height(4.dp))
 
+            // ── Name ─────────────────────────────────────────────────────────
             OutlinedTextField(
                 value = viewModel.name,
                 onValueChange = viewModel::onNameChange,
@@ -114,6 +121,7 @@ fun AddEditRecipeScreen(
                 singleLine = true
             )
 
+            // ── Category ─────────────────────────────────────────────────────
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -142,6 +150,55 @@ fun AddEditRecipeScreen(
                 }
             }
 
+            // ── Macros ───────────────────────────────────────────────────────
+            Text(
+                text = "Macros (per serving)",
+                style = MaterialTheme.typography.labelLarge
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                OutlinedTextField(
+                    value = viewModel.calories,
+                    onValueChange = viewModel::onCaloriesChange,
+                    label = { Text("Calories (kcal)") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier.weight(1f),
+                    singleLine = true
+                )
+                OutlinedTextField(
+                    value = viewModel.proteinG,
+                    onValueChange = viewModel::onProteinGChange,
+                    label = { Text("Protein (g)") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier.weight(1f),
+                    singleLine = true
+                )
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                OutlinedTextField(
+                    value = viewModel.fatG,
+                    onValueChange = viewModel::onFatGChange,
+                    label = { Text("Fat (g)") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier.weight(1f),
+                    singleLine = true
+                )
+                OutlinedTextField(
+                    value = viewModel.netCarbsG,
+                    onValueChange = viewModel::onNetCarbsGChange,
+                    label = { Text("Net Carbs (g)") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier.weight(1f),
+                    singleLine = true
+                )
+            }
+
+            // ── Notes / Instructions ─────────────────────────────────────────
             OutlinedTextField(
                 value = viewModel.description,
                 onValueChange = viewModel::onDescriptionChange,
@@ -151,8 +208,57 @@ fun AddEditRecipeScreen(
                 maxLines = 6
             )
 
+            // ── Ingredients ──────────────────────────────────────────────────
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = "Ingredients",
+                    style = MaterialTheme.typography.labelLarge
+                )
+
+                viewModel.ingredients.forEachIndexed { index, ingredient ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        OutlinedTextField(
+                            value = ingredient.name,
+                            onValueChange = { viewModel.updateIngredientName(index, it) },
+                            label = { Text("Ingredient") },
+                            modifier = Modifier.weight(1f),
+                            singleLine = true
+                        )
+                        OutlinedTextField(
+                            value = ingredient.amount,
+                            onValueChange = { viewModel.updateIngredientAmount(index, it) },
+                            label = { Text("Amount") },
+                            modifier = Modifier.width(100.dp),
+                            singleLine = true
+                        )
+                        IconButton(onClick = { viewModel.removeIngredient(index) }) {
+                            Icon(
+                                Icons.Default.Close,
+                                contentDescription = "Remove ingredient",
+                                tint = MaterialTheme.colorScheme.error
+                            )
+                        }
+                    }
+                }
+
+                OutlinedButton(
+                    onClick = { viewModel.addIngredient() },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("+ Add Ingredient")
+                }
+            }
+
             Spacer(modifier = Modifier.height(8.dp))
 
+            // ── Save / Delete ────────────────────────────────────────────────
             Button(
                 onClick = { viewModel.save(onSuccess = onNavigateBack) },
                 modifier = Modifier.fillMaxWidth()
@@ -176,3 +282,4 @@ fun AddEditRecipeScreen(
         }
     }
 }
+

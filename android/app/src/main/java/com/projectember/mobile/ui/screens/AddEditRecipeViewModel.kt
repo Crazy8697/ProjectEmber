@@ -7,6 +7,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.projectember.mobile.data.local.entities.Recipe
+import com.projectember.mobile.data.local.entities.RecipeIngredient
+import com.projectember.mobile.data.local.entities.decodeIngredients
+import com.projectember.mobile.data.local.entities.encodeIngredients
 import com.projectember.mobile.data.repository.RecipeRepository
 import kotlinx.coroutines.launch
 
@@ -27,6 +30,11 @@ class AddEditRecipeViewModel(
             "Drink",
             "Dessert"
         )
+
+        private fun parseDoubleOrZero(value: String): Double = value.toDoubleOrNull() ?: 0.0
+
+        private fun formatDouble(d: Double): String =
+            if (d == 0.0) "" else d.toBigDecimal().stripTrailingZeros().toPlainString()
     }
 
     val isEditMode: Boolean get() = editRecipeId != null
@@ -38,6 +46,20 @@ class AddEditRecipeViewModel(
     var category by mutableStateOf("General")
         private set
     var description by mutableStateOf("")
+        private set
+
+    // Macro fields
+    var calories by mutableStateOf("")
+        private set
+    var proteinG by mutableStateOf("")
+        private set
+    var fatG by mutableStateOf("")
+        private set
+    var netCarbsG by mutableStateOf("")
+        private set
+
+    // Ingredient list
+    var ingredients by mutableStateOf<List<RecipeIngredient>>(emptyList())
         private set
 
     var nameError by mutableStateOf<String?>(null)
@@ -52,6 +74,11 @@ class AddEditRecipeViewModel(
                     name = recipe.name
                     category = recipe.category
                     description = recipe.description ?: ""
+                    calories = formatDouble(recipe.calories)
+                    proteinG = formatDouble(recipe.proteinG)
+                    fatG = formatDouble(recipe.fatG)
+                    netCarbsG = formatDouble(recipe.netCarbsG)
+                    ingredients = decodeIngredients(recipe.ingredientsRaw)
                 }
             }
         }
@@ -62,12 +89,29 @@ class AddEditRecipeViewModel(
         nameError = null
     }
 
-    fun onCategoryChange(value: String) {
-        category = value
+    fun onCategoryChange(value: String) { category = value }
+    fun onDescriptionChange(value: String) { description = value }
+    fun onCaloriesChange(value: String) { calories = value }
+    fun onProteinGChange(value: String) { proteinG = value }
+    fun onFatGChange(value: String) { fatG = value }
+    fun onNetCarbsGChange(value: String) { netCarbsG = value }
+
+    fun addIngredient() {
+        ingredients = ingredients + RecipeIngredient("", "")
     }
 
-    fun onDescriptionChange(value: String) {
-        description = value
+    fun removeIngredient(index: Int) {
+        ingredients = ingredients.toMutableList().also { it.removeAt(index) }
+    }
+
+    fun updateIngredientName(index: Int, value: String) {
+        ingredients = ingredients.toMutableList()
+            .also { it[index] = it[index].copy(name = value) }
+    }
+
+    fun updateIngredientAmount(index: Int, value: String) {
+        ingredients = ingredients.toMutableList()
+            .also { it[index] = it[index].copy(amount = value) }
     }
 
     fun save(onSuccess: () -> Unit) {
@@ -77,13 +121,19 @@ class AddEditRecipeViewModel(
         }
 
         viewModelScope.launch {
+            val encodedIngredients = encodeIngredients(ingredients)
             val existing = originalRecipe
             if (existing != null) {
                 recipeRepository.updateRecipe(
                     existing.copy(
                         name = name.trim(),
                         category = category,
-                        description = description.trim().ifBlank { null }
+                        description = description.trim().ifBlank { null },
+                        calories = parseDoubleOrZero(calories),
+                        proteinG = parseDoubleOrZero(proteinG),
+                        fatG = parseDoubleOrZero(fatG),
+                        netCarbsG = parseDoubleOrZero(netCarbsG),
+                        ingredientsRaw = encodedIngredients
                     )
                 )
             } else {
@@ -92,10 +142,11 @@ class AddEditRecipeViewModel(
                         name = name.trim(),
                         category = category,
                         description = description.trim().ifBlank { null },
-                        calories = 0.0,
-                        proteinG = 0.0,
-                        fatG = 0.0,
-                        netCarbsG = 0.0
+                        calories = parseDoubleOrZero(calories),
+                        proteinG = parseDoubleOrZero(proteinG),
+                        fatG = parseDoubleOrZero(fatG),
+                        netCarbsG = parseDoubleOrZero(netCarbsG),
+                        ingredientsRaw = encodedIngredients
                     )
                 )
             }
@@ -120,3 +171,4 @@ class AddEditRecipeViewModelFactory(
     override fun <T : ViewModel> create(modelClass: Class<T>): T =
         AddEditRecipeViewModel(recipeRepository, editRecipeId) as T
 }
+

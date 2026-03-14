@@ -1,5 +1,7 @@
 package com.projectember.mobile.ui.screens
 
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -50,6 +52,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.projectember.mobile.data.local.entities.Recipe
+import com.projectember.mobile.data.local.entities.decodeIngredients
 import com.projectember.mobile.ui.theme.KetoAccent
 import com.projectember.mobile.ui.theme.OnSurface
 import kotlinx.coroutines.launch
@@ -318,8 +321,12 @@ private fun RecipeCard(recipe: Recipe, onClick: () -> Unit) {
 
 @Composable
 private fun RecipeDetailView(recipe: Recipe, onLogToKeto: () -> Unit, modifier: Modifier = Modifier) {
+    val ingredients = remember(recipe.ingredientsRaw) { decodeIngredients(recipe.ingredientsRaw) }
+
     Column(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -365,7 +372,45 @@ private fun RecipeDetailView(recipe: Recipe, onLogToKeto: () -> Unit, modifier: 
             }
         }
 
+        if (ingredients.isNotEmpty()) {
+            HorizontalDivider()
+            Text(
+                text = "Ingredients",
+                style = MaterialTheme.typography.titleLarge
+            )
+            Card(
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                ),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(vertical = 8.dp, horizontal = 16.dp)) {
+                    ingredients.forEach { ingredient ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                text = ingredient.name,
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            if (ingredient.amount.isNotBlank()) {
+                                Text(
+                                    text = ingredient.amount,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         recipe.ketoNotes?.let { notes ->
+            HorizontalDivider()
             Text(
                 text = "Keto Notes",
                 style = MaterialTheme.typography.titleLarge
@@ -393,6 +438,8 @@ private fun RecipeDetailView(recipe: Recipe, onLogToKeto: () -> Unit, modifier: 
         ) {
             Text("Log to Keto")
         }
+
+        Spacer(modifier = Modifier.height(24.dp))
     }
 }
 
