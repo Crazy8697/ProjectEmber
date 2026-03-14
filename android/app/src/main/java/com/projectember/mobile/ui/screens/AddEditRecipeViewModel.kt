@@ -101,17 +101,19 @@ class AddEditRecipeViewModel(
     }
 
     fun removeIngredient(index: Int) {
-        ingredients = ingredients.toMutableList().also { it.removeAt(index) }
+        ingredients = ingredients.filterIndexed { i, _ -> i != index }
     }
 
     fun updateIngredientName(index: Int, value: String) {
-        ingredients = ingredients.toMutableList()
-            .also { it[index] = it[index].copy(name = value) }
+        ingredients = ingredients.mapIndexed { i, ing ->
+            if (i == index) ing.copy(name = value) else ing
+        }
     }
 
     fun updateIngredientAmount(index: Int, value: String) {
-        ingredients = ingredients.toMutableList()
-            .also { it[index] = it[index].copy(amount = value) }
+        ingredients = ingredients.mapIndexed { i, ing ->
+            if (i == index) ing.copy(amount = value) else ing
+        }
     }
 
     fun save(onSuccess: () -> Unit) {

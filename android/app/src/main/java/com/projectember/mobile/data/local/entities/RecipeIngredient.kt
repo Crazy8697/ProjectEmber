@@ -13,9 +13,12 @@ data class RecipeIngredient(
 
 /** Serialise a list of ingredients to a storable string (or null if empty). */
 fun encodeIngredients(items: List<RecipeIngredient>): String? {
+    // Filter blank names; strip tabs from both fields to keep the delimiter unambiguous.
     val meaningful = items.filter { it.name.isNotBlank() }
     if (meaningful.isEmpty()) return null
-    return meaningful.joinToString("\n") { "${it.name.trim()}\t${it.amount.trim()}" }
+    return meaningful.joinToString("\n") {
+        "${it.name.trim().replace("\t", " ")}\t${it.amount.trim().replace("\t", " ")}"
+    }
 }
 
 /** Deserialise a stored ingredients string back to a list. */
