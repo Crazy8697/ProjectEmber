@@ -275,7 +275,7 @@ private fun RecipeCard(recipe: Recipe, onClick: () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
+            containerColor = MaterialTheme.colorScheme.surface
         ),
         onClick = onClick
     ) {
@@ -359,7 +359,7 @@ private fun RecipeDetailView(recipe: Recipe, onLogToKeto: () -> Unit, modifier: 
 
         Card(
             colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant
+                containerColor = MaterialTheme.colorScheme.surface
             ),
             modifier = Modifier.fillMaxWidth()
         ) {
@@ -384,7 +384,7 @@ private fun RecipeDetailView(recipe: Recipe, onLogToKeto: () -> Unit, modifier: 
             )
             Card(
                 colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                    containerColor = MaterialTheme.colorScheme.surface
                 ),
                 modifier = Modifier.fillMaxWidth()
             ) {
@@ -409,7 +409,7 @@ private fun RecipeDetailView(recipe: Recipe, onLogToKeto: () -> Unit, modifier: 
             )
             Card(
                 colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                    containerColor = MaterialTheme.colorScheme.surface
                 ),
                 modifier = Modifier.fillMaxWidth()
             ) {
@@ -446,7 +446,7 @@ private fun RecipeDetailView(recipe: Recipe, onLogToKeto: () -> Unit, modifier: 
             )
             Card(
                 colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                    containerColor = MaterialTheme.colorScheme.surface
                 ),
                 modifier = Modifier.fillMaxWidth()
             ) {
