@@ -25,7 +25,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -42,7 +41,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.projectember.mobile.BuildConfig
-import com.projectember.mobile.ui.theme.SuccessGreen
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -144,14 +142,13 @@ fun SettingsScreen(
 
             // ── Data Management ─────────────────────────────────────────────
             SettingsSection(title = "Data Management") {
-                OutlinedButton(
+                TextButton(
                     onClick = { /* TODO: implement export data */ },
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text("Export Data")
                 }
-                Spacer(modifier = Modifier.height(4.dp))
-                OutlinedButton(
+                TextButton(
                     onClick = { /* TODO: implement import data */ },
                     modifier = Modifier.fillMaxWidth()
                 ) {
@@ -251,7 +248,7 @@ private fun SettingsSection(
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant
+                containerColor = MaterialTheme.colorScheme.surface
             )
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
