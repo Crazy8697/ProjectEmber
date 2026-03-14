@@ -8,6 +8,7 @@ import com.projectember.mobile.data.local.KetoTargetsStore
 import com.projectember.mobile.data.local.entities.KetoEntry
 import com.projectember.mobile.data.local.entities.WeightEntry
 import com.projectember.mobile.data.local.entities.effectiveCalories
+import com.projectember.mobile.data.repository.ExerciseRepository
 import com.projectember.mobile.data.repository.KetoRepository
 import com.projectember.mobile.data.repository.WeightRepository
 import kotlinx.coroutines.Dispatchers
@@ -41,7 +42,8 @@ data class DayTotals(
 class KetoViewModel(
     private val ketoRepository: KetoRepository,
     val targetsStore: KetoTargetsStore,
-    private val weightRepository: WeightRepository
+    private val weightRepository: WeightRepository,
+    private val exerciseRepository: ExerciseRepository
 ) : ViewModel() {
 
     private val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
@@ -57,7 +59,36 @@ class KetoViewModel(
 
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     val selectedDateEntries: StateFlow<List<KetoEntry>> = _selectedDate
-        .flatMapLatest { date -> ketoRepository.getEntriesForDate(date) }
+        .flatMapLatest { date ->
+            combine(
+                ketoRepository.getEntriesForDate(date),
+                exerciseRepository.getEntriesForDate(date)
+            ) { ketoEntries, exerciseEntries ->
+                // Map each ExerciseEntry to a KetoEntry using a negative id so the UI can
+                // route edit taps to the ExerciseEditEntry screen instead of KetoEditEntry.
+                val mappedExercise = exerciseEntries.map { ex ->
+                    // Exercise entries fetched from Room always have a positive auto-generated id.
+                    // We negate it to distinguish them from keto entries (also positive) in the
+                    // UI routing layer. id = 0 cannot appear for persisted records, but we guard
+                    // against it to avoid a routing collision with the default KetoEntry id.
+                    val mappedId = if (ex.id > 0) -ex.id else Int.MIN_VALUE
+                    KetoEntry(
+                        id = mappedId,
+                        label = if (!ex.subtype.isNullOrBlank())
+                            "${ex.type} · ${ex.subtype}" else ex.type,
+                        eventType = "exercise",
+                        calories = ex.caloriesBurned ?: 0.0,
+                        proteinG = 0.0,
+                        fatG = 0.0,
+                        netCarbsG = 0.0,
+                        entryDate = ex.entryDate,
+                        eventTimestamp = ex.timestamp,
+                        notes = ex.notes
+                    )
+                }
+                (ketoEntries + mappedExercise).sortedByDescending { it.eventTimestamp }
+            }
+        }
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
@@ -129,8 +160,9 @@ class KetoViewModel(
                     val weightByDate: Map<String, Double> = weightEntries
                         .groupBy { it.entryDate }
                         .mapValues { (_, entries) ->
-                            // Use maxByOrNull so the most recently inserted entry per day wins.
-                            entries.maxByOrNull { it.id }!!.weightKg
+                            // groupBy guarantees each value list is non-empty, but use
+                            // ?: 0.0 instead of !! to avoid a crash on future refactoring.
+                            entries.maxByOrNull { it.id }?.weightKg ?: 0.0
                         }
                     (0 until numDays).map { offset ->
                         val date = from.plusDays(offset.toLong())
@@ -192,9 +224,10 @@ class KetoViewModel(
 class KetoViewModelFactory(
     private val ketoRepository: KetoRepository,
     private val targetsStore: KetoTargetsStore,
-    private val weightRepository: WeightRepository
+    private val weightRepository: WeightRepository,
+    private val exerciseRepository: ExerciseRepository
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T =
-        KetoViewModel(ketoRepository, targetsStore, weightRepository) as T
+        KetoViewModel(ketoRepository, targetsStore, weightRepository, exerciseRepository) as T
 }

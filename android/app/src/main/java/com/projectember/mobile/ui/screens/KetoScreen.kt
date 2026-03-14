@@ -73,6 +73,7 @@ fun KetoScreen(
     onNavigateBack: () -> Unit,
     onNavigateToAddEntry: () -> Unit,
     onNavigateToEditEntry: (Int) -> Unit,
+    onNavigateToEditExercise: (Int) -> Unit,
     onNavigateToTargets: () -> Unit,
     onNavigateToTrends: (String) -> Unit,
     onNavigateToLogExercise: (String) -> Unit
@@ -409,7 +410,15 @@ fun KetoScreen(
                 }
             } else {
                 items(selectedDateEntries) { entry ->
-                    KetoEntryCard(entry = entry, onEditEntry = onNavigateToEditEntry)
+                    KetoEntryCard(
+                        entry = entry,
+                        onEditEntry = { id ->
+                            // Negative ids mark exercise entries mapped from exercise_entries table.
+                            // Route them to the Exercise edit screen; positive ids go to Keto edit.
+                        if (id < 0) onNavigateToEditExercise(kotlin.math.abs(id))
+                            else onNavigateToEditEntry(id)
+                        }
+                    )
                 }
             }
 
