@@ -108,17 +108,26 @@ fun KetoScreen(
     }
 
     if (showWeightDialog) {
+        var weightError by remember { mutableStateOf(false) }
         AlertDialog(
             onDismissRequest = {
                 showWeightDialog = false
                 weightInput = ""
+                weightError = false
             },
             title = { Text("Log Weight") },
             text = {
                 OutlinedTextField(
                     value = weightInput,
-                    onValueChange = { weightInput = it },
+                    onValueChange = {
+                        weightInput = it
+                        weightError = false
+                    },
                     label = { Text("Weight (kg)") },
+                    isError = weightError,
+                    supportingText = if (weightError) {
+                        { Text("Enter a valid weight greater than 0") }
+                    } else null,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
@@ -126,17 +135,22 @@ fun KetoScreen(
             },
             confirmButton = {
                 TextButton(onClick = {
-                    weightInput.toDoubleOrNull()?.takeIf { it > 0 }?.let { kg ->
+                    val kg = weightInput.toDoubleOrNull()
+                    if (kg != null && kg > 0) {
                         viewModel.logWeight(kg)
+                        showWeightDialog = false
+                        weightInput = ""
+                        weightError = false
+                    } else {
+                        weightError = true
                     }
-                    showWeightDialog = false
-                    weightInput = ""
                 }) { Text("Save") }
             },
             dismissButton = {
                 TextButton(onClick = {
                     showWeightDialog = false
                     weightInput = ""
+                    weightError = false
                 }) { Text("Cancel") }
             }
         )

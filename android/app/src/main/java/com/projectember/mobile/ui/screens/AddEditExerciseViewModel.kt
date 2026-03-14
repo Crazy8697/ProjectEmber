@@ -130,6 +130,7 @@ class AddEditExerciseViewModel(
     }
 
     fun onSubtypeSelected(value: String) { subtype = if (subtype == value) "" else value }
+    fun clearSubtype() { subtype = "" }
     fun onDateChange(value: String) { entryDate = value }
     fun onTimeChange(value: String) { entryTime = value }
     fun onDurationChange(value: String) { durationMinutes = value }
