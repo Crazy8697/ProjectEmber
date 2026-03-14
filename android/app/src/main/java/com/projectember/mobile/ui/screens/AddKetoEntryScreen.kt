@@ -19,7 +19,10 @@ import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -28,18 +31,25 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TimePicker
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.projectember.mobile.ui.theme.KetoAccent
 import com.projectember.mobile.ui.theme.OnSurface
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 
 private val EVENT_TYPES = AddKetoEntryViewModel.EVENT_TYPES
 
@@ -50,6 +60,8 @@ fun AddKetoEntryScreen(
     onNavigateBack: () -> Unit
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var showDatePicker by remember { mutableStateOf(false) }
+    var showTimePicker by remember { mutableStateOf(false) }
 
     if (showDeleteDialog) {
         AlertDialog(
@@ -75,6 +87,58 @@ fun AddKetoEntryScreen(
                 TextButton(onClick = { showDeleteDialog = false }) {
                     Text("Cancel")
                 }
+            }
+        )
+    }
+
+    // ── Date picker ───────────────────────────────────────────────────────────
+    if (showDatePicker) {
+        val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+        val initialMillis = try {
+            LocalDate.parse(viewModel.entryDate, dateFormatter).toEpochDay() * 86_400_000L
+        } catch (_: Exception) {
+            System.currentTimeMillis()
+        }
+        val dpState = rememberDatePickerState(initialSelectedDateMillis = initialMillis)
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    showDatePicker = false
+                    dpState.selectedDateMillis?.let { millis ->
+                        val date = LocalDate.ofEpochDay(millis / 86_400_000L)
+                        viewModel.onDateChange(date.format(dateFormatter))
+                    }
+                }) { Text("OK") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) { Text("Cancel") }
+            }
+        ) {
+            DatePicker(state = dpState)
+        }
+    }
+
+    // ── Time picker ───────────────────────────────────────────────────────────
+    if (showTimePicker) {
+        val timeParts = viewModel.entryTime.split(":").mapNotNull { it.toIntOrNull() }
+        val tpState = rememberTimePickerState(
+            initialHour = timeParts.getOrNull(0) ?: 0,
+            initialMinute = timeParts.getOrNull(1) ?: 0,
+            is24Hour = true
+        )
+        AlertDialog(
+            onDismissRequest = { showTimePicker = false },
+            title = { Text("Select Time") },
+            text = { TimePicker(state = tpState) },
+            confirmButton = {
+                TextButton(onClick = {
+                    showTimePicker = false
+                    viewModel.onTimeChange("%02d:%02d".format(tpState.hour, tpState.minute))
+                }) { Text("OK") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showTimePicker = false }) { Text("Cancel") }
             }
         )
     }
@@ -170,6 +234,55 @@ fun AddKetoEntryScreen(
                     )
                 }
             }
+
+            // ── Date & Time ──────────────────────────────────────────────────
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            Text(
+                text = "Date & Time",
+                style = MaterialTheme.typography.labelLarge
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                TextButton(
+                    onClick = { showDatePicker = true },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            "Date",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            viewModel.entryDate,
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = KetoAccent
+                        )
+                    }
+                }
+                TextButton(
+                    onClick = { showTimePicker = true },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            "Time",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            viewModel.entryTime,
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = KetoAccent
+                        )
+                    }
+                }
+            }
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 
             // ── Type-adaptive fields ─────────────────────────────────────────
             when (viewModel.eventType) {

@@ -6,6 +6,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
@@ -19,8 +20,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.projectember.mobile.data.local.WeightStore
 import com.projectember.mobile.data.local.entities.KetoEntry
 import com.projectember.mobile.data.local.entities.effectiveCalories
 import com.projectember.mobile.ui.theme.KetoBorder
@@ -75,9 +78,12 @@ fun KetoScreen(
     val selectedDateEntries by viewModel.selectedDateEntries.collectAsState()
     val selectedDate by viewModel.selectedDate.collectAsState()
     val targets by viewModel.targets.collectAsState()
+    val lastWeightEntry by viewModel.lastWeightEntry.collectAsState()
 
     var showHelp by remember { mutableStateOf(false) }
     var showDatePicker by remember { mutableStateOf(false) }
+    var showWeightDialog by remember { mutableStateOf(false) }
+    var weightInput by remember { mutableStateOf("") }
 
     val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
 
@@ -99,6 +105,55 @@ fun KetoScreen(
 
     if (showHelp) {
         KetoHelpDialog(onDismiss = { showHelp = false })
+    }
+
+    if (showWeightDialog) {
+        var weightError by remember { mutableStateOf(false) }
+        AlertDialog(
+            onDismissRequest = {
+                showWeightDialog = false
+                weightInput = ""
+                weightError = false
+            },
+            title = { Text("Log Weight") },
+            text = {
+                OutlinedTextField(
+                    value = weightInput,
+                    onValueChange = {
+                        weightInput = it
+                        weightError = false
+                    },
+                    label = { Text("Weight (kg)") },
+                    isError = weightError,
+                    supportingText = if (weightError) {
+                        { Text("Enter a valid weight greater than 0") }
+                    } else null,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    val kg = weightInput.toDoubleOrNull()
+                    if (kg != null && kg > 0) {
+                        viewModel.logWeight(kg)
+                        showWeightDialog = false
+                        weightInput = ""
+                        weightError = false
+                    } else {
+                        weightError = true
+                    }
+                }) { Text("Save") }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    showWeightDialog = false
+                    weightInput = ""
+                    weightError = false
+                }) { Text("Cancel") }
+            }
+        )
     }
 
     if (showDatePicker) {
@@ -273,6 +328,33 @@ fun KetoScreen(
                         todaySodium = todaySodium,
                         todayPotassium = todayPotassium,
                         onClick = { onNavigateToTrends("sodium") }
+                    )
+                }
+            }
+
+            // ── Metric blocks row 4: Magnesium | Weight ──────────────────────
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    MetricBlock(
+                        modifier = Modifier.weight(1f),
+                        label = "MAGNESIUM",
+                        value = "%.0f".format(todayMagnesium),
+                        unit = "mg",
+                        targetLabel = "target %.0f".format(targets.magnesiumMg),
+                        diff = todayMagnesium - targets.magnesiumMg,
+                        statusColor = goalStatusColor(todayMagnesium, targets.magnesiumMg),
+                        onClick = { onNavigateToTrends("magnesium") }
+                    )
+                    WeightBlock(
+                        modifier = Modifier.weight(1f),
+                        lastEntry = lastWeightEntry,
+                        onClick = {
+                            weightInput = lastWeightEntry?.weightKg?.let { "%.1f".format(it) } ?: ""
+                            showWeightDialog = true
+                        }
                     )
                 }
             }
@@ -751,5 +833,42 @@ private fun MacroDetail(label: String, value: String, color: Color = OnSurface) 
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(text = value, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold, color = color)
         Text(text = label, style = MaterialTheme.typography.labelSmall, color = color.copy(alpha = 0.7f))
+    }
+}
+
+// ── Weight block ──────────────────────────────────────────────────────────────
+@Composable
+private fun WeightBlock(
+    modifier: Modifier = Modifier,
+    lastEntry: WeightStore.WeightEntry?,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = modifier.clickable { onClick() },
+        colors = CardDefaults.cardColors(containerColor = KetoCard),
+        border = BorderStroke(1.dp, KetoBorderC)
+    ) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Text(
+                text = "WEIGHT",
+                style = MaterialTheme.typography.labelSmall,
+                color = KetoMuted,
+                letterSpacing = 0.8.sp
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = if (lastEntry != null) "%.1f".format(lastEntry.weightKg) else "--",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = OnSurface
+            )
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = if (lastEntry != null) lastEntry.date else "tap to log",
+                style = MaterialTheme.typography.labelSmall,
+                color = KetoMuted,
+                fontSize = 10.sp
+            )
+        }
     }
 }

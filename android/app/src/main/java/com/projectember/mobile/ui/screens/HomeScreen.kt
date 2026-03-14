@@ -39,6 +39,7 @@ import androidx.compose.ui.unit.dp
 fun HomeScreen(
     onNavigateToKeto: () -> Unit,
     onNavigateToRecipes: () -> Unit,
+    onNavigateToExercise: () -> Unit,
     onNavigateToSettings: () -> Unit
 ) {
     Scaffold(
@@ -93,7 +94,7 @@ fun HomeScreen(
                 title = "Exercise",
                 subtitle = "Activity tracking",
                 icon = Icons.Default.DirectionsRun,
-                onClick = {} // TODO: navigate to Exercise screen when implemented
+                onClick = onNavigateToExercise
             )
 
             Spacer(modifier = Modifier.height(24.dp))

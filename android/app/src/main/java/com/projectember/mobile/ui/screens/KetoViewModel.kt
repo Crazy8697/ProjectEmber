@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.projectember.mobile.data.local.KetoTargets
 import com.projectember.mobile.data.local.KetoTargetsStore
+import com.projectember.mobile.data.local.WeightStore
 import com.projectember.mobile.data.local.entities.KetoEntry
 import com.projectember.mobile.data.local.entities.effectiveCalories
 import com.projectember.mobile.data.repository.KetoRepository
@@ -34,7 +35,8 @@ data class DayTotals(
 
 class KetoViewModel(
     private val ketoRepository: KetoRepository,
-    val targetsStore: KetoTargetsStore
+    val targetsStore: KetoTargetsStore,
+    private val weightStore: WeightStore
 ) : ViewModel() {
 
     private val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
@@ -58,6 +60,14 @@ class KetoViewModel(
         )
 
     val targets: StateFlow<KetoTargets> = targetsStore.targets
+
+    /** Last logged body weight. */
+    val lastWeightEntry: StateFlow<WeightStore.WeightEntry?> = weightStore.lastEntry
+
+    fun logWeight(weightKg: Double) {
+        val date = LocalDate.now().format(dateFormatter)
+        weightStore.save(weightKg, date)
+    }
 
     // ── Trends controls ──────────────────────────────────────────────────────
     private val _trendsMetric = MutableStateFlow("calories")
@@ -158,9 +168,10 @@ class KetoViewModel(
 
 class KetoViewModelFactory(
     private val ketoRepository: KetoRepository,
-    private val targetsStore: KetoTargetsStore
+    private val targetsStore: KetoTargetsStore,
+    private val weightStore: WeightStore
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T =
-        KetoViewModel(ketoRepository, targetsStore) as T
+        KetoViewModel(ketoRepository, targetsStore, weightStore) as T
 }

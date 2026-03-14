@@ -9,7 +9,8 @@ import androidx.lifecycle.viewModelScope
 import com.projectember.mobile.data.local.entities.KetoEntry
 import com.projectember.mobile.data.repository.KetoRepository
 import kotlinx.coroutines.launch
-import java.time.LocalDateTime
+import java.time.LocalDate
+import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 
 class AddKetoEntryViewModel(
@@ -19,6 +20,7 @@ class AddKetoEntryViewModel(
 
     companion object {
         private const val DATE_FORMAT = "yyyy-MM-dd"
+        private const val TIME_FORMAT = "HH:mm"
         private const val TIMESTAMP_FORMAT = "yyyy-MM-dd HH:mm"
         val EVENT_TYPES = listOf("meal", "drink", "snack", "exercise", "supplement")
 
@@ -56,6 +58,16 @@ class AddKetoEntryViewModel(
     var notes by mutableStateOf("")
         private set
 
+    // Editable date and time for the entry
+    var entryDate by mutableStateOf(
+        LocalDate.now().format(DateTimeFormatter.ofPattern(DATE_FORMAT))
+    )
+        private set
+    var entryTime by mutableStateOf(
+        LocalTime.now().format(DateTimeFormatter.ofPattern(TIME_FORMAT))
+    )
+        private set
+
     // Exercise-specific optional fields
     var distanceKm by mutableStateOf("")
         private set
@@ -88,6 +100,11 @@ class AddKetoEntryViewModel(
                     potassiumMg = formatDouble(entry.potassiumMg)
                     magnesiumMg = formatDouble(entry.magnesiumMg)
                     notes = entry.notes ?: ""
+                    entryDate = entry.entryDate
+                    entryTime = if (entry.eventTimestamp.length >= 16)
+                        entry.eventTimestamp.substring(11, 16)
+                    else
+                        LocalTime.now().format(DateTimeFormatter.ofPattern(TIME_FORMAT))
                 }
             }
         }
@@ -112,6 +129,8 @@ class AddKetoEntryViewModel(
     fun onPotassiumMgChange(value: String) { potassiumMg = value }
     fun onMagnesiumMgChange(value: String) { magnesiumMg = value }
     fun onNotesChange(value: String) { notes = value }
+    fun onDateChange(value: String) { entryDate = value }
+    fun onTimeChange(value: String) { entryTime = value }
 
     // Exercise-specific handlers
     fun onDistanceKmChange(value: String) { distanceKm = value }
@@ -133,6 +152,14 @@ class AddKetoEntryViewModel(
 
         val resolvedNotes = buildResolvedNotes()
 
+        val dateStr = entryDate.ifBlank {
+            LocalDate.now().format(DateTimeFormatter.ofPattern(DATE_FORMAT))
+        }
+        val timeStr = entryTime.ifBlank {
+            LocalTime.now().format(DateTimeFormatter.ofPattern(TIME_FORMAT))
+        }
+        val ts = "$dateStr $timeStr"
+
         viewModelScope.launch {
             val existing = originalEntry
             if (existing != null) {
@@ -148,11 +175,12 @@ class AddKetoEntryViewModel(
                         sodiumMg = parseDoubleOrZero(sodiumMg),
                         potassiumMg = parseDoubleOrZero(potassiumMg),
                         magnesiumMg = parseDoubleOrZero(magnesiumMg),
+                        entryDate = dateStr,
+                        eventTimestamp = ts,
                         notes = resolvedNotes
                     )
                 )
             } else {
-                val now = LocalDateTime.now()
                 ketoRepository.insertEntry(
                     KetoEntry(
                         label = label.trim(),
@@ -165,8 +193,8 @@ class AddKetoEntryViewModel(
                         sodiumMg = parseDoubleOrZero(sodiumMg),
                         potassiumMg = parseDoubleOrZero(potassiumMg),
                         magnesiumMg = parseDoubleOrZero(magnesiumMg),
-                        entryDate = now.format(DateTimeFormatter.ofPattern(DATE_FORMAT)),
-                        eventTimestamp = now.format(DateTimeFormatter.ofPattern(TIMESTAMP_FORMAT)),
+                        entryDate = dateStr,
+                        eventTimestamp = ts,
                         notes = resolvedNotes
                     )
                 )
