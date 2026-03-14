@@ -10,6 +10,8 @@ import com.projectember.mobile.data.repository.RecipeRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime
@@ -23,14 +25,34 @@ class RecipesViewModel(
     companion object {
         private const val DATE_FORMAT = "yyyy-MM-dd"
         private const val TIMESTAMP_FORMAT = "yyyy-MM-dd HH:mm"
+        const val ALL_CATEGORIES = "All"
     }
 
-    val recipes: StateFlow<List<Recipe>> = recipeRepository
+    private val _allRecipes: StateFlow<List<Recipe>> = recipeRepository
         .getAllRecipes()
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
             initialValue = emptyList()
+        )
+
+    private val _selectedCategory = MutableStateFlow(ALL_CATEGORIES)
+    val selectedCategory: StateFlow<String> = _selectedCategory
+
+    val recipes: StateFlow<List<Recipe>> = combine(_allRecipes, _selectedCategory) { all, cat ->
+        if (cat == ALL_CATEGORIES) all else all.filter { it.category == cat }
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5_000),
+        initialValue = emptyList()
+    )
+
+    val availableCategories: StateFlow<List<String>> = _allRecipes
+        .map { all -> listOf(ALL_CATEGORIES) + all.map { it.category }.distinct().sorted() }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = listOf(ALL_CATEGORIES)
         )
 
     private val _selectedRecipe = MutableStateFlow<Recipe?>(null)
@@ -42,6 +64,19 @@ class RecipesViewModel(
 
     fun clearSelectedRecipe() {
         _selectedRecipe.value = null
+    }
+
+    fun onCategorySelected(category: String) {
+        _selectedCategory.value = category
+    }
+
+    fun deleteSelectedRecipe(onDone: () -> Unit) {
+        val recipe = _selectedRecipe.value ?: return
+        viewModelScope.launch {
+            recipeRepository.deleteRecipeById(recipe.id)
+            _selectedRecipe.value = null
+            onDone()
+        }
     }
 
     fun logRecipeToKeto(recipe: Recipe, onDone: () -> Unit, onError: ((Throwable) -> Unit)? = null) {

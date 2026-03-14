@@ -1,7 +1,10 @@
 package com.projectember.mobile.ui.screens
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -12,10 +15,17 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -24,30 +34,76 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.projectember.mobile.data.local.entities.Recipe
+import com.projectember.mobile.ui.theme.KetoAccent
+import com.projectember.mobile.ui.theme.OnSurface
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RecipesScreen(
     viewModel: RecipesViewModel,
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    onNavigateToAddRecipe: () -> Unit,
+    onNavigateToEditRecipe: (Int) -> Unit
 ) {
     val recipes by viewModel.recipes.collectAsState()
     val selectedRecipe by viewModel.selectedRecipe.collectAsState()
+    val selectedCategory by viewModel.selectedCategory.collectAsState()
+    val availableCategories by viewModel.availableCategories.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
+    var showDeleteDialog by remember { mutableStateOf(false) }
+
+    if (showDeleteDialog) {
+        val recipeName = selectedRecipe?.name ?: ""
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("Delete Recipe") },
+            text = {
+                Text(
+                    "Are you sure you want to delete \"$recipeName\"? " +
+                        "This action cannot be undone."
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDeleteDialog = false
+                        viewModel.deleteSelectedRecipe(
+                            onDone = {
+                                coroutineScope.launch {
+                                    snackbarHostState.showSnackbar("\"$recipeName\" deleted")
+                                }
+                            }
+                        )
+                    }
+                ) {
+                    Text("Delete", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -62,10 +118,39 @@ fun RecipesScreen(
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
+                actions = {
+                    if (selectedRecipe != null) {
+                        IconButton(onClick = {
+                            val id = selectedRecipe?.id ?: return@IconButton
+                            viewModel.clearSelectedRecipe()
+                            onNavigateToEditRecipe(id)
+                        }) {
+                            Icon(Icons.Default.Edit, contentDescription = "Edit recipe")
+                        }
+                        IconButton(onClick = { showDeleteDialog = true }) {
+                            Icon(
+                                Icons.Default.Delete,
+                                contentDescription = "Delete recipe",
+                                tint = MaterialTheme.colorScheme.error
+                            )
+                        }
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surface
                 )
             )
+        },
+        floatingActionButton = {
+            if (selectedRecipe == null) {
+                FloatingActionButton(
+                    onClick = onNavigateToAddRecipe,
+                    containerColor = KetoAccent,
+                    contentColor = OnSurface
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = "Add recipe")
+                }
+            }
         }
     ) { paddingValues ->
         if (selectedRecipe != null) {
@@ -95,6 +180,9 @@ fun RecipesScreen(
         } else {
             RecipeListView(
                 recipes = recipes,
+                availableCategories = availableCategories,
+                selectedCategory = selectedCategory,
+                onCategorySelected = viewModel::onCategorySelected,
                 onRecipeClick = { viewModel.selectRecipe(it) },
                 modifier = Modifier
                     .fillMaxSize()
@@ -104,9 +192,13 @@ fun RecipesScreen(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun RecipeListView(
     recipes: List<Recipe>,
+    availableCategories: List<String>,
+    selectedCategory: String,
+    onCategorySelected: (String) -> Unit,
     onRecipeClick: (Recipe) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -116,13 +208,54 @@ private fun RecipeListView(
     ) {
         item { Spacer(modifier = Modifier.height(8.dp)) }
 
+        if (availableCategories.size > 2) {
+            item {
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    availableCategories.forEach { cat ->
+                        val isSelected = selectedCategory == cat
+                        AssistChip(
+                            onClick = { onCategorySelected(cat) },
+                            label = { Text(cat) },
+                            colors = AssistChipDefaults.assistChipColors(
+                                containerColor = if (isSelected) KetoAccent
+                                    else MaterialTheme.colorScheme.surfaceVariant,
+                                labelColor = if (isSelected) OnSurface
+                                    else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        )
+                    }
+                }
+            }
+        }
+
         if (recipes.isEmpty()) {
             item {
-                Text(
-                    text = "No recipes found.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 48.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = "No recipes yet",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = "Tap + to add your first recipe",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
             }
         } else {
             items(recipes) { recipe ->
@@ -130,7 +263,7 @@ private fun RecipeListView(
             }
         }
 
-        item { Spacer(modifier = Modifier.height(24.dp)) }
+        item { Spacer(modifier = Modifier.height(80.dp)) }
     }
 }
 
@@ -144,11 +277,24 @@ private fun RecipeCard(recipe: Recipe, onClick: () -> Unit) {
         onClick = onClick
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
-            Text(
-                text = recipe.name,
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.SemiBold
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
+            ) {
+                Text(
+                    text = recipe.name,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.weight(1f)
+                )
+                Text(
+                    text = recipe.category,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = KetoAccent,
+                    modifier = Modifier.padding(start = 8.dp, top = 2.dp)
+                )
+            }
             recipe.description?.let { desc ->
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
@@ -176,11 +322,18 @@ private fun RecipeDetailView(recipe: Recipe, onLogToKeto: () -> Unit, modifier: 
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Text(
-            text = recipe.name,
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold
-        )
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(
+                text = recipe.name,
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = recipe.category,
+                style = MaterialTheme.typography.labelMedium,
+                color = KetoAccent
+            )
+        }
 
         recipe.description?.let {
             Text(

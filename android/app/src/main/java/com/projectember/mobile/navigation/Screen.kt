@@ -12,6 +12,10 @@ sealed class Screen(val route: String) {
             if (metric.isBlank()) "keto_trends" else "keto_trends?metric=$metric"
     }
     data object Recipes : Screen("recipes")
+    data object RecipeAdd : Screen("recipe_add")
+    data object RecipeEdit : Screen("recipe_edit/{recipeId}") {
+        fun createRoute(recipeId: Int) = "recipe_edit/$recipeId"
+    }
     data object Eira : Screen("eira")
     data object KetoTargets : Screen("keto_targets")
     data object Settings : Screen("settings")

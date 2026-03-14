@@ -90,6 +90,7 @@ object DatabaseSeeder {
                 listOf(
                     Recipe(
                         name = "Big Boy Salad",
+                        category = "Lunch",
                         description = "Egg-heavy keto salad with deli chicken and cheese.",
                         calories = 640.0,
                         proteinG = 52.0,
@@ -100,6 +101,7 @@ object DatabaseSeeder {
                     ),
                     Recipe(
                         name = "Tangy Beef Bowl",
+                        category = "Dinner",
                         description = "Ground beef, greens, broccoli, butter, and mozzarella.",
                         calories = 780.0,
                         proteinG = 58.0,
@@ -110,6 +112,7 @@ object DatabaseSeeder {
                     ),
                     Recipe(
                         name = "Cheesy Beef & Mushroom Skillet",
+                        category = "Dinner",
                         description = "Beef, mushrooms, cheddar, bouillon, mustard, and olive brine.",
                         calories = 690.0,
                         proteinG = 55.0,
@@ -120,6 +123,7 @@ object DatabaseSeeder {
                     ),
                     Recipe(
                         name = "Egg, Broccoli & Cheddar Skillet",
+                        category = "Breakfast",
                         description = "Simple skillet with eggs, broccoli, butter, and cheddar.",
                         calories = 430.0,
                         proteinG = 26.0,
@@ -130,6 +134,7 @@ object DatabaseSeeder {
                     ),
                     Recipe(
                         name = "Olive Brine Aioli",
+                        category = "Sauce",
                         description = "Egg, oil, olive brine, lemon, and seasonings.",
                         calories = 160.0,
                         proteinG = 1.0,
@@ -140,6 +145,7 @@ object DatabaseSeeder {
                     ),
                     Recipe(
                         name = "Lazy Keto Almost-Kimchi Bowl",
+                        category = "Side",
                         description = "Quick cabbage bowl with vinegar, sesame oil, and seaweed.",
                         calories = 90.0,
                         proteinG = 2.0,
