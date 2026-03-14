@@ -285,10 +285,14 @@ fun AddKetoEntryScreen(
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 
             // ── Type-adaptive fields ─────────────────────────────────────────
-            when (viewModel.eventType) {
-                "exercise" -> ExerciseFields(viewModel)
-                "supplement" -> SupplementFields(viewModel)
-                else -> if (viewModel.eventType.isNotBlank()) NutritionFields(viewModel)
+            if (viewModel.isRecipeDerived) {
+                RecipeDerivedFields(viewModel)
+            } else {
+                when (viewModel.eventType) {
+                    "exercise" -> ExerciseFields(viewModel)
+                    "supplement" -> SupplementFields(viewModel)
+                    else -> if (viewModel.eventType.isNotBlank()) NutritionFields(viewModel)
+                }
             }
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -320,6 +324,14 @@ fun AddKetoEntryScreen(
 // ── Nutrition fields (Meal / Drink / Snack) ──────────────────────────────────
 @Composable
 private fun NutritionFields(viewModel: AddKetoEntryViewModel) {
+    OutlinedTextField(
+        value = viewModel.servings,
+        onValueChange = viewModel::onServingsChange,
+        label = { Text("Servings") },
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+        modifier = Modifier.fillMaxWidth(),
+        singleLine = true
+    )
     OutlinedTextField(
         value = viewModel.calories,
         onValueChange = viewModel::onCaloriesChange,
@@ -481,4 +493,105 @@ private fun SupplementFields(viewModel: AddKetoEntryViewModel) {
         modifier = Modifier.fillMaxWidth(),
         singleLine = true
     )
+}
+
+// ── Recipe-derived fields (servings-only edit + read-only nutrition) ─────────
+@Composable
+private fun RecipeDerivedFields(viewModel: AddKetoEntryViewModel) {
+    // Servings consumed — the only editable field for recipe-derived entries
+    OutlinedTextField(
+        value = viewModel.servings,
+        onValueChange = viewModel::onServingsChange,
+        label = { Text("Servings consumed") },
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+        modifier = Modifier.fillMaxWidth(),
+        singleLine = true
+    )
+
+    Spacer(modifier = Modifier.height(8.dp))
+
+    // Read-only per-serving snapshot
+    Text(
+        text = "Nutrition per serving (from recipe)",
+        style = MaterialTheme.typography.labelLarge,
+        color = MaterialTheme.colorScheme.onSurfaceVariant
+    )
+
+    val perServingCalories = viewModel.calories.toDoubleOrNull() ?: 0.0
+    val perServingProtein  = viewModel.proteinG.toDoubleOrNull() ?: 0.0
+    val perServingFat      = viewModel.fatG.toDoubleOrNull() ?: 0.0
+    val perServingCarbs    = viewModel.netCarbsG.toDoubleOrNull() ?: 0.0
+    val consumed           = viewModel.servings.toDoubleOrNull()?.coerceAtLeast(0.1) ?: 1.0
+
+    androidx.compose.material3.Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = androidx.compose.material3.CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            ReadOnlyRow("Calories",  "%.0f kcal".format(perServingCalories), "%.0f kcal".format(perServingCalories * consumed))
+            ReadOnlyRow("Protein",   "%.1f g".format(perServingProtein),     "%.1f g".format(perServingProtein    * consumed))
+            ReadOnlyRow("Fat",       "%.1f g".format(perServingFat),         "%.1f g".format(perServingFat        * consumed))
+            ReadOnlyRow("Net Carbs", "%.1f g".format(perServingCarbs),       "%.1f g".format(perServingCarbs      * consumed))
+
+            val hasMinerals = (viewModel.waterMl.toDoubleOrNull() ?: 0.0) > 0 ||
+                (viewModel.sodiumMg.toDoubleOrNull() ?: 0.0) > 0 ||
+                (viewModel.potassiumMg.toDoubleOrNull() ?: 0.0) > 0 ||
+                (viewModel.magnesiumMg.toDoubleOrNull() ?: 0.0) > 0
+            if (hasMinerals) {
+                HorizontalDivider(modifier = Modifier.padding(vertical = 2.dp))
+                val perSodium     = viewModel.sodiumMg.toDoubleOrNull()     ?: 0.0
+                val perPotassium  = viewModel.potassiumMg.toDoubleOrNull()  ?: 0.0
+                val perMagnesium  = viewModel.magnesiumMg.toDoubleOrNull()  ?: 0.0
+                val perWater      = viewModel.waterMl.toDoubleOrNull()      ?: 0.0
+                if (perSodium    > 0) ReadOnlyRow("Sodium",    "%.0f mg".format(perSodium),    "%.0f mg".format(perSodium    * consumed))
+                if (perPotassium > 0) ReadOnlyRow("Potassium", "%.0f mg".format(perPotassium), "%.0f mg".format(perPotassium * consumed))
+                if (perMagnesium > 0) ReadOnlyRow("Magnesium", "%.0f mg".format(perMagnesium), "%.0f mg".format(perMagnesium * consumed))
+                if (perWater     > 0) ReadOnlyRow("Water",     "%.0f mL".format(perWater),     "%.0f mL".format(perWater     * consumed))
+            }
+        }
+    }
+
+    Spacer(modifier = Modifier.height(4.dp))
+
+    // Notes still editable
+    OutlinedTextField(
+        value = viewModel.notes,
+        onValueChange = viewModel::onNotesChange,
+        label = { Text("Notes (optional)") },
+        modifier = Modifier.fillMaxWidth(),
+        minLines = 2,
+        maxLines = 4
+    )
+}
+
+@Composable
+private fun ReadOnlyRow(label: String, perServing: String, total: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.weight(1.2f)
+        )
+        Text(
+            text = perServing,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.weight(1f)
+        )
+        Text(
+            text = "→ $total",
+            style = MaterialTheme.typography.bodySmall,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.weight(1f)
+        )
+    }
 }

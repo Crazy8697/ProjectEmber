@@ -31,4 +31,24 @@ interface ExerciseCategoryDao {
 
     @Query("SELECT COUNT(*) FROM exercise_categories")
     suspend fun count(): Int
+
+    /**
+     * Returns the number of categories whose trimmed, lower-cased name matches [name].
+     * Used to prevent duplicate category names (exact, case, and whitespace variants).
+     */
+    @Query(
+        "SELECT COUNT(*) FROM exercise_categories " +
+            "WHERE LOWER(TRIM(name)) = LOWER(TRIM(:name))"
+    )
+    suspend fun countByTrimmedName(name: String): Int
+
+    /**
+     * Like [countByTrimmedName] but excludes the category with [excludeId].
+     * Used when renaming a category to allow keeping its own name.
+     */
+    @Query(
+        "SELECT COUNT(*) FROM exercise_categories " +
+            "WHERE LOWER(TRIM(name)) = LOWER(TRIM(:name)) AND id != :excludeId"
+    )
+    suspend fun countByTrimmedNameExcluding(name: String, excludeId: Int): Int
 }

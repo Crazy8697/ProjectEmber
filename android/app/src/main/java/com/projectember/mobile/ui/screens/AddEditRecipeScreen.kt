@@ -151,10 +151,31 @@ fun AddEditRecipeScreen(
             }
 
             // ── Macros ───────────────────────────────────────────────────────
-            Text(
-                text = "Nutrition (per serving)",
-                style = MaterialTheme.typography.labelLarge
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text(
+                        text = "Total Recipe Nutrition",
+                        style = MaterialTheme.typography.labelLarge
+                    )
+                    Text(
+                        text = "Enter totals for the whole recipe",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                OutlinedTextField(
+                    value = viewModel.servings,
+                    onValueChange = viewModel::onServingsChange,
+                    label = { Text("Servings") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier.width(120.dp),
+                    singleLine = true
+                )
+            }
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)

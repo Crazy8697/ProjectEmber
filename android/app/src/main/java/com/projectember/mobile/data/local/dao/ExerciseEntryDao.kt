@@ -35,4 +35,8 @@ interface ExerciseEntryDao {
 
     @Query("SELECT COUNT(*) FROM exercise_entries")
     suspend fun count(): Int
+
+    /** Returns the number of entries that reference the given category. */
+    @Query("SELECT COUNT(*) FROM exercise_entries WHERE categoryId = :categoryId")
+    suspend fun countEntriesForCategory(categoryId: Int): Int
 }

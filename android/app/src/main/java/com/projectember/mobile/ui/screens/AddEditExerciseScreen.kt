@@ -69,6 +69,68 @@ fun AddEditExerciseScreen(
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
     var showNewCategoryDialog by remember { mutableStateOf(false) }
+    var showManageCategoriesDialog by remember { mutableStateOf(false) }
+
+    // ── Manage categories dialog ──────────────────────────────────────────────
+    if (showManageCategoriesDialog) {
+        var deleteResultMessage by remember { mutableStateOf<String?>(null) }
+        AlertDialog(
+            onDismissRequest = {
+                showManageCategoriesDialog = false
+                deleteResultMessage = null
+            },
+            title = { Text("Manage Categories") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    deleteResultMessage?.let { msg ->
+                        Text(
+                            text = msg,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
+                    categories.forEach { cat ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = cat.name + if (cat.isBuiltIn) " (built-in)" else "",
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.weight(1f)
+                            )
+                            if (!cat.isBuiltIn) {
+                                TextButton(
+                                    onClick = {
+                                        coroutineScope.launch {
+                                            when (val result = viewModel.deleteCategory(cat.id)) {
+                                                is AddEditExerciseViewModel.DeleteCategoryResult.Deleted ->
+                                                    deleteResultMessage = null
+                                                is AddEditExerciseViewModel.DeleteCategoryResult.BuiltInProtected ->
+                                                    deleteResultMessage = "\"${cat.name}\" is a built-in category and cannot be deleted."
+                                                is AddEditExerciseViewModel.DeleteCategoryResult.InUse ->
+                                                    deleteResultMessage = "\"${cat.name}\" is used by ${result.entryCount} " +
+                                                        "exercise ${if (result.entryCount == 1) "entry" else "entries"} and cannot be deleted."
+                                            }
+                                        }
+                                    }
+                                ) {
+                                    Text("Delete", color = MaterialTheme.colorScheme.error)
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    showManageCategoriesDialog = false
+                    deleteResultMessage = null
+                }) { Text("Done") }
+            }
+        )
+    }
 
     // ── Delete confirmation ───────────────────────────────────────────────────
     if (showDeleteDialog) {
@@ -145,28 +207,56 @@ fun AddEditExerciseScreen(
     // ── New category dialog ───────────────────────────────────────────────────
     if (showNewCategoryDialog) {
         var newCategoryName by remember { mutableStateOf("") }
+        var newCategoryError by remember { mutableStateOf<String?>(null) }
         AlertDialog(
-            onDismissRequest = { showNewCategoryDialog = false },
+            onDismissRequest = {
+                showNewCategoryDialog = false
+                newCategoryName = ""
+                newCategoryError = null
+            },
             title = { Text("New Category") },
             text = {
-                OutlinedTextField(
-                    value = newCategoryName,
-                    onValueChange = { newCategoryName = it },
-                    label = { Text("Category name") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
+                Column {
+                    OutlinedTextField(
+                        value = newCategoryName,
+                        onValueChange = {
+                            newCategoryName = it
+                            newCategoryError = null
+                        },
+                        label = { Text("Category name") },
+                        singleLine = true,
+                        isError = newCategoryError != null,
+                        supportingText = newCategoryError?.let { err ->
+                            { Text(err, color = MaterialTheme.colorScheme.error) }
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
             },
             confirmButton = {
                 TextButton(onClick = {
-                    if (newCategoryName.isNotBlank()) {
-                        viewModel.createCategory(newCategoryName)
-                        showNewCategoryDialog = false
+                    val trimmed = newCategoryName.trim()
+                    if (trimmed.isBlank()) {
+                        newCategoryError = "Category name cannot be empty"
+                        return@TextButton
+                    }
+                    coroutineScope.launch {
+                        val error = viewModel.createCategoryValidated(trimmed)
+                        if (error != null) {
+                            newCategoryError = error
+                        } else {
+                            showNewCategoryDialog = false
+                            newCategoryName = ""
+                        }
                     }
                 }) { Text("Create") }
             },
             dismissButton = {
-                TextButton(onClick = { showNewCategoryDialog = false }) { Text("Cancel") }
+                TextButton(onClick = {
+                    showNewCategoryDialog = false
+                    newCategoryName = ""
+                    newCategoryError = null
+                }) { Text("Cancel") }
             }
         )
     }
@@ -227,6 +317,17 @@ fun AddEditExerciseScreen(
                         labelColor = KetoAccent
                     )
                 )
+                // "Manage" chip — for deleting custom categories
+                if (categories.any { !it.isBuiltIn }) {
+                    AssistChip(
+                        onClick = { showManageCategoriesDialog = true },
+                        label = { Text("Manage") },
+                        colors = AssistChipDefaults.assistChipColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                            labelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    )
+                }
             }
 
             viewModel.categoryError?.let {

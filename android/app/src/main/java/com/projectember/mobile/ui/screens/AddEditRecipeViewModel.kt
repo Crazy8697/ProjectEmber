@@ -72,6 +72,9 @@ class AddEditRecipeViewModel(
     var waterMl by mutableStateOf("")
         private set
 
+    var servings by mutableStateOf("1")
+        private set
+
     // Ingredient list
     var ingredients by mutableStateOf<List<RecipeIngredient>>(emptyList())
         private set
@@ -97,6 +100,7 @@ class AddEditRecipeViewModel(
                     potassiumMg = formatDouble(recipe.potassiumMg)
                     magnesiumMg = formatDouble(recipe.magnesiumMg)
                     waterMl = formatDouble(recipe.waterMl)
+                    servings = formatDouble(recipe.servings).ifBlank { "1" }
                     ingredients = decodeIngredients(recipe.ingredientsRaw)
                 }
             }
@@ -119,6 +123,7 @@ class AddEditRecipeViewModel(
     fun onPotassiumMgChange(value: String) { potassiumMg = value }
     fun onMagnesiumMgChange(value: String) { magnesiumMg = value }
     fun onWaterMlChange(value: String) { waterMl = value }
+    fun onServingsChange(value: String) { servings = value }
 
     fun addIngredient() {
         ingredients = ingredients + RecipeIngredient("", "")
@@ -168,7 +173,8 @@ class AddEditRecipeViewModel(
                         potassiumMg = parseDoubleOrZero(potassiumMg),
                         magnesiumMg = parseDoubleOrZero(magnesiumMg),
                         waterMl = parseDoubleOrZero(waterMl),
-                        ingredientsRaw = encodedIngredients
+                        ingredientsRaw = encodedIngredients,
+                        servings = servings.toDoubleOrNull()?.coerceAtLeast(0.1) ?: 1.0
                     )
                 )
             } else {
@@ -187,7 +193,8 @@ class AddEditRecipeViewModel(
                         potassiumMg = parseDoubleOrZero(potassiumMg),
                         magnesiumMg = parseDoubleOrZero(magnesiumMg),
                         waterMl = parseDoubleOrZero(waterMl),
-                        ingredientsRaw = encodedIngredients
+                        ingredientsRaw = encodedIngredients,
+                        servings = servings.toDoubleOrNull()?.coerceAtLeast(0.1) ?: 1.0
                     )
                 )
             }
