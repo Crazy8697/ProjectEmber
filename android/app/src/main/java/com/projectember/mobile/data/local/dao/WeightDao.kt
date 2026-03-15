@@ -1,6 +1,7 @@
 package com.projectember.mobile.data.local.dao
 
 import androidx.room.Dao
+import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
@@ -38,8 +39,15 @@ interface WeightDao {
     @Query("SELECT * FROM weight_entries ORDER BY entryDate ASC, id ASC")
     suspend fun getAllOnce(): List<WeightEntry>
 
+    /** All entries, newest first — used for the weight history screen. */
+    @Query("SELECT * FROM weight_entries ORDER BY entryDate DESC, id DESC")
+    fun getAllEntries(): Flow<List<WeightEntry>>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(entries: List<WeightEntry>)
+
+    @Delete
+    suspend fun delete(entry: WeightEntry)
 
     @Query("DELETE FROM weight_entries")
     suspend fun deleteAll()

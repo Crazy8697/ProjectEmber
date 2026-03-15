@@ -2,7 +2,9 @@ package com.projectember.mobile.ui.screens
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -51,28 +53,6 @@ private val KetoCard    = SurfaceMid
 private val KetoBorderC = KetoBorder
 private val KetoMuted   = OnSurfaceVariant
 
-/** Limit targets (calories, net carbs, fat, sodium): green < 80 %, yellow 80–100 %, red > 100 % */
-private fun limitStatusColor(value: Double, target: Double): Color {
-    if (target <= 0) return Color.Unspecified
-    val pct = value / target
-    return when {
-        pct > 1.0  -> ErrorRed
-        pct >= 0.8 -> WarningYellow
-        else       -> SuccessGreen
-    }
-}
-
-/** Goal targets (protein, water, potassium, magnesium): green >= 80 %, yellow 50–80 %, red < 50 % */
-private fun goalStatusColor(value: Double, target: Double): Color {
-    if (target <= 0) return Color.Unspecified
-    val pct = value / target
-    return when {
-        pct >= 0.8 -> SuccessGreen
-        pct >= 0.5 -> WarningYellow
-        else       -> ErrorRed
-    }
-}
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun KetoScreen(
@@ -83,7 +63,8 @@ fun KetoScreen(
     onNavigateToEditExercise: (Int) -> Unit,
     onNavigateToTargets: () -> Unit,
     onNavigateToTrends: (String) -> Unit,
-    onNavigateToLogExercise: (String) -> Unit
+    onNavigateToLogExercise: (String) -> Unit,
+    onNavigateToWeightHistory: () -> Unit
 ) {
     val selectedDateEntries by viewModel.selectedDateEntries.collectAsState()
     val selectedDate by viewModel.selectedDate.collectAsState()
@@ -97,14 +78,25 @@ fun KetoScreen(
 
     val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
 
-    val todayCalories  = selectedDateEntries.sumOf { it.effectiveCalories() }
-    val todayProtein   = selectedDateEntries.sumOf { it.effectiveProtein() }
-    val todayFat       = selectedDateEntries.sumOf { it.effectiveFat() }
-    val todayCarbs     = selectedDateEntries.sumOf { it.effectiveNetCarbs() }
-    val todayWater     = selectedDateEntries.sumOf { it.effectiveWater() }
-    val todaySodium    = selectedDateEntries.sumOf { it.effectiveSodium() }
-    val todayPotassium = selectedDateEntries.sumOf { it.effectivePotassium() }
-    val todayMagnesium = selectedDateEntries.sumOf { it.effectiveMagnesium() }
+    // Food-only entries — exercise entries are displayed in the list but excluded from
+    // macro totals so that the numbers match the Home dashboard (which is also food-only).
+    val foodEntries = selectedDateEntries.filter {
+        !it.eventType.equals("exercise", ignoreCase = true)
+    }
+    val todayCalories  = foodEntries.sumOf { it.effectiveCalories() }
+    val todayProtein   = foodEntries.sumOf { it.effectiveProtein() }
+    val todayFat       = foodEntries.sumOf { it.effectiveFat() }
+    val todayCarbs     = foodEntries.sumOf { it.effectiveNetCarbs() }
+    val todayWater     = foodEntries.sumOf { it.effectiveWater() }
+    val todaySodium    = foodEntries.sumOf { it.effectiveSodium() }
+    val todayPotassium = foodEntries.sumOf { it.effectivePotassium() }
+    val todayMagnesium = foodEntries.sumOf { it.effectiveMagnesium() }
+
+    // Exercise calories burned today — shown as a subtitle on the CALORIES block so the
+    // user can still see exercise impact without the number conflicting with the Home total.
+    val todayExerciseBurned = selectedDateEntries
+        .filter { it.eventType.equals("exercise", ignoreCase = true) }
+        .sumOf { it.calories * it.servings }
 
     val hydrationPct = if (targets.waterMl > 0)
         (todayWater / targets.waterMl * 100).toInt() else 0
@@ -274,8 +266,10 @@ fun KetoScreen(
                         unit = " kcal",
                         targetLabel = "target %.0f".format(targets.caloriesKcal),
                         diff = todayCalories - targets.caloriesKcal,
-                        statusColor = limitStatusColor(todayCalories, targets.caloriesKcal),
-                        onClick = { onNavigateToTrends("calories") }
+                        statusColor = targetRangeStatusColor(todayCalories, targets.caloriesKcal),
+                        onClick = { onNavigateToTrends("calories") },
+                        burnedLabel = if (todayExerciseBurned > 0)
+                            "\u2212%.0f burned".format(todayExerciseBurned) else null
                     )
                     MetricBlock(
                         modifier = Modifier.weight(1f),
@@ -303,7 +297,7 @@ fun KetoScreen(
                         unit = "g",
                         targetLabel = "target %.0f".format(targets.fatG),
                         diff = todayFat - targets.fatG,
-                        statusColor = limitStatusColor(todayFat, targets.fatG),
+                        statusColor = targetRangeStatusColor(todayFat, targets.fatG),
                         onClick = { onNavigateToTrends("fat") }
                     )
                     MetricBlock(
@@ -313,7 +307,7 @@ fun KetoScreen(
                         unit = "g",
                         targetLabel = "target %.0f".format(targets.netCarbsG),
                         diff = todayCarbs - targets.netCarbsG,
-                        statusColor = limitStatusColor(todayCarbs, targets.netCarbsG),
+                        statusColor = strictLimitStatusColor(todayCarbs, targets.netCarbsG),
                         onClick = { onNavigateToTrends("net_carbs") }
                     )
                 }
@@ -337,7 +331,7 @@ fun KetoScreen(
                         nakRatio = nakRatio,
                         todaySodium = todaySodium,
                         todayPotassium = todayPotassium,
-                        onClick = { onNavigateToTrends("sodium") }
+                        onClick = { onNavigateToTrends("nak_ratio") }
                     )
                 }
             }
@@ -361,7 +355,8 @@ fun KetoScreen(
                     WeightBlock(
                         modifier = Modifier.weight(1f),
                         lastEntry = lastWeightEntry,
-                        onClick = {
+                        onClick = { onNavigateToWeightHistory() },
+                        onLongClick = {
                             weightInput = lastWeightEntry?.weightKg?.let { "%.1f".format(it) } ?: ""
                             showWeightDialog = true
                         }
@@ -444,14 +439,13 @@ private fun MetricBlock(
     targetLabel: String,
     diff: Double,
     statusColor: Color,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    /** Optional extra line shown below the target row, e.g. "−250 burned" for calories. */
+    burnedLabel: String? = null
 ) {
     val valueColor = if (statusColor != Color.Unspecified) statusColor else OnSurface
-    val diffColor  = when {
-        diff == 0.0  -> KetoMuted
-        diff < 0     -> ErrorRed
-        else         -> SuccessGreen
-    }
+    // Use the same status color for the diff indicator so it always matches the metric health.
+    val diffColor  = if (statusColor != Color.Unspecified) statusColor else KetoMuted
     val diffText = if (diff >= 0) "+%.1f".format(diff) else "%.1f".format(diff)
 
     Card(
@@ -492,6 +486,14 @@ private fun MetricBlock(
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.SemiBold,
                     color = diffColor,
+                    fontSize = 10.sp
+                )
+            }
+            if (burnedLabel != null) {
+                Text(
+                    text = burnedLabel,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = SuccessGreen,
                     fontSize = 10.sp
                 )
             }
@@ -896,14 +898,16 @@ private fun MacroDetail(label: String, value: String, color: Color = OnSurface) 
 }
 
 // ── Weight block ──────────────────────────────────────────────────────────────
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun WeightBlock(
     modifier: Modifier = Modifier,
     lastEntry: WeightEntry?,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onLongClick: () -> Unit = {}
 ) {
     Card(
-        modifier = modifier.clickable { onClick() },
+        modifier = modifier.combinedClickable(onClick = onClick, onLongClick = onLongClick),
         colors = CardDefaults.cardColors(containerColor = KetoCard),
         border = BorderStroke(1.dp, KetoBorderC)
     ) {
@@ -923,7 +927,7 @@ private fun WeightBlock(
             )
             Spacer(modifier = Modifier.height(2.dp))
             Text(
-                text = if (lastEntry != null) lastEntry.entryDate else "tap to log",
+                text = if (lastEntry != null) lastEntry.entryDate else "tap to view history",
                 style = MaterialTheme.typography.labelSmall,
                 color = KetoMuted,
                 fontSize = 10.sp

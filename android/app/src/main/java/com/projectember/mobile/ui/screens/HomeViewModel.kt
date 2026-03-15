@@ -70,7 +70,10 @@ class HomeViewModel(
 
     val targets: StateFlow<KetoTargets> = targetsStore.targets
 
-    /** Aggregate of all keto (food) entries for today — exercise excluded. */
+    /** Aggregate of all keto (food) entries for today — exercise excluded.
+     *  This intentionally matches the CALORIES block on the Keto screen, which also
+     *  uses food-only calories.  Exercise calories burned are shown separately on the
+     *  Keto screen as a subtitle on the CALORIES card. */
     val todaySummary: StateFlow<TodaySummary> = ketoRepository
         .getEntriesForDate(today)
         .map { entries ->

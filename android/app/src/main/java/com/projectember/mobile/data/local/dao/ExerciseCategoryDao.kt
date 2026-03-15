@@ -5,6 +5,7 @@ import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Update
 import com.projectember.mobile.data.local.entities.ExerciseCategory
 import kotlinx.coroutines.flow.Flow
 
@@ -28,6 +29,9 @@ interface ExerciseCategoryDao {
 
     @Delete
     suspend fun delete(category: ExerciseCategory)
+
+    @Update
+    suspend fun update(category: ExerciseCategory)
 
     @Query("SELECT COUNT(*) FROM exercise_categories")
     suspend fun count(): Int

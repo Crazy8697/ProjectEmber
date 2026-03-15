@@ -5,7 +5,7 @@ import com.projectember.mobile.data.backup.BackupManager
 import com.projectember.mobile.data.local.db.AppDatabase
 import com.projectember.mobile.data.local.db.DatabaseSeeder
 import com.projectember.mobile.data.local.KetoTargetsStore
-import com.projectember.mobile.data.local.WeightStore
+import com.projectember.mobile.data.local.entities.WeightEntry
 import com.projectember.mobile.data.repository.ExerciseCategoryRepository
 import com.projectember.mobile.data.repository.ExerciseRepository
 import com.projectember.mobile.data.repository.KetoRepository
@@ -26,7 +26,6 @@ class EmberApplication : Application() {
 
     val ketoRepository by lazy { KetoRepository(database.ketoDao()) }
     val ketoTargetsStore by lazy { KetoTargetsStore(this) }
-    val weightStore by lazy { WeightStore(this) }
     val weightRepository by lazy { WeightRepository(database.weightDao()) }
     val recipeRepository by lazy { RecipeRepository(database.recipeDao()) }
     val syncRepository by lazy { SyncRepository(database.syncStatusDao()) }
@@ -56,6 +55,26 @@ class EmberApplication : Application() {
             // to a recipe in the database.  This is idempotent and a no-op once
             // all dangling references have been cleared.
             ketoRepository.clearDanglingRecipeReferences()
+            // One-time migration: if the legacy WeightStore (SharedPreferences) has a
+            // saved weight entry AND the Room weight_entries table is empty, migrate
+            // that single entry into Room so no historical data is lost.
+            migrateWeightStoreIfNeeded()
         }
+    }
+
+    /**
+     * Reads the legacy WeightStore SharedPreferences (key "weight_log") and inserts the
+     * stored entry into Room if Room currently has no weight entries.  This is safe to
+     * call repeatedly — it is a no-op once Room has any entries.
+     */
+    private suspend fun migrateWeightStoreIfNeeded() {
+        if (weightRepository.count() > 0) return  // Room already has data — nothing to do
+        val prefs = getSharedPreferences("weight_log", MODE_PRIVATE)
+        val bits = prefs.getLong("weight_kg_bits", 0L)
+        val date = prefs.getString("weight_date", "") ?: ""
+        if (bits == 0L || date.isBlank()) return  // No legacy data
+        val kg = Double.fromBits(bits)
+        if (kg <= 0) return
+        weightRepository.insert(WeightEntry(entryDate = date, weightKg = kg))
     }
 }

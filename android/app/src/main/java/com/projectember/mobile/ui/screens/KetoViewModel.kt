@@ -15,6 +15,7 @@ import com.projectember.mobile.data.local.entities.effectivePotassium
 import com.projectember.mobile.data.local.entities.effectiveProtein
 import com.projectember.mobile.data.local.entities.effectiveSodium
 import com.projectember.mobile.data.local.entities.effectiveWater
+import com.projectember.mobile.data.repository.ExerciseCategoryRepository
 import com.projectember.mobile.data.repository.ExerciseRepository
 import com.projectember.mobile.data.repository.KetoRepository
 import com.projectember.mobile.data.repository.WeightRepository
@@ -43,14 +44,17 @@ data class DayTotals(
     val potassiumMg: Double = 0.0,
     val magnesiumMg: Double = 0.0,
     /** Weight logged on this day (kg), or null if none. */
-    val weightKg: Double? = null
+    val weightKg: Double? = null,
+    /** Na:K ratio (sodiumMg / potassiumMg) for the day, or null if potassiumMg == 0. */
+    val nakRatio: Double? = null
 )
 
 class KetoViewModel(
     private val ketoRepository: KetoRepository,
     val targetsStore: KetoTargetsStore,
     private val weightRepository: WeightRepository,
-    private val exerciseRepository: ExerciseRepository
+    private val exerciseRepository: ExerciseRepository,
+    private val exerciseCategoryRepository: ExerciseCategoryRepository
 ) : ViewModel() {
 
     private val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
@@ -69,8 +73,10 @@ class KetoViewModel(
         .flatMapLatest { date ->
             combine(
                 ketoRepository.getEntriesForDate(date),
-                exerciseRepository.getEntriesForDate(date)
-            ) { ketoEntries, exerciseEntries ->
+                exerciseRepository.getEntriesForDate(date),
+                exerciseCategoryRepository.getAllCategories()
+            ) { ketoEntries, exerciseEntries, categories ->
+                val categoryMap = categories.associateBy { it.id }
                 // Map each ExerciseEntry to a KetoEntry using a negative id so the UI can
                 // route edit taps to the ExerciseEditEntry screen instead of KetoEditEntry.
                 val mappedExercise = exerciseEntries.map { ex ->
@@ -79,10 +85,12 @@ class KetoViewModel(
                     // UI routing layer. id = 0 cannot appear for persisted records, but we guard
                     // against it to avoid a routing collision with the default KetoEntry id.
                     val mappedId = if (ex.id > 0) -ex.id else Int.MIN_VALUE
+                    // Use the category name as the primary label (matches ExerciseEntryCard).
+                    // Fall back to entry.type when category lookup fails (e.g. deleted category).
+                    val displayLabel = categoryMap[ex.categoryId]?.name ?: ex.type
                     KetoEntry(
                         id = mappedId,
-                        label = if (!ex.subtype.isNullOrBlank())
-                            "${ex.type} · ${ex.subtype}" else ex.type,
+                        label = displayLabel,
                         eventType = "exercise",
                         calories = ex.caloriesBurned ?: 0.0,
                         proteinG = 0.0,
@@ -175,6 +183,8 @@ class KetoViewModel(
                         val date = from.plusDays(offset.toLong())
                         val dateStr = date.format(dateFormatter)
                         val dayEntries = ketoEntries.filter { it.entryDate == dateStr }
+                        val sodiumMg  = dayEntries.sumOf { it.effectiveSodium() }
+                        val potassiumMg = dayEntries.sumOf { it.effectivePotassium() }
                         DayTotals(
                             label = date.format(dayShortFmt),
                             date = dateStr,
@@ -184,10 +194,11 @@ class KetoViewModel(
                             proteinG = dayEntries.sumOf { it.effectiveProtein() },
                             fatG = dayEntries.sumOf { it.effectiveFat() },
                             waterMl = dayEntries.sumOf { it.effectiveWater() },
-                            sodiumMg = dayEntries.sumOf { it.effectiveSodium() },
-                            potassiumMg = dayEntries.sumOf { it.effectivePotassium() },
+                            sodiumMg = sodiumMg,
+                            potassiumMg = potassiumMg,
                             magnesiumMg = dayEntries.sumOf { it.effectiveMagnesium() },
-                            weightKg = weightByDate[dateStr]
+                            weightKg = weightByDate[dateStr],
+                            nakRatio = if (potassiumMg > 0) sodiumMg / potassiumMg else null
                         )
                     }
                 }
@@ -207,6 +218,8 @@ class KetoViewModel(
                 val dateStr = date.format(dateFormatter)
                 val dayEntries = entries.filter { it.entryDate == dateStr }
                 val cals = dayEntries.sumOf { it.effectiveCalories() }
+                val sodiumMg  = dayEntries.sumOf { it.effectiveSodium() }
+                val potassiumMg = dayEntries.sumOf { it.effectivePotassium() }
                 DayTotals(
                     label = date.format(dayShortFmt),
                     date = dateStr,
@@ -215,9 +228,10 @@ class KetoViewModel(
                     proteinG = dayEntries.sumOf { it.effectiveProtein() },
                     fatG = dayEntries.sumOf { it.effectiveFat() },
                     waterMl = dayEntries.sumOf { it.effectiveWater() },
-                    sodiumMg = dayEntries.sumOf { it.effectiveSodium() },
-                    potassiumMg = dayEntries.sumOf { it.effectivePotassium() },
-                    magnesiumMg = dayEntries.sumOf { it.effectiveMagnesium() }
+                    sodiumMg = sodiumMg,
+                    potassiumMg = potassiumMg,
+                    magnesiumMg = dayEntries.sumOf { it.effectiveMagnesium() },
+                    nakRatio = if (potassiumMg > 0) sodiumMg / potassiumMg else null
                 )
             }
         }
@@ -232,9 +246,10 @@ class KetoViewModelFactory(
     private val ketoRepository: KetoRepository,
     private val targetsStore: KetoTargetsStore,
     private val weightRepository: WeightRepository,
-    private val exerciseRepository: ExerciseRepository
+    private val exerciseRepository: ExerciseRepository,
+    private val exerciseCategoryRepository: ExerciseCategoryRepository
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T =
-        KetoViewModel(ketoRepository, targetsStore, weightRepository, exerciseRepository) as T
+        KetoViewModel(ketoRepository, targetsStore, weightRepository, exerciseRepository, exerciseCategoryRepository) as T
 }

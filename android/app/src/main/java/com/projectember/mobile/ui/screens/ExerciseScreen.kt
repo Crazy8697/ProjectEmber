@@ -210,18 +210,17 @@ private fun ExerciseEntryCard(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                // Type · Subtype
-                val activityLabel = if (!entry.subtype.isNullOrBlank())
-                    "${entry.type} · ${entry.subtype}" else entry.type
+                // Main title: the DB category name (e.g. "Cardio", "Strength")
                 Text(
-                    text = activityLabel,
+                    text = category?.name ?: entry.type,
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold
                 )
 
-                // Meta row: time + optional duration/calories
+                // Meta row: time + activity type + optional duration/calories
                 val metaParts = buildList {
                     add(entry.entryTime)
+                    add(entry.type)
                     entry.durationMinutes?.let { add("$it min") }
                     entry.caloriesBurned?.let {
                         add("${it.toBigDecimal().stripTrailingZeros().toPlainString()} kcal")
@@ -238,13 +237,13 @@ private fun ExerciseEntryCard(
                 horizontalAlignment = Alignment.End,
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                // Category chip
-                category?.let {
+                // Subtype pill — only shown when a subtype is present
+                if (!entry.subtype.isNullOrBlank()) {
                     SuggestionChip(
                         onClick = {},
                         label = {
                             Text(
-                                it.name,
+                                entry.subtype!!,
                                 style = MaterialTheme.typography.labelSmall
                             )
                         },

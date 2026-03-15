@@ -73,50 +73,108 @@ fun AddEditExerciseScreen(
 
     // ── Manage categories dialog ──────────────────────────────────────────────
     if (showManageCategoriesDialog) {
-        var deleteResultMessage by remember { mutableStateOf<String?>(null) }
+        var actionMessage by remember { mutableStateOf<String?>(null) }
+        var isActionError by remember { mutableStateOf(true) }
+        // Track which category is currently being renamed (id → current draft name)
+        var renamingCategoryId by remember { mutableStateOf<Int?>(null) }
+        var renameInput by remember { mutableStateOf("") }
         AlertDialog(
             onDismissRequest = {
                 showManageCategoriesDialog = false
-                deleteResultMessage = null
+                actionMessage = null
+                renamingCategoryId = null
+                renameInput = ""
             },
             title = { Text("Manage Categories") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    deleteResultMessage?.let { msg ->
+                    actionMessage?.let { msg ->
                         Text(
                             text = msg,
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.error
+                            color = if (isActionError) MaterialTheme.colorScheme.error
+                                    else MaterialTheme.colorScheme.primary
                         )
                     }
                     categories.forEach { cat ->
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = cat.name + if (cat.isBuiltIn) " (built-in)" else "",
-                                style = MaterialTheme.typography.bodyMedium,
-                                modifier = Modifier.weight(1f)
-                            )
-                            if (!cat.isBuiltIn) {
-                                TextButton(
-                                    onClick = {
-                                        coroutineScope.launch {
-                                            when (val result = viewModel.deleteCategory(cat.id)) {
-                                                is AddEditExerciseViewModel.DeleteCategoryResult.Deleted ->
-                                                    deleteResultMessage = null
-                                                is AddEditExerciseViewModel.DeleteCategoryResult.BuiltInProtected ->
-                                                    deleteResultMessage = "\"${cat.name}\" is a built-in category and cannot be deleted."
-                                                is AddEditExerciseViewModel.DeleteCategoryResult.InUse ->
-                                                    deleteResultMessage = "\"${cat.name}\" is used by ${result.entryCount} " +
-                                                        "exercise ${if (result.entryCount == 1) "entry" else "entries"} and cannot be deleted."
+                        Column {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = cat.name + if (cat.isBuiltIn) " (built-in)" else "",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                if (!cat.isBuiltIn) {
+                                    TextButton(
+                                        onClick = {
+                                            renamingCategoryId = if (renamingCategoryId == cat.id) null else cat.id
+                                            renameInput = cat.name
+                                            actionMessage = null
+                                        }
+                                    ) { Text("Rename") }
+                                    TextButton(
+                                        onClick = {
+                                            coroutineScope.launch {
+                                                when (val result = viewModel.deleteCategory(cat.id)) {
+                                                    is AddEditExerciseViewModel.DeleteCategoryResult.Deleted -> {
+                                                        actionMessage = null
+                                                        if (renamingCategoryId == cat.id) {
+                                                            renamingCategoryId = null
+                                                            renameInput = ""
+                                                        }
+                                                    }
+                                                    is AddEditExerciseViewModel.DeleteCategoryResult.BuiltInProtected -> {
+                                                        isActionError = true
+                                                        actionMessage = "\"${cat.name}\" is a built-in category and cannot be deleted."
+                                                    }
+                                                    is AddEditExerciseViewModel.DeleteCategoryResult.InUse -> {
+                                                        isActionError = true
+                                                        actionMessage = "\"${cat.name}\" is used by ${result.entryCount} " +
+                                                            "exercise ${if (result.entryCount == 1) "entry" else "entries"} and cannot be deleted."
+                                                    }
+                                                }
                                             }
                                         }
+                                    ) {
+                                        Text("Delete", color = MaterialTheme.colorScheme.error)
                                     }
+                                }
+                            }
+                            // Inline rename field — only shown for the category being renamed
+                            if (renamingCategoryId == cat.id) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(bottom = 4.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Text("Delete", color = MaterialTheme.colorScheme.error)
+                                    OutlinedTextField(
+                                        value = renameInput,
+                                        onValueChange = { renameInput = it },
+                                        label = { Text("New name") },
+                                        singleLine = true,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    TextButton(onClick = {
+                                        coroutineScope.launch {
+                                            val newName = renameInput.trim()
+                                            val error = viewModel.renameCategory(cat.id, renameInput)
+                                            if (error != null) {
+                                                isActionError = true
+                                                actionMessage = error
+                                            } else {
+                                                isActionError = false
+                                                actionMessage = "\"${cat.name}\" renamed to \"$newName\"."
+                                                renamingCategoryId = null
+                                                renameInput = ""
+                                            }
+                                        }
+                                    }) { Text("Save") }
                                 }
                             }
                         }
@@ -126,7 +184,9 @@ fun AddEditExerciseScreen(
             confirmButton = {
                 TextButton(onClick = {
                     showManageCategoriesDialog = false
-                    deleteResultMessage = null
+                    actionMessage = null
+                    renamingCategoryId = null
+                    renameInput = ""
                 }) { Text("Done") }
             }
         )

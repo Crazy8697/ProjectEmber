@@ -27,4 +27,5 @@ sealed class Screen(val route: String) {
     data object ExerciseEditEntry : Screen("exercise_edit_entry/{entryId}") {
         fun createRoute(entryId: Int) = "exercise_edit_entry/$entryId"
     }
+    data object WeightHistory : Screen("weight_history")
 }
