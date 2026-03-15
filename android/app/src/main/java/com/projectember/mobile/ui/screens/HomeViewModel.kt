@@ -11,6 +11,7 @@ import com.projectember.mobile.data.local.entities.effectiveCalories
 import com.projectember.mobile.data.local.entities.effectiveFat
 import com.projectember.mobile.data.local.entities.effectiveNetCarbs
 import com.projectember.mobile.data.local.entities.effectiveProtein
+import com.projectember.mobile.data.local.entities.effectiveWater
 import com.projectember.mobile.data.repository.KetoRepository
 import com.projectember.mobile.data.repository.SyncRepository
 import com.projectember.mobile.data.repository.WeightRepository
@@ -18,7 +19,7 @@ import com.projectember.mobile.sync.SyncManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -28,7 +29,8 @@ data class TodaySummary(
     val calories: Double,
     val proteinG: Double,
     val fatG: Double,
-    val netCarbsG: Double
+    val netCarbsG: Double,
+    val waterMl: Double = 0.0
 )
 
 class HomeViewModel(
@@ -71,20 +73,21 @@ class HomeViewModel(
     /** Aggregate of all keto (food) entries for today — exercise excluded. */
     val todaySummary: StateFlow<TodaySummary> = ketoRepository
         .getEntriesForDate(today)
-        .combine(targetsStore.targets) { entries, _ ->
+        .map { entries ->
             // Only food entries count toward the dashboard calorie summary.
             val food = entries.filter { it.eventType != "exercise" }
             TodaySummary(
                 calories  = food.sumOf { it.effectiveCalories() }.coerceAtLeast(0.0),
                 proteinG  = food.sumOf { it.effectiveProtein() },
                 fatG      = food.sumOf { it.effectiveFat() },
-                netCarbsG = food.sumOf { it.effectiveNetCarbs() }
+                netCarbsG = food.sumOf { it.effectiveNetCarbs() },
+                waterMl   = food.sumOf { it.effectiveWater() }
             )
         }
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
-            initialValue = TodaySummary(0.0, 0.0, 0.0, 0.0)
+            initialValue = TodaySummary(0.0, 0.0, 0.0, 0.0, 0.0)
         )
 
     /** Latest logged body weight, or null if none recorded. */

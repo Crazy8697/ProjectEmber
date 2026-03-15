@@ -214,6 +214,20 @@ private fun RecipeListView(
     onRecipeClick: (Recipe) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    // Compute grouped data only when showing "All" with multiple categories present.
+    // We sort groups alphabetically; each group's recipes are also sorted by name.
+    val showGrouped = selectedCategory == RecipesViewModel.ALL_CATEGORIES &&
+        recipes.map { it.category }.distinct().size > 1
+    val groupedRecipes: List<Pair<String, List<Recipe>>> = if (showGrouped) {
+        recipes
+            .groupBy { it.category }
+            .entries
+            .sortedBy { it.key }
+            .map { (cat, catRecipes) -> cat to catRecipes.sortedBy { r -> r.name } }
+    } else {
+        emptyList()
+    }
+
     LazyColumn(
         modifier = modifier.padding(horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
@@ -280,8 +294,19 @@ private fun RecipeListView(
                     }
                 }
             }
+        } else if (showGrouped) {
+            // ── Grouped by category ──────────────────────────────────────────
+            groupedRecipes.forEach { (category, categoryRecipes) ->
+                item(key = "header_$category") {
+                    RecipeCategoryHeader(label = category)
+                }
+                items(categoryRecipes, key = { it.id }) { recipe ->
+                    RecipeCard(recipe = recipe, showCategory = false, onClick = { onRecipeClick(recipe) })
+                }
+            }
         } else {
-            items(recipes) { recipe ->
+            // ── Flat filtered list ────────────────────────────────────────────
+            items(recipes, key = { it.id }) { recipe ->
                 RecipeCard(recipe = recipe, onClick = { onRecipeClick(recipe) })
             }
         }
@@ -291,7 +316,20 @@ private fun RecipeListView(
 }
 
 @Composable
-private fun RecipeCard(recipe: Recipe, onClick: () -> Unit) {
+private fun RecipeCategoryHeader(label: String) {
+    Text(
+        text = label,
+        style = MaterialTheme.typography.titleSmall,
+        fontWeight = FontWeight.SemiBold,
+        color = KetoAccent,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 8.dp, bottom = 2.dp)
+    )
+}
+
+@Composable
+private fun RecipeCard(recipe: Recipe, onClick: () -> Unit, showCategory: Boolean = true) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -311,12 +349,14 @@ private fun RecipeCard(recipe: Recipe, onClick: () -> Unit) {
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.weight(1f)
                 )
-                Text(
-                    text = recipe.category,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = KetoAccent,
-                    modifier = Modifier.padding(start = 8.dp, top = 2.dp)
-                )
+                if (showCategory) {
+                    Text(
+                        text = recipe.category,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = KetoAccent,
+                        modifier = Modifier.padding(start = 8.dp, top = 2.dp)
+                    )
+                }
             }
             recipe.description?.let { desc ->
                 Spacer(modifier = Modifier.height(4.dp))

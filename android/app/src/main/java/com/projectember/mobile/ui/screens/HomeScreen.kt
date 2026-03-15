@@ -98,6 +98,7 @@ fun HomeScreen(
                 proteinTarget = targets.proteinG,
                 netCarbsTarget = targets.netCarbsG,
                 fatTarget = targets.fatG,
+                waterTarget = targets.waterMl,
                 lastWeightKg = lastWeight?.weightKg,
                 lastWeightDate = lastWeight?.entryDate,
                 onNavigateToTrends = onNavigateToTrends
@@ -129,6 +130,22 @@ fun HomeScreen(
     }
 }
 
+/**
+ * Returns a goal-style status color for a metric where higher is better (protein, water, …).
+ * green ≥ 80 %, yellow ≥ 50 %, muted otherwise.
+ */
+@Composable
+private fun goalColor(value: Double, target: Double) =
+    if (target <= 0) MaterialTheme.colorScheme.onSurface
+    else {
+        val ratio = value / target
+        when {
+            ratio >= 0.8 -> SuccessGreen
+            ratio >= 0.5 -> WarningYellow
+            else         -> MaterialTheme.colorScheme.onSurfaceVariant
+        }
+    }
+
 @Composable
 private fun TodaySummaryCard(
     summary: TodaySummary,
@@ -136,6 +153,7 @@ private fun TodaySummaryCard(
     proteinTarget: Double,
     netCarbsTarget: Double,
     fatTarget: Double,
+    waterTarget: Double,
     lastWeightKg: Double?,
     lastWeightDate: String?,
     onNavigateToTrends: () -> Unit
@@ -248,6 +266,36 @@ private fun TodaySummaryCard(
                 )
             }
 
+            // Hydration row — shown only when a water target is set
+            if (waterTarget > 0) {
+                val waterColor = goalColor(summary.waterMl, waterTarget)
+                val waterPct = (summary.waterMl / waterTarget).toFloat().coerceIn(0f, 1f)
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = "Water",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = "%.0f / %.0f mL".format(summary.waterMl, waterTarget),
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = waterColor
+                        )
+                    }
+                    LinearProgressIndicator(
+                        progress = { waterPct },
+                        modifier = Modifier.fillMaxWidth(),
+                        color = waterColor,
+                        trackColor = MaterialTheme.colorScheme.surfaceVariant
+                    )
+                }
+            }
+
             // Weight row
             if (lastWeightKg != null) {
                 Row(
@@ -283,16 +331,7 @@ private fun MacroChip(
     unit: String,
     modifier: Modifier = Modifier
 ) {
-    val color = if (target > 0) {
-        val pct = value / target
-        when {
-            pct >= 0.8 -> SuccessGreen
-            pct >= 0.5 -> WarningYellow
-            else       -> MaterialTheme.colorScheme.onSurfaceVariant
-        }
-    } else {
-        MaterialTheme.colorScheme.onSurface
-    }
+    val color = goalColor(value, target)
 
     Box(modifier = modifier) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
