@@ -21,4 +21,11 @@ class WeightRepository(private val dao: WeightDao) {
     suspend fun insert(entry: WeightEntry) = dao.insert(entry)
 
     suspend fun count(): Int = dao.count()
+
+    suspend fun getAllOnce(): List<WeightEntry> = dao.getAllOnce()
+
+    suspend fun replaceAll(entries: List<WeightEntry>) {
+        dao.deleteAll()
+        dao.insertAll(entries)
+    }
 }

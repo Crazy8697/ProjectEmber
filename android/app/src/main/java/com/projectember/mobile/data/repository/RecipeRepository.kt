@@ -19,4 +19,6 @@ class RecipeRepository(private val recipeDao: RecipeDao) {
         recipeDao.deleteAll()
         recipeDao.insertAll(recipes)
     }
+
+    suspend fun getAllOnce(): List<Recipe> = recipeDao.getAllOnce()
 }

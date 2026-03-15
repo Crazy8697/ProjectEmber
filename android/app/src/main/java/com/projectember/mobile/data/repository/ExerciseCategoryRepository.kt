@@ -23,5 +23,10 @@ class ExerciseCategoryRepository(private val dao: ExerciseCategoryDao) {
             dao.countByTrimmedNameExcluding(name, excludeId) > 0
         else
             dao.countByTrimmedName(name) > 0
+
+    suspend fun replaceAll(categories: List<ExerciseCategory>) {
+        dao.deleteAll()
+        dao.insertAll(categories)
+    }
 }
 

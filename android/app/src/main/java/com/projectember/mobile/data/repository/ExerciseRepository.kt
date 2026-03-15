@@ -13,5 +13,12 @@ class ExerciseRepository(private val dao: ExerciseEntryDao) {
     suspend fun deleteEntry(entry: ExerciseEntry) = dao.delete(entry)
     suspend fun countEntriesForCategory(categoryId: Int): Int =
         dao.countEntriesForCategory(categoryId)
+
+    suspend fun getAllOnce(): List<ExerciseEntry> = dao.getAllOnce()
+
+    suspend fun replaceAll(entries: List<ExerciseEntry>) {
+        dao.deleteAll()
+        dao.insertAll(entries)
+    }
 }
 

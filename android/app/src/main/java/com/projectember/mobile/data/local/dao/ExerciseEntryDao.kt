@@ -39,4 +39,10 @@ interface ExerciseEntryDao {
     /** Returns the number of entries that reference the given category. */
     @Query("SELECT COUNT(*) FROM exercise_entries WHERE categoryId = :categoryId")
     suspend fun countEntriesForCategory(categoryId: Int): Int
+
+    @Query("SELECT * FROM exercise_entries ORDER BY timestamp DESC")
+    suspend fun getAllOnce(): List<ExerciseEntry>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(entries: List<ExerciseEntry>)
 }

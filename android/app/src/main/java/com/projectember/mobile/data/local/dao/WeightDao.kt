@@ -34,4 +34,13 @@ interface WeightDao {
 
     @Query("SELECT COUNT(*) FROM weight_entries")
     suspend fun count(): Int
+
+    @Query("SELECT * FROM weight_entries ORDER BY entryDate ASC, id ASC")
+    suspend fun getAllOnce(): List<WeightEntry>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(entries: List<WeightEntry>)
+
+    @Query("DELETE FROM weight_entries")
+    suspend fun deleteAll()
 }

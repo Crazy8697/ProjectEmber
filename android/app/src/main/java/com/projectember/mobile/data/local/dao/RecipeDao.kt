@@ -33,4 +33,7 @@ interface RecipeDao {
 
     @Query("SELECT COUNT(*) FROM recipes")
     suspend fun count(): Int
+
+    @Query("SELECT * FROM recipes ORDER BY name COLLATE NOCASE ASC")
+    suspend fun getAllOnce(): List<Recipe>
 }

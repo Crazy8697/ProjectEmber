@@ -191,7 +191,11 @@ fun EmberNavGraph(
 
         composable(Screen.Settings.route) {
             val viewModel: SettingsViewModel = viewModel(
-                factory = SettingsViewModelFactory(app.syncRepository, app.syncManager)
+                factory = SettingsViewModelFactory(
+                    app.syncRepository,
+                    app.syncManager,
+                    app.backupManager
+                )
             )
             SettingsScreen(
                 viewModel = viewModel,

@@ -51,4 +51,7 @@ interface ExerciseCategoryDao {
             "WHERE LOWER(TRIM(name)) = LOWER(TRIM(:name)) AND id != :excludeId"
     )
     suspend fun countByTrimmedNameExcluding(name: String, excludeId: Int): Int
+
+    @Query("DELETE FROM exercise_categories")
+    suspend fun deleteAll()
 }

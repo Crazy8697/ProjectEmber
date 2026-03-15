@@ -1,6 +1,7 @@
 package com.projectember.mobile
 
 import android.app.Application
+import com.projectember.mobile.data.backup.BackupManager
 import com.projectember.mobile.data.local.db.AppDatabase
 import com.projectember.mobile.data.local.db.DatabaseSeeder
 import com.projectember.mobile.data.local.KetoTargetsStore
@@ -32,6 +33,19 @@ class EmberApplication : Application() {
     val syncManager by lazy { SyncManager(syncRepository) }
     val exerciseCategoryRepository by lazy { ExerciseCategoryRepository(database.exerciseCategoryDao()) }
     val exerciseRepository by lazy { ExerciseRepository(database.exerciseEntryDao()) }
+
+    val backupManager by lazy {
+        BackupManager(
+            context = applicationContext,
+            ketoRepository = ketoRepository,
+            recipeRepository = recipeRepository,
+            exerciseRepository = exerciseRepository,
+            exerciseCategoryRepository = exerciseCategoryRepository,
+            weightRepository = weightRepository,
+            ketoTargetsStore = ketoTargetsStore,
+            appVersion = BuildConfig.VERSION_NAME
+        )
+    }
 
     override fun onCreate() {
         super.onCreate()

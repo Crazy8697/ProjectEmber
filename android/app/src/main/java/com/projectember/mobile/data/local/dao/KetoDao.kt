@@ -40,4 +40,7 @@ interface KetoDao {
 
     @Query("SELECT * FROM keto_entries WHERE entryDate >= :startDate ORDER BY entryDate ASC, eventTimestamp ASC")
     fun getEntriesFromDate(startDate: String): Flow<List<KetoEntry>>
+
+    @Query("SELECT * FROM keto_entries ORDER BY eventTimestamp DESC")
+    suspend fun getAllOnce(): List<KetoEntry>
 }

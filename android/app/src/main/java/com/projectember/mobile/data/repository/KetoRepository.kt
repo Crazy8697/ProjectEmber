@@ -27,4 +27,6 @@ class KetoRepository(private val ketoDao: KetoDao) {
         ketoDao.deleteAll()
         ketoDao.insertAll(entries)
     }
+
+    suspend fun getAllOnce(): List<KetoEntry> = ketoDao.getAllOnce()
 }

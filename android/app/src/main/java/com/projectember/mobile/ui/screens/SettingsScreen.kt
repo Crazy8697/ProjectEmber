@@ -1,5 +1,7 @@
 package com.projectember.mobile.ui.screens
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -27,11 +29,15 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Snackbar
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -51,10 +57,79 @@ fun SettingsScreen(
 ) {
     val syncStatus by viewModel.syncStatus.collectAsState()
     val isSyncing by viewModel.isSyncing.collectAsState()
+    val exportState by viewModel.exportState.collectAsState()
+    val importState by viewModel.importState.collectAsState()
+    val pendingImport by viewModel.pendingImport.collectAsState()
+    val resetState by viewModel.resetState.collectAsState()
 
     // Danger Zone confirmation state
     var showResetConfirm1 by remember { mutableStateOf(false) }
     var showResetConfirm2 by remember { mutableStateOf(false) }
+
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    // ── Snackbar feedback for export ─────────────────────────────────────────
+    LaunchedEffect(exportState) {
+        when (val s = exportState) {
+            is BackupOpState.Success -> {
+                snackbarHostState.showSnackbar(s.message)
+                viewModel.clearExportState()
+            }
+            is BackupOpState.Error -> {
+                snackbarHostState.showSnackbar("Export error: ${s.message}")
+                viewModel.clearExportState()
+            }
+            else -> Unit
+        }
+    }
+
+    // ── Snackbar feedback for import ─────────────────────────────────────────
+    LaunchedEffect(importState) {
+        when (val s = importState) {
+            is BackupOpState.Success -> {
+                snackbarHostState.showSnackbar(s.message)
+                viewModel.clearImportState()
+            }
+            is BackupOpState.Error -> {
+                snackbarHostState.showSnackbar("Import error: ${s.message}")
+                viewModel.clearImportState()
+            }
+            else -> Unit
+        }
+    }
+
+    // ── Snackbar feedback for reset ──────────────────────────────────────────
+    LaunchedEffect(resetState) {
+        when (val s = resetState) {
+            is BackupOpState.Success -> {
+                snackbarHostState.showSnackbar(s.message)
+                viewModel.clearResetState()
+            }
+            is BackupOpState.Error -> {
+                snackbarHostState.showSnackbar("Reset error: ${s.message}")
+                viewModel.clearResetState()
+            }
+            else -> Unit
+        }
+    }
+
+    // ── SAF file-save launcher (Export) ──────────────────────────────────────
+    val exportLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/json")
+    ) { uri ->
+        if (uri != null) viewModel.exportToUri(uri)
+    }
+
+    // ── SAF file-open launcher (Import) ──────────────────────────────────────
+    val importLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri != null) viewModel.loadImport(uri)
+    }
+
+    val isBusy = exportState is BackupOpState.InProgress ||
+        importState is BackupOpState.InProgress ||
+        resetState is BackupOpState.InProgress
 
     Scaffold(
         topBar = {
@@ -78,6 +153,11 @@ fun SettingsScreen(
                     containerColor = MaterialTheme.colorScheme.surface
                 )
             )
+        },
+        snackbarHost = {
+            SnackbarHost(hostState = snackbarHostState) { data ->
+                Snackbar(snackbarData = data)
+            }
         }
     ) { paddingValues ->
         Column(
@@ -89,6 +169,89 @@ fun SettingsScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Spacer(modifier = Modifier.height(4.dp))
+
+            // ── Appearance ──────────────────────────────────────────────────
+            SettingsSection(title = "Appearance") {
+                SettingsRow(label = "Theme", value = "Dark (default)")
+            }
+
+            // ── Data Management ─────────────────────────────────────────────
+            SettingsSection(title = "Data Management") {
+                TextButton(
+                    onClick = {
+                        exportLauncher.launch("ember_backup.json")
+                    },
+                    enabled = !isBusy,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        if (exportState is BackupOpState.InProgress) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                strokeWidth = 2.dp,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            Text(
+                                text = "  Exporting…",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        } else {
+                            Text(
+                                text = "Export Data",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Icon(
+                                imageVector = Icons.Default.ChevronRight,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+                HorizontalDivider(
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                    thickness = 0.5.dp
+                )
+                TextButton(
+                    onClick = {
+                        importLauncher.launch(arrayOf("application/json", "*/*"))
+                    },
+                    enabled = !isBusy,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        if (importState is BackupOpState.InProgress) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                strokeWidth = 2.dp,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            Text(
+                                text = "  Importing…",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        } else {
+                            Text(
+                                text = "Import Data",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Icon(
+                                imageVector = Icons.Default.ChevronRight,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+            }
 
             // ── Sync ────────────────────────────────────────────────────────
             SettingsSection(title = "Sync") {
@@ -136,59 +299,6 @@ fun SettingsScreen(
                 }
             }
 
-            // ── Appearance ──────────────────────────────────────────────────
-            SettingsSection(title = "Appearance") {
-                SettingsRow(label = "Theme", value = "Dark (default)")
-            }
-
-            // ── Data Management ─────────────────────────────────────────────
-            SettingsSection(title = "Data Management") {
-                TextButton(
-                    onClick = { /* TODO: implement export data */ },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "Export Data",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Icon(
-                            imageVector = Icons.Default.ChevronRight,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-                HorizontalDivider(
-                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-                    thickness = 0.5.dp
-                )
-                TextButton(
-                    onClick = { /* TODO: implement import data */ },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "Import Data",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Icon(
-                            imageVector = Icons.Default.ChevronRight,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-            }
-
             // ── Account ─────────────────────────────────────────────────────
             SettingsSection(title = "Account") {
                 SettingsRow(label = "Pro Status", value = "Free")
@@ -207,12 +317,22 @@ fun SettingsScreen(
             ) {
                 Button(
                     onClick = { showResetConfirm1 = true },
+                    enabled = !isBusy,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.error
                     ),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("Reset App")
+                    if (resetState is BackupOpState.InProgress) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.onError
+                        )
+                        Text("  Resetting…", modifier = Modifier.padding(start = 4.dp))
+                    } else {
+                        Text("Reset App")
+                    }
                 }
             }
 
@@ -220,7 +340,33 @@ fun SettingsScreen(
         }
     }
 
-    // First confirmation dialog
+    // ── Import overwrite confirmation dialog ─────────────────────────────────
+    if (pendingImport != null) {
+        val payload = pendingImport!!
+        AlertDialog(
+            onDismissRequest = { viewModel.cancelImport() },
+            title = { Text("Overwrite All Data?") },
+            text = {
+                Text(
+                    "This will permanently replace all current app data with the backup " +
+                        "from ${payload.appVersion} (exported ${payload.exportedAt.take(10)}). " +
+                        "This action cannot be undone."
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = { viewModel.confirmImport() }) {
+                    Text("Restore", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.cancelImport() }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    // ── Reset App: first confirmation ────────────────────────────────────────
     if (showResetConfirm1) {
         AlertDialog(
             onDismissRequest = { showResetConfirm1 = false },
@@ -242,7 +388,7 @@ fun SettingsScreen(
         )
     }
 
-    // Second (final) confirmation dialog
+    // ── Reset App: second (final) confirmation ───────────────────────────────
     if (showResetConfirm2) {
         AlertDialog(
             onDismissRequest = { showResetConfirm2 = false },
@@ -251,7 +397,7 @@ fun SettingsScreen(
             confirmButton = {
                 TextButton(onClick = {
                     showResetConfirm2 = false
-                    // TODO: implement reset logic
+                    viewModel.resetAll()
                 }) {
                     Text("Reset Everything", color = MaterialTheme.colorScheme.error)
                 }
@@ -318,3 +464,4 @@ private fun SettingsRow(label: String, value: String) {
         thickness = 0.5.dp
     )
 }
+
