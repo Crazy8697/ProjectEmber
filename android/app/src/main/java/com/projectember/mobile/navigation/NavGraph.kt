@@ -60,7 +60,8 @@ fun EmberNavGraph(
                     app.syncManager,
                     app.ketoRepository,
                     app.ketoTargetsStore,
-                    app.weightRepository
+                    app.weightRepository,
+                    app.unitsPreferencesStore
                 )
             )
             HomeScreen(
@@ -78,7 +79,7 @@ fun EmberNavGraph(
                 factory = KetoViewModelFactory(
                     app.ketoRepository, app.ketoTargetsStore,
                     app.weightRepository, app.exerciseRepository,
-                    app.exerciseCategoryRepository
+                    app.exerciseCategoryRepository, app.unitsPreferencesStore
                 )
             )
             KetoScreen(
@@ -198,7 +199,7 @@ fun EmberNavGraph(
                 factory = KetoViewModelFactory(
                     app.ketoRepository, app.ketoTargetsStore,
                     app.weightRepository, app.exerciseRepository,
-                    app.exerciseCategoryRepository
+                    app.exerciseCategoryRepository, app.unitsPreferencesStore
                 )
             )
             KetoTrendsScreen(
@@ -213,7 +214,9 @@ fun EmberNavGraph(
                 factory = SettingsViewModelFactory(
                     app.syncRepository,
                     app.syncManager,
-                    app.backupManager
+                    app.backupManager,
+                    app.themePreferencesStore,
+                    app.unitsPreferencesStore
                 )
             )
             SettingsScreen(
@@ -287,7 +290,10 @@ fun EmberNavGraph(
 
         composable(Screen.WeightHistory.route) {
             val viewModel: WeightHistoryViewModel = viewModel(
-                factory = WeightHistoryViewModelFactory(app.weightRepository)
+                factory = WeightHistoryViewModelFactory(
+                    app.weightRepository,
+                    app.unitsPreferencesStore
+                )
             )
             WeightHistoryScreen(
                 viewModel = viewModel,

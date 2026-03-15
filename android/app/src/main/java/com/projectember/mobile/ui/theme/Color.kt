@@ -2,6 +2,8 @@ package com.projectember.mobile.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
+// ── Ember Dark (default) ──────────────────────────────────────────────────────
+
 val EmberOrange = Color(0xFFE85D04)
 val EmberOrangeLight = Color(0xFFFF8C42)
 val EmberOrangeDark = Color(0xFFAF4200)
@@ -21,3 +23,23 @@ val KetoBtnH = Color(0xFF4A4A5F)
 val SuccessGreen = Color(0xFF00FF66)
 val WarningYellow = Color(0xFFFACC15)
 val ErrorRed = Color(0xFFFF4D4D)
+
+// ── Midnight Blue theme ───────────────────────────────────────────────────────
+
+val MidnightSurfaceDark = Color(0xFF080C14)
+val MidnightSurfaceMid = Color(0xFF111827)
+val MidnightSurfaceLight = Color(0xFF1E2D45)
+val MidnightAccent = Color(0xFF3B82F6)
+val MidnightAccentLight = Color(0xFF60A5FA)
+val MidnightBorder = Color(0xFF1E2D45)
+val MidnightSecondary = Color(0xFF7C3AED)
+
+// ── Forest Dark theme ─────────────────────────────────────────────────────────
+
+val ForestSurfaceDark = Color(0xFF0A120A)
+val ForestSurfaceMid = Color(0xFF131F13)
+val ForestSurfaceLight = Color(0xFF253825)
+val ForestAccent = Color(0xFF22C55E)
+val ForestAccentLight = Color(0xFF4ADE80)
+val ForestBorder = Color(0xFF1F3320)
+val ForestSecondary = Color(0xFF16A34A)

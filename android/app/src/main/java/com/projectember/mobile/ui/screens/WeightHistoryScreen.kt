@@ -16,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.projectember.mobile.data.local.WeightUnit
 import com.projectember.mobile.data.local.entities.WeightEntry
 import com.projectember.mobile.ui.theme.KetoAccent
 import com.projectember.mobile.ui.theme.KetoBorder
@@ -30,6 +31,8 @@ fun WeightHistoryScreen(
     onNavigateBack: () -> Unit
 ) {
     val entries by viewModel.allEntries.collectAsState()
+    val unitPrefs by viewModel.unitPreferences.collectAsState()
+    val weightUnit = unitPrefs.weightUnit
     var showLogDialog by remember { mutableStateOf(false) }
 
     // Log weight dialog
@@ -50,7 +53,7 @@ fun WeightHistoryScreen(
                         weightInput = it
                         weightError = false
                     },
-                    label = { Text("Weight (kg)") },
+                    label = { Text("Weight (${weightUnit.symbol})") },
                     isError = weightError,
                     supportingText = if (weightError) {
                         { Text("Enter a valid weight greater than 0") }
@@ -62,9 +65,9 @@ fun WeightHistoryScreen(
             },
             confirmButton = {
                 TextButton(onClick = {
-                    val kg = weightInput.toDoubleOrNull()
-                    if (kg != null && kg > 0) {
-                        viewModel.logWeight(kg)
+                    val value = weightInput.toDoubleOrNull()
+                    if (value != null && value > 0) {
+                        viewModel.logWeight(value, weightUnit)
                         showLogDialog = false
                         weightInput = ""
                         weightError = false
@@ -119,7 +122,7 @@ fun WeightHistoryScreen(
             // ── Chart ─────────────────────────────────────────────────────────
             if (entries.isNotEmpty()) {
                 item {
-                    WeightHistoryChart(entries = entries)
+                    WeightHistoryChart(entries = entries, weightUnit = weightUnit)
                 }
             }
 
@@ -157,6 +160,7 @@ fun WeightHistoryScreen(
                 items(entries, key = { it.id }) { entry ->
                     WeightEntryRow(
                         entry = entry,
+                        weightUnit = weightUnit,
                         onDelete = { viewModel.deleteEntry(entry) }
                     )
                 }
@@ -168,15 +172,16 @@ fun WeightHistoryScreen(
 }
 
 @Composable
-private fun WeightHistoryChart(entries: List<WeightEntry>) {
+private fun WeightHistoryChart(entries: List<WeightEntry>, weightUnit: WeightUnit) {
     // `entries` arrives newest-first. Take the 30 most-recent and reverse to
     // oldest-first for the left-to-right bar chart.
     val chartEntries = entries.take(30).reversed()
     if (chartEntries.isEmpty()) return
 
+    val symbol = weightUnit.symbol
     val chartData = chartEntries.map { entry ->
         val label = entry.entryDate.substring(5) // "MM-dd"
-        label to entry.weightKg.toFloat()
+        label to weightUnit.fromKg(entry.weightKg).toFloat()
     }
 
     Card(
@@ -185,9 +190,10 @@ private fun WeightHistoryChart(entries: List<WeightEntry>) {
         border = BorderStroke(1.dp, KetoBorder)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            val minVal = chartEntries.minOf { it.weightKg }.toFloat()
-            val maxVal = chartEntries.maxOf { it.weightKg }.toFloat()
-            val latestWeight = chartEntries.last().weightKg
+            val displayValues = chartEntries.map { weightUnit.fromKg(it.weightKg) }
+            val minVal = displayValues.min().toFloat()
+            val maxVal = displayValues.max().toFloat()
+            val latestWeight = displayValues.last()
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -195,12 +201,12 @@ private fun WeightHistoryChart(entries: List<WeightEntry>) {
                 verticalAlignment = Alignment.Bottom
             ) {
                 Text(
-                    text = "Weight (kg)",
+                    text = "Weight ($symbol)",
                     style = MaterialTheme.typography.labelMedium,
                     color = OnSurfaceVariant
                 )
                 Text(
-                    text = "%.1f kg".format(latestWeight),
+                    text = "%.1f $symbol".format(latestWeight),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = KetoAccent
@@ -208,7 +214,7 @@ private fun WeightHistoryChart(entries: List<WeightEntry>) {
             }
             if (maxVal > minVal) {
                 Text(
-                    text = "range: %.1f – %.1f kg".format(minVal, maxVal),
+                    text = "range: %.1f – %.1f $symbol".format(minVal, maxVal),
                     style = MaterialTheme.typography.labelSmall,
                     color = OnSurfaceVariant
                 )
@@ -218,7 +224,7 @@ private fun WeightHistoryChart(entries: List<WeightEntry>) {
                 title = "",
                 data = chartData,
                 barColor = KetoAccent,
-                unit = "kg",
+                unit = symbol,
                 targetValue = null
             )
         }
@@ -228,9 +234,12 @@ private fun WeightHistoryChart(entries: List<WeightEntry>) {
 @Composable
 private fun WeightEntryRow(
     entry: WeightEntry,
+    weightUnit: WeightUnit,
     onDelete: () -> Unit
 ) {
     var showDeleteConfirm by remember { mutableStateOf(false) }
+    val displayWeight = weightUnit.fromKg(entry.weightKg)
+    val symbol = weightUnit.symbol
 
     if (showDeleteConfirm) {
         AlertDialog(
@@ -276,7 +285,7 @@ private fun WeightEntryRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Text(
-                    text = "%.1f kg".format(entry.weightKg),
+                    text = "%.1f $symbol".format(displayWeight),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
                     color = KetoAccent
@@ -296,3 +305,4 @@ private fun WeightEntryRow(
         }
     }
 }
+

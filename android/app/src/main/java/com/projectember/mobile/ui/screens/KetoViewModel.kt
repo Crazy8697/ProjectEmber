@@ -5,6 +5,8 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.projectember.mobile.data.local.KetoTargets
 import com.projectember.mobile.data.local.KetoTargetsStore
+import com.projectember.mobile.data.local.UnitPreferences
+import com.projectember.mobile.data.local.UnitsPreferencesStore
 import com.projectember.mobile.data.local.entities.KetoEntry
 import com.projectember.mobile.data.local.entities.WeightEntry
 import com.projectember.mobile.data.local.entities.effectiveCalories
@@ -54,7 +56,8 @@ class KetoViewModel(
     val targetsStore: KetoTargetsStore,
     private val weightRepository: WeightRepository,
     private val exerciseRepository: ExerciseRepository,
-    private val exerciseCategoryRepository: ExerciseCategoryRepository
+    private val exerciseCategoryRepository: ExerciseCategoryRepository,
+    private val unitsPreferencesStore: UnitsPreferencesStore
 ) : ViewModel() {
 
     private val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
@@ -240,6 +243,15 @@ class KetoViewModel(
             started = SharingStarted.WhileSubscribed(5_000),
             initialValue = emptyList()
         )
+
+    /** Live unit preferences — consumed by trend screens for weight unit display. */
+    val unitPreferences: StateFlow<UnitPreferences> = unitsPreferencesStore
+        .preferencesFlow
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = unitsPreferencesStore.getPreferences()
+        )
 }
 
 class KetoViewModelFactory(
@@ -247,9 +259,13 @@ class KetoViewModelFactory(
     private val targetsStore: KetoTargetsStore,
     private val weightRepository: WeightRepository,
     private val exerciseRepository: ExerciseRepository,
-    private val exerciseCategoryRepository: ExerciseCategoryRepository
+    private val exerciseCategoryRepository: ExerciseCategoryRepository,
+    private val unitsPreferencesStore: UnitsPreferencesStore
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T =
-        KetoViewModel(ketoRepository, targetsStore, weightRepository, exerciseRepository, exerciseCategoryRepository) as T
+        KetoViewModel(
+            ketoRepository, targetsStore, weightRepository,
+            exerciseRepository, exerciseCategoryRepository, unitsPreferencesStore
+        ) as T
 }

@@ -6,9 +6,16 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.projectember.mobile.data.backup.BackupManager
 import com.projectember.mobile.data.backup.BackupPayloadV1
+import com.projectember.mobile.data.local.FoodWeightUnit
+import com.projectember.mobile.data.local.ThemePreferencesStore
+import com.projectember.mobile.data.local.UnitPreferences
+import com.projectember.mobile.data.local.UnitsPreferencesStore
+import com.projectember.mobile.data.local.VolumeUnit
+import com.projectember.mobile.data.local.WeightUnit
 import com.projectember.mobile.data.local.entities.SyncStatus
 import com.projectember.mobile.data.repository.SyncRepository
 import com.projectember.mobile.sync.SyncManager
+import com.projectember.mobile.ui.theme.ThemeOption
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -27,7 +34,9 @@ sealed class BackupOpState {
 class SettingsViewModel(
     private val syncRepository: SyncRepository,
     private val syncManager: SyncManager,
-    private val backupManager: BackupManager
+    private val backupManager: BackupManager,
+    private val themePreferencesStore: ThemePreferencesStore,
+    private val unitsPreferencesStore: UnitsPreferencesStore
 ) : ViewModel() {
 
     // ── Sync ──────────────────────────────────────────────────────────────────
@@ -144,14 +153,52 @@ class SettingsViewModel(
     }
 
     fun clearResetState() { _resetState.value = BackupOpState.Idle }
+
+    // ── Theme ─────────────────────────────────────────────────────────────────
+
+    private val _selectedTheme = MutableStateFlow(themePreferencesStore.getTheme())
+    val selectedTheme: StateFlow<ThemeOption> = _selectedTheme.asStateFlow()
+
+    fun setTheme(theme: ThemeOption) {
+        themePreferencesStore.setTheme(theme)
+        _selectedTheme.value = theme
+    }
+
+    // ── Unit Preferences ──────────────────────────────────────────────────────
+
+    private val _unitPreferences = MutableStateFlow(unitsPreferencesStore.getPreferences())
+    val unitPreferences: StateFlow<UnitPreferences> = _unitPreferences.asStateFlow()
+
+    fun setWeightUnit(unit: WeightUnit) {
+        unitsPreferencesStore.setWeightUnit(unit)
+        _unitPreferences.value = _unitPreferences.value.copy(weightUnit = unit)
+    }
+
+    fun setFoodWeightUnit(unit: FoodWeightUnit) {
+        unitsPreferencesStore.setFoodWeightUnit(unit)
+        _unitPreferences.value = _unitPreferences.value.copy(foodWeightUnit = unit)
+    }
+
+    fun setVolumeUnit(unit: VolumeUnit) {
+        unitsPreferencesStore.setVolumeUnit(unit)
+        _unitPreferences.value = _unitPreferences.value.copy(volumeUnit = unit)
+    }
 }
 
 class SettingsViewModelFactory(
     private val syncRepository: SyncRepository,
     private val syncManager: SyncManager,
-    private val backupManager: BackupManager
+    private val backupManager: BackupManager,
+    private val themePreferencesStore: ThemePreferencesStore,
+    private val unitsPreferencesStore: UnitsPreferencesStore
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T =
-        SettingsViewModel(syncRepository, syncManager, backupManager) as T
+        SettingsViewModel(
+            syncRepository,
+            syncManager,
+            backupManager,
+            themePreferencesStore,
+            unitsPreferencesStore
+        ) as T
 }

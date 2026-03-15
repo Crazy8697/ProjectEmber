@@ -48,6 +48,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.projectember.mobile.BuildConfig
+import com.projectember.mobile.data.local.FoodWeightUnit
+import com.projectember.mobile.data.local.VolumeUnit
+import com.projectember.mobile.data.local.WeightUnit
+import com.projectember.mobile.ui.theme.ThemeOption
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -61,6 +65,8 @@ fun SettingsScreen(
     val importState by viewModel.importState.collectAsState()
     val pendingImport by viewModel.pendingImport.collectAsState()
     val resetState by viewModel.resetState.collectAsState()
+    val selectedTheme by viewModel.selectedTheme.collectAsState()
+    val unitPrefs by viewModel.unitPreferences.collectAsState()
 
     // Danger Zone confirmation state
     var showResetConfirm1 by remember { mutableStateOf(false) }
@@ -172,7 +178,70 @@ fun SettingsScreen(
 
             // ── Appearance ──────────────────────────────────────────────────
             SettingsSection(title = "Appearance") {
-                SettingsRow(label = "Theme", value = "Dark (default)")
+                SettingsSubLabel(text = "Theme")
+                ThemeOption.entries.forEachIndexed { index, option ->
+                    SettingsRadioRow(
+                        label = option.displayName,
+                        selected = selectedTheme == option,
+                        onClick = { viewModel.setTheme(option) }
+                    )
+                    if (index < ThemeOption.entries.lastIndex) {
+                        HorizontalDivider(
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                            thickness = 0.5.dp
+                        )
+                    }
+                }
+            }
+
+            // ── Units & Measurements ────────────────────────────────────────
+            SettingsSection(title = "Units & Measurements") {
+                SettingsSubLabel(text = "Body Weight")
+                WeightUnit.entries.forEachIndexed { index, unit ->
+                    SettingsRadioRow(
+                        label = "${unit.displayName} (${unit.symbol})",
+                        selected = unitPrefs.weightUnit == unit,
+                        onClick = { viewModel.setWeightUnit(unit) }
+                    )
+                    if (index < WeightUnit.entries.lastIndex) {
+                        HorizontalDivider(
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                            thickness = 0.5.dp
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+                SettingsSubLabel(text = "Food Weight")
+                FoodWeightUnit.entries.forEachIndexed { index, unit ->
+                    SettingsRadioRow(
+                        label = "${unit.displayName} (${unit.symbol})",
+                        selected = unitPrefs.foodWeightUnit == unit,
+                        onClick = { viewModel.setFoodWeightUnit(unit) }
+                    )
+                    if (index < FoodWeightUnit.entries.lastIndex) {
+                        HorizontalDivider(
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                            thickness = 0.5.dp
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+                SettingsSubLabel(text = "Volume")
+                VolumeUnit.entries.forEachIndexed { index, unit ->
+                    SettingsRadioRow(
+                        label = "${unit.displayName} (${unit.symbol})",
+                        selected = unitPrefs.volumeUnit == unit,
+                        onClick = { viewModel.setVolumeUnit(unit) }
+                    )
+                    if (index < VolumeUnit.entries.lastIndex) {
+                        HorizontalDivider(
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                            thickness = 0.5.dp
+                        )
+                    }
+                }
             }
 
             // ── Data Management ─────────────────────────────────────────────
@@ -417,6 +486,8 @@ fun SettingsScreen(
     }
 }
 
+// ── Reusable setting composables ──────────────────────────────────────────────
+
 @Composable
 private fun SettingsSection(
     title: String,
@@ -469,5 +540,48 @@ private fun SettingsRow(label: String, value: String) {
         color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
         thickness = 0.5.dp
     )
+}
+
+@Composable
+private fun SettingsSubLabel(text: String) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.labelMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(bottom = 4.dp, start = 4.dp)
+    )
+}
+
+@Composable
+private fun SettingsRadioRow(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 2.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        RadioButton(
+            selected = selected,
+            onClick = onClick
+        )
+        TextButton(
+            onClick = onClick,
+            modifier = Modifier.weight(1f)
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodyMedium,
+                color = if (selected)
+                    MaterialTheme.colorScheme.primary
+                else
+                    MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+    }
 }
 

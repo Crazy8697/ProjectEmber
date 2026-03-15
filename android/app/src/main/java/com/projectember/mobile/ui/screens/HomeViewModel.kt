@@ -5,6 +5,8 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.projectember.mobile.data.local.KetoTargets
 import com.projectember.mobile.data.local.KetoTargetsStore
+import com.projectember.mobile.data.local.UnitPreferences
+import com.projectember.mobile.data.local.UnitsPreferencesStore
 import com.projectember.mobile.data.local.entities.SyncStatus
 import com.projectember.mobile.data.local.entities.WeightEntry
 import com.projectember.mobile.data.local.entities.effectiveCalories
@@ -38,7 +40,8 @@ class HomeViewModel(
     private val syncManager: SyncManager,
     ketoRepository: KetoRepository,
     targetsStore: KetoTargetsStore,
-    weightRepository: WeightRepository
+    weightRepository: WeightRepository,
+    private val unitsPreferencesStore: UnitsPreferencesStore
 ) : ViewModel() {
 
     private val today: String =
@@ -101,6 +104,15 @@ class HomeViewModel(
             started = SharingStarted.WhileSubscribed(5_000),
             initialValue = null
         )
+
+    /** Live unit preferences for display. */
+    val unitPreferences: StateFlow<UnitPreferences> = unitsPreferencesStore
+        .preferencesFlow
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = unitsPreferencesStore.getPreferences()
+        )
 }
 
 class HomeViewModelFactory(
@@ -108,9 +120,13 @@ class HomeViewModelFactory(
     private val syncManager: SyncManager,
     private val ketoRepository: KetoRepository,
     private val targetsStore: KetoTargetsStore,
-    private val weightRepository: WeightRepository
+    private val weightRepository: WeightRepository,
+    private val unitsPreferencesStore: UnitsPreferencesStore
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T =
-        HomeViewModel(syncRepository, syncManager, ketoRepository, targetsStore, weightRepository) as T
+        HomeViewModel(
+            syncRepository, syncManager, ketoRepository, targetsStore,
+            weightRepository, unitsPreferencesStore
+        ) as T
 }

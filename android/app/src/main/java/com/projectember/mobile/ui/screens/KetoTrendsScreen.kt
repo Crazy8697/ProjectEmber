@@ -14,6 +14,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.projectember.mobile.data.local.WeightUnit
 import com.projectember.mobile.ui.theme.KetoBorder
 import com.projectember.mobile.ui.theme.KetoAccent
 import com.projectember.mobile.ui.theme.SurfaceMid
@@ -101,6 +102,7 @@ fun KetoTrendsScreen(
     val mode         by viewModel.trendsMode.collectAsState()
     val rollingDays  by viewModel.trendsRollingDays.collectAsState()
     val targets      by viewModel.targets.collectAsState()
+    val unitPrefs    by viewModel.unitPreferences.collectAsState()
 
     var showFromPicker by remember { mutableStateOf(false) }
     var showToPicker   by remember { mutableStateOf(false) }
@@ -114,8 +116,16 @@ fun KetoTrendsScreen(
         }
     }
 
-    // Build chart data
-    val selector: (DayTotals) -> Float = { it.selectMetric(trendsMetric) }
+    // Build chart data — for weight, convert stored kg to selected display unit
+    val weightUnit: WeightUnit = unitPrefs.weightUnit
+    val selector: (DayTotals) -> Float = { day ->
+        if (trendsMetric == "weight") {
+            val rawKg = day.weightKg ?: 0.0
+            weightUnit.fromKg(rawKg).toFloat()
+        } else {
+            day.selectMetric(trendsMetric)
+        }
+    }
     val rawData = trendsData.map { it.label to selector(it) }
     val chartData: List<Pair<String, Float>> = when {
         mode == "rolling" && trendsData.isNotEmpty() ->
@@ -442,7 +452,7 @@ fun KetoTrendsScreen(
                 (trendsMetric != "nak_ratio" || trendsData.any { it.nakRatio != null })
             if (hasData) {
                 val metricLabel = METRIC_OPTIONS.firstOrNull { it.first == trendsMetric }?.third ?: trendsMetric
-                val unit = metricUnit(trendsMetric)
+                val unit = if (trendsMetric == "weight") weightUnit.symbol else metricUnit(trendsMetric)
                 val barColor = metricBarColor(trendsMetric)
 
                 Card(

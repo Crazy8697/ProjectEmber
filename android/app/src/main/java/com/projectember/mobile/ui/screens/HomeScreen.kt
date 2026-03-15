@@ -40,6 +40,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.projectember.mobile.data.local.WeightUnit
 import com.projectember.mobile.ui.theme.ErrorRed
 import com.projectember.mobile.ui.theme.KetoAccent
 import com.projectember.mobile.ui.theme.SuccessGreen
@@ -58,6 +59,7 @@ fun HomeScreen(
     val summary by viewModel.todaySummary.collectAsState()
     val targets by viewModel.targets.collectAsState()
     val lastWeight by viewModel.lastWeightEntry.collectAsState()
+    val unitPrefs by viewModel.unitPreferences.collectAsState()
 
     Scaffold(
         topBar = {
@@ -102,6 +104,7 @@ fun HomeScreen(
                 waterTarget = targets.waterMl,
                 lastWeightKg = lastWeight?.weightKg,
                 lastWeightDate = lastWeight?.entryDate,
+                weightUnit = unitPrefs.weightUnit,
                 onNavigateToTrends = onNavigateToTrends
             )
 
@@ -141,6 +144,7 @@ private fun TodaySummaryCard(
     waterTarget: Double,
     lastWeightKg: Double?,
     lastWeightDate: String?,
+    weightUnit: WeightUnit,
     onNavigateToTrends: () -> Unit
 ) {
     val calRatio = if (caloriesTarget > 0) (summary.calories / caloriesTarget).toFloat() else 0f
@@ -285,6 +289,8 @@ private fun TodaySummaryCard(
 
             // Weight row
             if (lastWeightKg != null) {
+                val displayWeight = weightUnit.fromKg(lastWeightKg)
+                val symbol = weightUnit.symbol
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -297,9 +303,9 @@ private fun TodaySummaryCard(
                     )
                     Text(
                         text = if (lastWeightDate != null)
-                            "%.1f kg  ·  %s".format(lastWeightKg, lastWeightDate)
+                            "%.1f $symbol  ·  %s".format(displayWeight, lastWeightDate)
                         else
-                            "%.1f kg".format(lastWeightKg),
+                            "%.1f $symbol".format(displayWeight),
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.SemiBold,
                         color = KetoAccent
