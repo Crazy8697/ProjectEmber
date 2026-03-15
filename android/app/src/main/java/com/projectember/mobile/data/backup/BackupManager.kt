@@ -2,8 +2,10 @@ package com.projectember.mobile.data.backup
 
 import android.content.Context
 import android.net.Uri
+import androidx.room.withTransaction
 import com.projectember.mobile.data.local.KetoTargets
 import com.projectember.mobile.data.local.KetoTargetsStore
+import com.projectember.mobile.data.local.db.AppDatabase
 import com.projectember.mobile.data.local.entities.ExerciseCategory
 import com.projectember.mobile.data.local.entities.ExerciseEntry
 import com.projectember.mobile.data.local.entities.KetoEntry
@@ -25,15 +27,20 @@ import java.time.Instant
  * single versioned JSON file to the caller-supplied [Uri].
  *
  * Import: reads, parses, and validates a file from a [Uri], then asks the
- * caller to confirm before performing a full replace-restore.
+ * caller to confirm before performing a full replace-restore. The entire DB
+ * portion of the restore runs inside a single Room transaction so that any
+ * failure leaves existing data completely untouched. SharedPreferences (keto
+ * targets) are saved only after the transaction commits successfully.
  *
- * Reset:  wipes all app data and restores factory defaults.
+ * Reset:  wipes all app data and resets factory defaults; same transactional
+ * guarantee for the DB portion.
  *
  * All IDs are preserved in the backup so that cross-references
  * (KetoEntry.recipeId, ExerciseEntry.categoryId) remain valid after restore.
  */
 class BackupManager(
     private val context: Context,
+    private val database: AppDatabase,
     private val ketoRepository: KetoRepository,
     private val recipeRepository: RecipeRepository,
     private val exerciseRepository: ExerciseRepository,
@@ -64,27 +71,51 @@ class BackupManager(
         parseAndValidate(json)
     }
 
-    /** Performs the full destructive replace-restore. Call only after user confirmation. */
+    /**
+     * Performs the full destructive replace-restore.
+     * Call only after user confirmation.
+     *
+     * The entire DB write runs in a single Room transaction. If anything
+     * throws, the transaction is rolled back and existing data is untouched.
+     * KetoTargets (SharedPreferences) are written only after the transaction
+     * commits so they cannot diverge from the DB state.
+     */
     suspend fun restoreFromPayload(payload: BackupPayloadV1) {
-        // Restore in dependency order: categories before entries that reference them,
-        // recipes before keto entries that reference them.
-        ketoRepository.replaceAll(payload.ketoEntries.map { it.toEntity() })
-        recipeRepository.replaceAll(payload.recipes.map { it.toEntity() })
-        weightRepository.replaceAll(payload.weightEntries.map { it.toEntity() })
-        exerciseCategoryRepository.replaceAll(payload.exerciseCategories.map { it.toEntity() })
-        exerciseRepository.replaceAll(payload.exerciseEntries.map { it.toEntity() })
+        // All DB tables are replaced inside one atomic transaction.
+        // Dependency order: parent tables first so referential integrity is maintained
+        // throughout the operation.
+        database.withTransaction {
+            // 1. Recipes before keto entries (KetoEntry.recipeId references Recipe.id)
+            recipeRepository.replaceAll(payload.recipes.map { it.toEntity() })
+            ketoRepository.replaceAll(payload.ketoEntries.map { it.toEntity() })
+
+            // 2. Exercise categories before exercise entries (ExerciseEntry.categoryId references ExerciseCategory.id)
+            exerciseCategoryRepository.replaceAll(payload.exerciseCategories.map { it.toEntity() })
+            exerciseRepository.replaceAll(payload.exerciseEntries.map { it.toEntity() })
+
+            // 3. Weight entries have no cross-table dependencies
+            weightRepository.replaceAll(payload.weightEntries.map { it.toEntity() })
+        }
+
+        // SharedPreferences are saved only after the DB transaction has committed.
         ketoTargetsStore.save(payload.ketoTargets.toKetoTargets())
     }
 
     // ── Reset ─────────────────────────────────────────────────────────────────
 
-    /** Deletes all app data and resets preferences to factory defaults. */
+    /**
+     * Deletes all app data and resets preferences to factory defaults.
+     * DB wipe runs inside a single Room transaction; SharedPreferences are
+     * reset only after the transaction commits.
+     */
     suspend fun resetAll() {
-        ketoRepository.replaceAll(emptyList())
-        recipeRepository.replaceAll(emptyList())
-        weightRepository.replaceAll(emptyList())
-        exerciseCategoryRepository.replaceAll(emptyList())
-        exerciseRepository.replaceAll(emptyList())
+        database.withTransaction {
+            ketoRepository.replaceAll(emptyList())
+            recipeRepository.replaceAll(emptyList())
+            exerciseCategoryRepository.replaceAll(emptyList())
+            exerciseRepository.replaceAll(emptyList())
+            weightRepository.replaceAll(emptyList())
+        }
         ketoTargetsStore.save(KetoTargets())
     }
 
@@ -121,10 +152,10 @@ class BackupManager(
         val appVer = root.optString("appVersion", "").trim()
         require(appVer.isNotEmpty()) { "Invalid backup: missing appVersion." }
 
-        val ketoEntries = root.optJSONArray("ketoEntries")
-            ?.let { parseKetoEntries(it) } ?: emptyList()
         val recipes = root.optJSONArray("recipes")
             ?.let { parseRecipes(it) } ?: emptyList()
+        val ketoEntries = root.optJSONArray("ketoEntries")
+            ?.let { parseKetoEntries(it) } ?: emptyList()
         val exerciseCategories = root.optJSONArray("exerciseCategories")
             ?.let { parseExerciseCategories(it) } ?: emptyList()
         val exerciseEntries = root.optJSONArray("exerciseEntries")
@@ -133,6 +164,23 @@ class BackupManager(
             ?.let { parseWeightEntries(it) } ?: emptyList()
         val ketoTargets = root.optJSONObject("ketoTargets")
             ?.let { parseKetoTargets(it) } ?: KetoTargetsDto()
+
+        // ── Referential integrity checks ──────────────────────────────────────
+        val recipeIds = recipes.map { it.id }.toSet()
+        val orphanedKetoRefs = ketoEntries.filter { it.recipeId != null && it.recipeId !in recipeIds }
+        require(orphanedKetoRefs.isEmpty()) {
+            "Invalid backup: ${orphanedKetoRefs.size} keto " +
+                "${if (orphanedKetoRefs.size == 1) "entry references" else "entries reference"} " +
+                "a recipe ID not present in this backup."
+        }
+
+        val categoryIds = exerciseCategories.map { it.id }.toSet()
+        val orphanedExerciseRefs = exerciseEntries.filter { it.categoryId !in categoryIds }
+        require(orphanedExerciseRefs.isEmpty()) {
+            "Invalid backup: ${orphanedExerciseRefs.size} exercise " +
+                "${if (orphanedExerciseRefs.size == 1) "entry references" else "entries reference"} " +
+                "a category ID not present in this backup."
+        }
 
         return BackupPayloadV1(
             schemaVersion = schemaVersion,

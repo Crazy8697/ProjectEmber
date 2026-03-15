@@ -37,6 +37,7 @@ class EmberApplication : Application() {
     val backupManager by lazy {
         BackupManager(
             context = applicationContext,
+            database = database,
             ketoRepository = ketoRepository,
             recipeRepository = recipeRepository,
             exerciseRepository = exerciseRepository,
