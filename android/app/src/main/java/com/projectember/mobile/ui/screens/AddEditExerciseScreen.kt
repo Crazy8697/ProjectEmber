@@ -162,13 +162,14 @@ fun AddEditExerciseScreen(
                                     )
                                     TextButton(onClick = {
                                         coroutineScope.launch {
+                                            val newName = renameInput.trim()
                                             val error = viewModel.renameCategory(cat.id, renameInput)
                                             if (error != null) {
                                                 isActionError = true
                                                 actionMessage = error
                                             } else {
                                                 isActionError = false
-                                                actionMessage = "\"${cat.name}\" renamed successfully."
+                                                actionMessage = "\"${cat.name}\" renamed to \"$newName\"."
                                                 renamingCategoryId = null
                                                 renameInput = ""
                                             }

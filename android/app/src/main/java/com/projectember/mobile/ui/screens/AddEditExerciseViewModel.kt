@@ -185,11 +185,14 @@ class AddEditExerciseViewModel(
     /**
      * Rename a custom category. Returns an error message string, or null on success.
      * Built-in categories are protected from rename.
+     * Returns null (success) if the category no longer exists — it was already deleted,
+     * so there is nothing to rename and the UI should proceed as if the operation succeeded.
      */
     suspend fun renameCategory(categoryId: Int, newName: String): String? {
         val trimmed = newName.trim()
         if (trimmed.isBlank()) return "Category name cannot be empty"
-        val cat = categoryRepository.getById(categoryId) ?: return null // already gone — treat as ok
+        // If the category was deleted concurrently, treat as a no-op success.
+        val cat = categoryRepository.getById(categoryId) ?: return null
         if (cat.isBuiltIn) return "Built-in categories cannot be renamed"
         if (categoryRepository.nameExists(trimmed, excludeId = categoryId)) {
             return "A category named \"$trimmed\" already exists"

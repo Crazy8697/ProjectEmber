@@ -284,7 +284,8 @@ fun KetoTrendsScreen(
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         // Na:K Ratio chip
-                        val (nakKey, nakAbbr, nakFullName) = METRIC_OPTIONS[8]
+                        val nakOption = METRIC_OPTIONS.first { it.first == "nak_ratio" }
+                        val (nakKey, nakAbbr, nakFullName) = nakOption
                         val nakSelected = trendsMetric == nakKey
                         FilterChip(
                             selected = nakSelected,
@@ -305,7 +306,8 @@ fun KetoTrendsScreen(
                             )
                         )
                         // Weight chip
-                        val (wtKey, wtAbbr, wtFullName) = METRIC_OPTIONS.last()
+                        val wtOption = METRIC_OPTIONS.first { it.first == "weight" }
+                        val (wtKey, wtAbbr, wtFullName) = wtOption
                         val wtSelected = trendsMetric == wtKey
                         FilterChip(
                             selected = wtSelected,
