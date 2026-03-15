@@ -77,7 +77,8 @@ fun EmberNavGraph(
             val viewModel: KetoViewModel = viewModel(
                 factory = KetoViewModelFactory(
                     app.ketoRepository, app.ketoTargetsStore,
-                    app.weightRepository, app.exerciseRepository
+                    app.weightRepository, app.exerciseRepository,
+                    app.exerciseCategoryRepository
                 )
             )
             KetoScreen(
@@ -196,7 +197,8 @@ fun EmberNavGraph(
             val viewModel: KetoViewModel = viewModel(
                 factory = KetoViewModelFactory(
                     app.ketoRepository, app.ketoTargetsStore,
-                    app.weightRepository, app.exerciseRepository
+                    app.weightRepository, app.exerciseRepository,
+                    app.exerciseCategoryRepository
                 )
             )
             KetoTrendsScreen(

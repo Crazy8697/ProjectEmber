@@ -210,21 +210,21 @@ private fun ExerciseEntryCard(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                // Main title: activity type (the broader "category" label)
+                // Main title: the DB category name (e.g. "Cardio", "Strength")
                 Text(
-                    text = entry.type,
+                    text = category?.name ?: entry.type,
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold
                 )
 
-                // Meta row: time + optional duration/calories + DB category name
+                // Meta row: time + activity type + optional duration/calories
                 val metaParts = buildList {
                     add(entry.entryTime)
+                    add(entry.type)
                     entry.durationMinutes?.let { add("$it min") }
                     entry.caloriesBurned?.let {
                         add("${it.toBigDecimal().stripTrailingZeros().toPlainString()} kcal")
                     }
-                    category?.let { add(it.name) }
                 }
                 Text(
                     text = metaParts.joinToString(" · "),

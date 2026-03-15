@@ -15,6 +15,7 @@ import com.projectember.mobile.data.local.entities.effectivePotassium
 import com.projectember.mobile.data.local.entities.effectiveProtein
 import com.projectember.mobile.data.local.entities.effectiveSodium
 import com.projectember.mobile.data.local.entities.effectiveWater
+import com.projectember.mobile.data.repository.ExerciseCategoryRepository
 import com.projectember.mobile.data.repository.ExerciseRepository
 import com.projectember.mobile.data.repository.KetoRepository
 import com.projectember.mobile.data.repository.WeightRepository
@@ -52,7 +53,8 @@ class KetoViewModel(
     private val ketoRepository: KetoRepository,
     val targetsStore: KetoTargetsStore,
     private val weightRepository: WeightRepository,
-    private val exerciseRepository: ExerciseRepository
+    private val exerciseRepository: ExerciseRepository,
+    private val exerciseCategoryRepository: ExerciseCategoryRepository
 ) : ViewModel() {
 
     private val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
@@ -71,8 +73,10 @@ class KetoViewModel(
         .flatMapLatest { date ->
             combine(
                 ketoRepository.getEntriesForDate(date),
-                exerciseRepository.getEntriesForDate(date)
-            ) { ketoEntries, exerciseEntries ->
+                exerciseRepository.getEntriesForDate(date),
+                exerciseCategoryRepository.getAllCategories()
+            ) { ketoEntries, exerciseEntries, categories ->
+                val categoryMap = categories.associateBy { it.id }
                 // Map each ExerciseEntry to a KetoEntry using a negative id so the UI can
                 // route edit taps to the ExerciseEditEntry screen instead of KetoEditEntry.
                 val mappedExercise = exerciseEntries.map { ex ->
@@ -81,9 +85,12 @@ class KetoViewModel(
                     // UI routing layer. id = 0 cannot appear for persisted records, but we guard
                     // against it to avoid a routing collision with the default KetoEntry id.
                     val mappedId = if (ex.id > 0) -ex.id else Int.MIN_VALUE
+                    // Use the category name as the primary label (matches ExerciseEntryCard).
+                    // Fall back to entry.type when category lookup fails (e.g. deleted category).
+                    val displayLabel = categoryMap[ex.categoryId]?.name ?: ex.type
                     KetoEntry(
                         id = mappedId,
-                        label = ex.type,
+                        label = displayLabel,
                         eventType = "exercise",
                         calories = ex.caloriesBurned ?: 0.0,
                         proteinG = 0.0,
@@ -239,9 +246,10 @@ class KetoViewModelFactory(
     private val ketoRepository: KetoRepository,
     private val targetsStore: KetoTargetsStore,
     private val weightRepository: WeightRepository,
-    private val exerciseRepository: ExerciseRepository
+    private val exerciseRepository: ExerciseRepository,
+    private val exerciseCategoryRepository: ExerciseCategoryRepository
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T =
-        KetoViewModel(ketoRepository, targetsStore, weightRepository, exerciseRepository) as T
+        KetoViewModel(ketoRepository, targetsStore, weightRepository, exerciseRepository, exerciseCategoryRepository) as T
 }
