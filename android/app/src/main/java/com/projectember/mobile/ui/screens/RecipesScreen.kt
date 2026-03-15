@@ -220,7 +220,7 @@ private fun RecipeListView(
     ) {
         item { Spacer(modifier = Modifier.height(8.dp)) }
 
-        if (availableCategories.size > 2) {
+        if (availableCategories.size > 1) {
             item {
                 FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -255,17 +255,28 @@ private fun RecipeListView(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Text(
-                            text = "No recipes yet",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Text(
-                            text = "Tap + to add your first recipe",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                            textAlign = TextAlign.Center
-                        )
+                        if (selectedCategory == RecipesViewModel.ALL_CATEGORIES) {
+                            Text(
+                                text = "No recipes yet",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                text = "Tap + to add your first recipe",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                                textAlign = TextAlign.Center
+                            )
+                        } else {
+                            Text(
+                                text = "No recipes in \"$selectedCategory\"",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            TextButton(onClick = { onCategorySelected(RecipesViewModel.ALL_CATEGORIES) }) {
+                                Text("Show all recipes")
+                            }
+                        }
                     }
                 }
             }

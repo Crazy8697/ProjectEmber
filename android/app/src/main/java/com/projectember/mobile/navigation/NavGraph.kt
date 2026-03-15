@@ -24,6 +24,8 @@ import com.projectember.mobile.ui.screens.ExerciseScreen
 import com.projectember.mobile.ui.screens.ExerciseViewModel
 import com.projectember.mobile.ui.screens.ExerciseViewModelFactory
 import com.projectember.mobile.ui.screens.HomeScreen
+import com.projectember.mobile.ui.screens.HomeViewModel
+import com.projectember.mobile.ui.screens.HomeViewModelFactory
 import com.projectember.mobile.ui.screens.KetoScreen
 import com.projectember.mobile.ui.screens.KetoTrendsScreen
 import com.projectember.mobile.ui.screens.KetoViewModel
@@ -49,11 +51,22 @@ fun EmberNavGraph(
         startDestination = Screen.Home.route
     ) {
         composable(Screen.Home.route) {
+            val viewModel: HomeViewModel = viewModel(
+                factory = HomeViewModelFactory(
+                    app.syncRepository,
+                    app.syncManager,
+                    app.ketoRepository,
+                    app.ketoTargetsStore,
+                    app.weightRepository
+                )
+            )
             HomeScreen(
+                viewModel = viewModel,
                 onNavigateToKeto = { navController.navigate(Screen.Keto.route) },
                 onNavigateToRecipes = { navController.navigate(Screen.Recipes.route) },
                 onNavigateToExercise = { navController.navigate(Screen.Exercise.route) },
-                onNavigateToSettings = { navController.navigate(Screen.Settings.route) }
+                onNavigateToSettings = { navController.navigate(Screen.Settings.route) },
+                onNavigateToTrends = { navController.navigate(Screen.KetoTrends.createRoute("calories")) }
             )
         }
 
