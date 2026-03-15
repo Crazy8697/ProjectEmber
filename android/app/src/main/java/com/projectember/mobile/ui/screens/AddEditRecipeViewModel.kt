@@ -6,16 +6,23 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.projectember.mobile.data.local.FoodWeightUnit
+import com.projectember.mobile.data.local.UnitPreferences
+import com.projectember.mobile.data.local.UnitsPreferencesStore
+import com.projectember.mobile.data.local.VolumeUnit
 import com.projectember.mobile.data.local.entities.Recipe
 import com.projectember.mobile.data.local.entities.RecipeIngredient
 import com.projectember.mobile.data.local.entities.decodeIngredients
 import com.projectember.mobile.data.local.entities.encodeIngredients
 import com.projectember.mobile.data.repository.RecipeRepository
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
 class AddEditRecipeViewModel(
     private val recipeRepository: RecipeRepository,
-    private val editRecipeId: Int? = null
+    private val editRecipeId: Int? = null,
+    private val unitsPreferencesStore: UnitsPreferencesStore? = null
 ) : ViewModel() {
 
     companion object {
@@ -37,6 +44,14 @@ class AddEditRecipeViewModel(
             if (d == 0.0) "" else d.toBigDecimal().stripTrailingZeros().toPlainString()
     }
 
+    // Snapshot unit preferences at creation time so load and save use the same units.
+    private val prefs: UnitPreferences = unitsPreferencesStore?.getPreferences() ?: UnitPreferences()
+    private val foodUnit: FoodWeightUnit get() = prefs.foodWeightUnit
+    private val volUnit: VolumeUnit get() = prefs.volumeUnit
+
+    /** Exposed to the Screen so labels update correctly. */
+    val unitPreferences: StateFlow<UnitPreferences> = MutableStateFlow(prefs)
+
     val isEditMode: Boolean get() = editRecipeId != null
 
     private var originalRecipe: Recipe? = null
@@ -48,7 +63,7 @@ class AddEditRecipeViewModel(
     var description by mutableStateOf("")
         private set
 
-    // Macro fields
+    // Macro fields — held in display units (g or oz per preference)
     var calories by mutableStateOf("")
         private set
     var proteinG by mutableStateOf("")
@@ -69,6 +84,7 @@ class AddEditRecipeViewModel(
         private set
     var magnesiumMg by mutableStateOf("")
         private set
+    // Held in display units (mL or cups per preference)
     var waterMl by mutableStateOf("")
         private set
 
@@ -92,14 +108,15 @@ class AddEditRecipeViewModel(
                     category = recipe.category
                     description = recipe.description ?: ""
                     calories = formatDouble(recipe.calories)
-                    proteinG = formatDouble(recipe.proteinG)
-                    fatG = formatDouble(recipe.fatG)
-                    totalCarbsG = formatDouble(recipe.totalCarbsG)
-                    fiberG = formatDouble(recipe.fiberG)
+                    // Convert stored base-unit values to display units
+                    proteinG = formatDouble(foodUnit.fromG(recipe.proteinG))
+                    fatG = formatDouble(foodUnit.fromG(recipe.fatG))
+                    totalCarbsG = formatDouble(foodUnit.fromG(recipe.totalCarbsG))
+                    fiberG = formatDouble(foodUnit.fromG(recipe.fiberG))
                     sodiumMg = formatDouble(recipe.sodiumMg)
                     potassiumMg = formatDouble(recipe.potassiumMg)
                     magnesiumMg = formatDouble(recipe.magnesiumMg)
-                    waterMl = formatDouble(recipe.waterMl)
+                    waterMl = formatDouble(volUnit.fromMl(recipe.waterMl))
                     servings = formatDouble(recipe.servings).ifBlank { "1" }
                     ingredients = decodeIngredients(recipe.ingredientsRaw)
                 }
@@ -153,9 +170,14 @@ class AddEditRecipeViewModel(
 
         viewModelScope.launch {
             val encodedIngredients = encodeIngredients(ingredients)
-            val parsedTotalCarbs = parseDoubleOrZero(totalCarbsG)
-            val parsedFiber = parseDoubleOrZero(fiberG)
-            val derivedNetCarbs = maxOf(0.0, parsedTotalCarbs - parsedFiber)
+            // Convert display-unit values back to storage base units before persisting
+            val storedProteinG    = foodUnit.toG(parseDoubleOrZero(proteinG))
+            val storedFatG        = foodUnit.toG(parseDoubleOrZero(fatG))
+            val storedTotalCarbsG = foodUnit.toG(parseDoubleOrZero(totalCarbsG))
+            val storedFiberG      = foodUnit.toG(parseDoubleOrZero(fiberG))
+            val storedNetCarbs    = maxOf(0.0, storedTotalCarbsG - storedFiberG)
+            val storedWaterMl     = volUnit.toMl(parseDoubleOrZero(waterMl))
+
             val existing = originalRecipe
             if (existing != null) {
                 recipeRepository.updateRecipe(
@@ -164,15 +186,15 @@ class AddEditRecipeViewModel(
                         category = category,
                         description = description.trim().ifBlank { null },
                         calories = parseDoubleOrZero(calories),
-                        proteinG = parseDoubleOrZero(proteinG),
-                        fatG = parseDoubleOrZero(fatG),
-                        totalCarbsG = parsedTotalCarbs,
-                        fiberG = parsedFiber,
-                        netCarbsG = derivedNetCarbs,
+                        proteinG = storedProteinG,
+                        fatG = storedFatG,
+                        totalCarbsG = storedTotalCarbsG,
+                        fiberG = storedFiberG,
+                        netCarbsG = storedNetCarbs,
                         sodiumMg = parseDoubleOrZero(sodiumMg),
                         potassiumMg = parseDoubleOrZero(potassiumMg),
                         magnesiumMg = parseDoubleOrZero(magnesiumMg),
-                        waterMl = parseDoubleOrZero(waterMl),
+                        waterMl = storedWaterMl,
                         ingredientsRaw = encodedIngredients,
                         servings = servings.toDoubleOrNull()?.coerceAtLeast(0.1) ?: 1.0
                     )
@@ -184,15 +206,15 @@ class AddEditRecipeViewModel(
                         category = category,
                         description = description.trim().ifBlank { null },
                         calories = parseDoubleOrZero(calories),
-                        proteinG = parseDoubleOrZero(proteinG),
-                        fatG = parseDoubleOrZero(fatG),
-                        totalCarbsG = parsedTotalCarbs,
-                        fiberG = parsedFiber,
-                        netCarbsG = derivedNetCarbs,
+                        proteinG = storedProteinG,
+                        fatG = storedFatG,
+                        totalCarbsG = storedTotalCarbsG,
+                        fiberG = storedFiberG,
+                        netCarbsG = storedNetCarbs,
                         sodiumMg = parseDoubleOrZero(sodiumMg),
                         potassiumMg = parseDoubleOrZero(potassiumMg),
                         magnesiumMg = parseDoubleOrZero(magnesiumMg),
-                        waterMl = parseDoubleOrZero(waterMl),
+                        waterMl = storedWaterMl,
                         ingredientsRaw = encodedIngredients,
                         servings = servings.toDoubleOrNull()?.coerceAtLeast(0.1) ?: 1.0
                     )
@@ -213,10 +235,10 @@ class AddEditRecipeViewModel(
 
 class AddEditRecipeViewModelFactory(
     private val recipeRepository: RecipeRepository,
-    private val editRecipeId: Int? = null
+    private val editRecipeId: Int? = null,
+    private val unitsPreferencesStore: UnitsPreferencesStore? = null
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T =
-        AddEditRecipeViewModel(recipeRepository, editRecipeId) as T
+        AddEditRecipeViewModel(recipeRepository, editRecipeId, unitsPreferencesStore) as T
 }
-

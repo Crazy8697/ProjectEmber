@@ -6,8 +6,14 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.projectember.mobile.data.local.FoodWeightUnit
+import com.projectember.mobile.data.local.UnitPreferences
+import com.projectember.mobile.data.local.UnitsPreferencesStore
+import com.projectember.mobile.data.local.VolumeUnit
 import com.projectember.mobile.data.local.entities.KetoEntry
 import com.projectember.mobile.data.repository.KetoRepository
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.LocalTime
@@ -15,7 +21,8 @@ import java.time.format.DateTimeFormatter
 
 class AddKetoEntryViewModel(
     private val ketoRepository: KetoRepository,
-    private val editEntryId: Int? = null
+    private val editEntryId: Int? = null,
+    private val unitsPreferencesStore: UnitsPreferencesStore? = null
 ) : ViewModel() {
 
     companion object {
@@ -29,6 +36,14 @@ class AddKetoEntryViewModel(
         private fun formatDouble(d: Double): String =
             if (d == 0.0) "" else d.toBigDecimal().stripTrailingZeros().toPlainString()
     }
+
+    // Snapshot unit preferences at creation time so load and save use the same units.
+    private val prefs: UnitPreferences = unitsPreferencesStore?.getPreferences() ?: UnitPreferences()
+    private val foodUnit: FoodWeightUnit get() = prefs.foodWeightUnit
+    private val volUnit: VolumeUnit get() = prefs.volumeUnit
+
+    /** Exposed to the Screen so labels update correctly. */
+    val unitPreferences: StateFlow<UnitPreferences> = MutableStateFlow(prefs)
 
     /** True when opened for an existing entry; false when creating a new one. */
     val isEditMode: Boolean get() = editEntryId != null
@@ -102,10 +117,11 @@ class AddKetoEntryViewModel(
                     label = entry.label
                     eventType = entry.eventType
                     calories = formatDouble(entry.calories)
-                    proteinG = formatDouble(entry.proteinG)
-                    fatG = formatDouble(entry.fatG)
-                    netCarbsG = formatDouble(entry.netCarbsG)
-                    waterMl = formatDouble(entry.waterMl)
+                    // Convert stored base-unit values to display units
+                    proteinG = formatDouble(foodUnit.fromG(entry.proteinG))
+                    fatG = formatDouble(foodUnit.fromG(entry.fatG))
+                    netCarbsG = formatDouble(foodUnit.fromG(entry.netCarbsG))
+                    waterMl = formatDouble(volUnit.fromMl(entry.waterMl))
                     sodiumMg = formatDouble(entry.sodiumMg)
                     potassiumMg = formatDouble(entry.potassiumMg)
                     magnesiumMg = formatDouble(entry.magnesiumMg)
@@ -174,6 +190,12 @@ class AddKetoEntryViewModel(
         }
         val ts = "$dateStr $timeStr"
 
+        // Convert display-unit values back to storage base units before persisting
+        val storedProteinG = foodUnit.toG(parseDoubleOrZero(proteinG))
+        val storedFatG = foodUnit.toG(parseDoubleOrZero(fatG))
+        val storedNetCarbsG = foodUnit.toG(parseDoubleOrZero(netCarbsG))
+        val storedWaterMl = volUnit.toMl(parseDoubleOrZero(waterMl))
+
         viewModelScope.launch {
             val existing = originalEntry
             if (existing != null) {
@@ -182,10 +204,10 @@ class AddKetoEntryViewModel(
                         label = label.trim(),
                         eventType = eventType,
                         calories = parseDoubleOrZero(calories),
-                        proteinG = parseDoubleOrZero(proteinG),
-                        fatG = parseDoubleOrZero(fatG),
-                        netCarbsG = parseDoubleOrZero(netCarbsG),
-                        waterMl = parseDoubleOrZero(waterMl),
+                        proteinG = storedProteinG,
+                        fatG = storedFatG,
+                        netCarbsG = storedNetCarbsG,
+                        waterMl = storedWaterMl,
                         sodiumMg = parseDoubleOrZero(sodiumMg),
                         potassiumMg = parseDoubleOrZero(potassiumMg),
                         magnesiumMg = parseDoubleOrZero(magnesiumMg),
@@ -202,10 +224,10 @@ class AddKetoEntryViewModel(
                         label = label.trim(),
                         eventType = eventType,
                         calories = parseDoubleOrZero(calories),
-                        proteinG = parseDoubleOrZero(proteinG),
-                        fatG = parseDoubleOrZero(fatG),
-                        netCarbsG = parseDoubleOrZero(netCarbsG),
-                        waterMl = parseDoubleOrZero(waterMl),
+                        proteinG = storedProteinG,
+                        fatG = storedFatG,
+                        netCarbsG = storedNetCarbsG,
+                        waterMl = storedWaterMl,
                         sodiumMg = parseDoubleOrZero(sodiumMg),
                         potassiumMg = parseDoubleOrZero(potassiumMg),
                         magnesiumMg = parseDoubleOrZero(magnesiumMg),
@@ -251,10 +273,3 @@ class AddKetoEntryViewModel(
 }
 
 class AddKetoEntryViewModelFactory(
-    private val ketoRepository: KetoRepository,
-    private val editEntryId: Int? = null
-) : ViewModelProvider.Factory {
-    @Suppress("UNCHECKED_CAST")
-    override fun <T : ViewModel> create(modelClass: Class<T>): T =
-        AddKetoEntryViewModel(ketoRepository, editEntryId) as T
-}

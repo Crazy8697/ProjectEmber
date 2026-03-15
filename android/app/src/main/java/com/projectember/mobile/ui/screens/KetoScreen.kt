@@ -70,6 +70,10 @@ fun KetoScreen(
     val selectedDate by viewModel.selectedDate.collectAsState()
     val targets by viewModel.targets.collectAsState()
     val lastWeightEntry by viewModel.lastWeightEntry.collectAsState()
+    val unitPrefs by viewModel.unitPreferences.collectAsState()
+    val weightUnit = unitPrefs.weightUnit
+    val foodUnit   = unitPrefs.foodWeightUnit
+    val volUnit    = unitPrefs.volumeUnit
 
     var showHelp by remember { mutableStateOf(false) }
     var showDatePicker by remember { mutableStateOf(false) }
@@ -125,7 +129,7 @@ fun KetoScreen(
                         weightInput = it
                         weightError = false
                     },
-                    label = { Text("Weight (kg)") },
+                    label = { Text("Weight (${weightUnit.symbol})") },
                     isError = weightError,
                     supportingText = if (weightError) {
                         { Text("Enter a valid weight greater than 0") }
@@ -137,9 +141,9 @@ fun KetoScreen(
             },
             confirmButton = {
                 TextButton(onClick = {
-                    val kg = weightInput.toDoubleOrNull()
-                    if (kg != null && kg > 0) {
-                        viewModel.logWeight(kg)
+                    val value = weightInput.toDoubleOrNull()
+                    if (value != null && value > 0) {
+                        viewModel.logWeight(weightUnit.toKg(value))
                         showWeightDialog = false
                         weightInput = ""
                         weightError = false
@@ -324,6 +328,7 @@ fun KetoScreen(
                         todayWater = todayWater,
                         targetWater = targets.waterMl,
                         hydrationPct = hydrationPct,
+                        volUnit = volUnit,
                         onClick = { onNavigateToTrends("hydration") }
                     )
                     NakRatioBlock(
@@ -355,9 +360,11 @@ fun KetoScreen(
                     WeightBlock(
                         modifier = Modifier.weight(1f),
                         lastEntry = lastWeightEntry,
+                        weightUnit = weightUnit,
                         onClick = { onNavigateToWeightHistory() },
                         onLongClick = {
-                            weightInput = lastWeightEntry?.weightKg?.let { "%.1f".format(it) } ?: ""
+                            weightInput = lastWeightEntry?.weightKg
+                                ?.let { "%.1f".format(weightUnit.fromKg(it)) } ?: ""
                             showWeightDialog = true
                         }
                     )
@@ -414,6 +421,8 @@ fun KetoScreen(
                 items(selectedDateEntries) { entry ->
                     KetoEntryCard(
                         entry = entry,
+                        foodUnit = foodUnit,
+                        volUnit = volUnit,
                         onEditEntry = { id ->
                             // Negative ids mark exercise entries mapped from exercise_entries table.
                             // Route them to the Exercise edit screen; positive ids go to Keto edit.
@@ -508,12 +517,16 @@ private fun HydrationBlock(
     todayWater: Double,
     targetWater: Double,
     hydrationPct: Int,
+    volUnit: com.projectember.mobile.data.local.VolumeUnit = com.projectember.mobile.data.local.VolumeUnit.ML,
     onClick: () -> Unit
 ) {
     val statusColor = goalStatusColor(todayWater, targetWater)
     val barColor = if (statusColor != Color.Unspecified) statusColor else KetoAccent
     val progress = if (targetWater > 0)
         (todayWater / targetWater).coerceIn(0.0, 1.0).toFloat() else 0f
+    val volSym = volUnit.symbol
+    val displayToday  = volUnit.fromMl(todayWater)
+    val displayTarget = volUnit.fromMl(targetWater)
 
     Card(
         modifier = modifier.clickable { onClick() },
@@ -536,7 +549,7 @@ private fun HydrationBlock(
             )
             Spacer(modifier = Modifier.height(2.dp))
             Text(
-                text = "%.0f / %.0f mL".format(todayWater, targetWater),
+                text = "%.1f / %.1f $volSym".format(displayToday, displayTarget),
                 style = MaterialTheme.typography.labelSmall,
                 color = KetoMuted,
                 fontSize = 10.sp
@@ -723,7 +736,14 @@ private fun HelpSection(title: String, body: String) {
 // ── Entry card ────────────────────────────────────────────────────────────────
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun KetoEntryCard(entry: KetoEntry, onEditEntry: (Int) -> Unit) {
+private fun KetoEntryCard(
+    entry: KetoEntry,
+    onEditEntry: (Int) -> Unit,
+    foodUnit: com.projectember.mobile.data.local.FoodWeightUnit = com.projectember.mobile.data.local.FoodWeightUnit.G,
+    volUnit: com.projectember.mobile.data.local.VolumeUnit = com.projectember.mobile.data.local.VolumeUnit.ML
+) {
+    val foodSym = foodUnit.symbol
+    val volSym  = volUnit.symbol
     val isExercise   = entry.eventType.equals("exercise",   ignoreCase = true)
     val isSupplement = entry.eventType.equals("supplement", ignoreCase = true)
     var expanded by remember { mutableStateOf(false) }
@@ -821,9 +841,9 @@ private fun KetoEntryCard(entry: KetoEntry, onEditEntry: (Int) -> Unit) {
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
-                    MacroDetail(label = "Protein",   value = "%.1f g".format(entry.proteinG   * entry.servings), color = OnSurface)
-                    MacroDetail(label = "Fat",       value = "%.1f g".format(entry.fatG       * entry.servings), color = OnSurface)
-                    MacroDetail(label = "Net Carbs", value = "%.1f g".format(entry.netCarbsG  * entry.servings), color = OnSurface)
+                    MacroDetail(label = "Protein",   value = "%.1f $foodSym".format(foodUnit.fromG(entry.proteinG  * entry.servings)), color = OnSurface)
+                    MacroDetail(label = "Fat",       value = "%.1f $foodSym".format(foodUnit.fromG(entry.fatG      * entry.servings)), color = OnSurface)
+                    MacroDetail(label = "Net Carbs", value = "%.1f $foodSym".format(foodUnit.fromG(entry.netCarbsG * entry.servings)), color = OnSurface)
                     if (!isSupplement && !isExercise) {
                         MacroDetail(
                             label = "Servings",
@@ -839,7 +859,7 @@ private fun KetoEntryCard(entry: KetoEntry, onEditEntry: (Int) -> Unit) {
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
-                        MacroDetail(label = "Water", value = "%.0f mL".format(entry.waterMl    * entry.servings), color = OnSurface)
+                        MacroDetail(label = "Water", value = "%.1f $volSym".format(volUnit.fromMl(entry.waterMl    * entry.servings)), color = OnSurface)
                         MacroDetail(label = "Na",    value = "%.0f mg".format(entry.sodiumMg   * entry.servings), color = OnSurface)
                         MacroDetail(label = "K",     value = "%.0f mg".format(entry.potassiumMg* entry.servings), color = OnSurface)
                         MacroDetail(label = "Mg",    value = "%.0f mg".format(entry.magnesiumMg* entry.servings), color = OnSurface)
@@ -903,9 +923,11 @@ private fun MacroDetail(label: String, value: String, color: Color = OnSurface) 
 private fun WeightBlock(
     modifier: Modifier = Modifier,
     lastEntry: WeightEntry?,
+    weightUnit: com.projectember.mobile.data.local.WeightUnit = com.projectember.mobile.data.local.WeightUnit.KG,
     onClick: () -> Unit,
     onLongClick: () -> Unit = {}
 ) {
+    val weightSym = weightUnit.symbol
     Card(
         modifier = modifier.combinedClickable(onClick = onClick, onLongClick = onLongClick),
         colors = CardDefaults.cardColors(containerColor = KetoCard),
@@ -920,7 +942,7 @@ private fun WeightBlock(
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = if (lastEntry != null) "%.1f".format(lastEntry.weightKg) else "--",
+                text = if (lastEntry != null) "%.1f $weightSym".format(weightUnit.fromKg(lastEntry.weightKg)) else "--",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 color = OnSurface

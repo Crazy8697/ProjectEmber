@@ -73,6 +73,7 @@ fun RecipesScreen(
     val selectedRecipe by viewModel.selectedRecipe.collectAsState()
     val selectedCategory by viewModel.selectedCategory.collectAsState()
     val availableCategories by viewModel.availableCategories.collectAsState()
+    val unitPrefs by viewModel.unitPreferences.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
     var showDeleteDialog by remember { mutableStateOf(false) }
@@ -167,6 +168,7 @@ fun RecipesScreen(
                 recipe = recipe,
                 logServingsInput = logServingsInput,
                 onLogServingsChange = { logServingsInput = it },
+                unitPrefs = unitPrefs,
                 onLogToKeto = {
                     val consumed = logServingsInput.toDoubleOrNull()?.coerceAtLeast(0.1) ?: 1.0
                     viewModel.logRecipeToKeto(
@@ -398,8 +400,13 @@ private fun RecipeDetailView(
     logServingsInput: String,
     onLogServingsChange: (String) -> Unit,
     onLogToKeto: () -> Unit,
+    unitPrefs: com.projectember.mobile.data.local.UnitPreferences = com.projectember.mobile.data.local.UnitPreferences(),
     modifier: Modifier = Modifier
 ) {
+    val foodSym = unitPrefs.foodWeightUnit.symbol
+    val volSym  = unitPrefs.volumeUnit.symbol
+    val foodUnit = unitPrefs.foodWeightUnit
+    val volUnit  = unitPrefs.volumeUnit
     val ingredients = remember(recipe.ingredientsRaw) { decodeIngredients(recipe.ingredientsRaw) }
 
     Column(
@@ -478,12 +485,12 @@ private fun RecipeDetailView(
                     )
                 }
                 HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-                NutritionRow("Calories",    "%.0f kcal".format(recipe.calories),    "%.0f kcal".format(recipe.calories    / srv))
-                NutritionRow("Protein",     "%.1f g".format(recipe.proteinG),       "%.1f g".format(recipe.proteinG     / srv))
-                NutritionRow("Fat",         "%.1f g".format(recipe.fatG),           "%.1f g".format(recipe.fatG         / srv))
-                NutritionRow("Total Carbs", "%.1f g".format(recipe.totalCarbsG),    "%.1f g".format(recipe.totalCarbsG  / srv))
-                NutritionRow("Fiber",       "%.1f g".format(recipe.fiberG),         "%.1f g".format(recipe.fiberG       / srv))
-                NutritionRow("Net Carbs",   "%.1f g".format(recipe.netCarbsG),      "%.1f g".format(recipe.netCarbsG    / srv))
+                NutritionRow("Calories",    "%.0f kcal".format(recipe.calories),                        "%.0f kcal".format(recipe.calories    / srv))
+                NutritionRow("Protein",     "%.1f $foodSym".format(foodUnit.fromG(recipe.proteinG)),    "%.1f $foodSym".format(foodUnit.fromG(recipe.proteinG)    / srv))
+                NutritionRow("Fat",         "%.1f $foodSym".format(foodUnit.fromG(recipe.fatG)),        "%.1f $foodSym".format(foodUnit.fromG(recipe.fatG)        / srv))
+                NutritionRow("Total Carbs", "%.1f $foodSym".format(foodUnit.fromG(recipe.totalCarbsG)), "%.1f $foodSym".format(foodUnit.fromG(recipe.totalCarbsG) / srv))
+                NutritionRow("Fiber",       "%.1f $foodSym".format(foodUnit.fromG(recipe.fiberG)),      "%.1f $foodSym".format(foodUnit.fromG(recipe.fiberG)      / srv))
+                NutritionRow("Net Carbs",   "%.1f $foodSym".format(foodUnit.fromG(recipe.netCarbsG)),   "%.1f $foodSym".format(foodUnit.fromG(recipe.netCarbsG)   / srv))
             }
         }
 
@@ -522,13 +529,13 @@ private fun RecipeDetailView(
                     }
                     HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
                     if (recipe.sodiumMg > 0.0)
-                        NutritionRow("Sodium",    "%.0f mg".format(recipe.sodiumMg),    "%.0f mg".format(recipe.sodiumMg    / srv))
+                        NutritionRow("Sodium",    "%.0f mg".format(recipe.sodiumMg),                       "%.0f mg".format(recipe.sodiumMg    / srv))
                     if (recipe.potassiumMg > 0.0)
-                        NutritionRow("Potassium", "%.0f mg".format(recipe.potassiumMg), "%.0f mg".format(recipe.potassiumMg / srv))
+                        NutritionRow("Potassium", "%.0f mg".format(recipe.potassiumMg),                    "%.0f mg".format(recipe.potassiumMg / srv))
                     if (recipe.magnesiumMg > 0.0)
-                        NutritionRow("Magnesium", "%.0f mg".format(recipe.magnesiumMg), "%.0f mg".format(recipe.magnesiumMg / srv))
+                        NutritionRow("Magnesium", "%.0f mg".format(recipe.magnesiumMg),                    "%.0f mg".format(recipe.magnesiumMg / srv))
                     if (recipe.waterMl > 0.0)
-                        NutritionRow("Water",     "%.0f mL".format(recipe.waterMl),     "%.0f mL".format(recipe.waterMl    / srv))
+                        NutritionRow("Water",     "%.1f $volSym".format(volUnit.fromMl(recipe.waterMl)),   "%.1f $volSym".format(volUnit.fromMl(recipe.waterMl) / srv))
                 }
             }
         }

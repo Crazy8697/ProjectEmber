@@ -34,6 +34,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -53,6 +54,9 @@ fun AddEditRecipeScreen(
     viewModel: AddEditRecipeViewModel,
     onNavigateBack: () -> Unit
 ) {
+    val unitPrefs by viewModel.unitPreferences.collectAsState()
+    val foodSym = unitPrefs.foodWeightUnit.symbol
+    val volSym  = unitPrefs.volumeUnit.symbol
     var showDeleteDialog by remember { mutableStateOf(false) }
 
     if (showDeleteDialog) {
@@ -191,7 +195,7 @@ fun AddEditRecipeScreen(
                 OutlinedTextField(
                     value = viewModel.proteinG,
                     onValueChange = viewModel::onProteinGChange,
-                    label = { Text("Protein (g)") },
+                    label = { Text("Protein ($foodSym)") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier.weight(1f),
                     singleLine = true
@@ -204,7 +208,7 @@ fun AddEditRecipeScreen(
                 OutlinedTextField(
                     value = viewModel.fatG,
                     onValueChange = viewModel::onFatGChange,
-                    label = { Text("Fat (g)") },
+                    label = { Text("Fat ($foodSym)") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier.weight(1f),
                     singleLine = true
@@ -212,7 +216,7 @@ fun AddEditRecipeScreen(
                 OutlinedTextField(
                     value = viewModel.totalCarbsG,
                     onValueChange = viewModel::onTotalCarbsGChange,
-                    label = { Text("Total Carbs (g)") },
+                    label = { Text("Total Carbs ($foodSym)") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier.weight(1f),
                     singleLine = true
@@ -225,7 +229,7 @@ fun AddEditRecipeScreen(
                 OutlinedTextField(
                     value = viewModel.fiberG,
                     onValueChange = viewModel::onFiberGChange,
-                    label = { Text("Fiber (g)") },
+                    label = { Text("Fiber ($foodSym)") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier.weight(1f),
                     singleLine = true
@@ -289,7 +293,7 @@ fun AddEditRecipeScreen(
                 OutlinedTextField(
                     value = viewModel.waterMl,
                     onValueChange = viewModel::onWaterMlChange,
-                    label = { Text("Water (mL)") },
+                    label = { Text("Water ($volSym)") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier.weight(1f),
                     singleLine = true

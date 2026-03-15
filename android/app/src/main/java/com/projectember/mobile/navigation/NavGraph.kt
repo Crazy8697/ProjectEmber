@@ -103,7 +103,10 @@ fun EmberNavGraph(
 
         composable(Screen.KetoAddEntry.route) {
             val viewModel: AddKetoEntryViewModel = viewModel(
-                factory = AddKetoEntryViewModelFactory(app.ketoRepository)
+                factory = AddKetoEntryViewModelFactory(
+                    app.ketoRepository,
+                    unitsPreferencesStore = app.unitsPreferencesStore
+                )
             )
             AddKetoEntryScreen(
                 viewModel = viewModel,
@@ -121,7 +124,11 @@ fun EmberNavGraph(
                 return@composable
             }
             val viewModel: AddKetoEntryViewModel = viewModel(
-                factory = AddKetoEntryViewModelFactory(app.ketoRepository, entryId)
+                factory = AddKetoEntryViewModelFactory(
+                    app.ketoRepository,
+                    entryId,
+                    app.unitsPreferencesStore
+                )
             )
             AddKetoEntryScreen(
                 viewModel = viewModel,
@@ -131,7 +138,11 @@ fun EmberNavGraph(
 
         composable(Screen.Recipes.route) {
             val viewModel: RecipesViewModel = viewModel(
-                factory = RecipesViewModelFactory(app.recipeRepository, app.ketoRepository)
+                factory = RecipesViewModelFactory(
+                    app.recipeRepository,
+                    app.ketoRepository,
+                    app.unitsPreferencesStore
+                )
             )
             RecipesScreen(
                 viewModel = viewModel,
@@ -145,7 +156,10 @@ fun EmberNavGraph(
 
         composable(Screen.RecipeAdd.route) {
             val viewModel: AddEditRecipeViewModel = viewModel(
-                factory = AddEditRecipeViewModelFactory(app.recipeRepository)
+                factory = AddEditRecipeViewModelFactory(
+                    app.recipeRepository,
+                    unitsPreferencesStore = app.unitsPreferencesStore
+                )
             )
             AddEditRecipeScreen(
                 viewModel = viewModel,
@@ -163,7 +177,11 @@ fun EmberNavGraph(
                 return@composable
             }
             val viewModel: AddEditRecipeViewModel = viewModel(
-                factory = AddEditRecipeViewModelFactory(app.recipeRepository, recipeId)
+                factory = AddEditRecipeViewModelFactory(
+                    app.recipeRepository,
+                    recipeId,
+                    app.unitsPreferencesStore
+                )
             )
             AddEditRecipeScreen(
                 viewModel = viewModel,
@@ -179,7 +197,10 @@ fun EmberNavGraph(
 
         composable(Screen.KetoTargets.route) {
             val viewModel: KetoTargetsViewModel = viewModel(
-                factory = KetoTargetsViewModelFactory(app.ketoTargetsStore)
+                factory = KetoTargetsViewModelFactory(
+                    app.ketoTargetsStore,
+                    app.unitsPreferencesStore
+                )
             )
             KetoTargetsScreen(
                 viewModel = viewModel,

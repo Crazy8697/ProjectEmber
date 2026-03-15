@@ -16,28 +16,60 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import com.projectember.mobile.data.local.FoodWeightUnit
 import com.projectember.mobile.data.local.KetoTargets
 import com.projectember.mobile.data.local.KetoTargetsStore
+import com.projectember.mobile.data.local.UnitPreferences
+import com.projectember.mobile.data.local.UnitsPreferencesStore
+import com.projectember.mobile.data.local.VolumeUnit
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 
-class KetoTargetsViewModel(private val targetsStore: KetoTargetsStore) : ViewModel() {
+class KetoTargetsViewModel(
+    private val targetsStore: KetoTargetsStore,
+    private val unitsPreferencesStore: UnitsPreferencesStore? = null
+) : ViewModel() {
+    // Snapshot unit preferences at creation time so load and save use the same units.
+    private val prefs: UnitPreferences = unitsPreferencesStore?.getPreferences() ?: UnitPreferences()
+    private val foodUnit: FoodWeightUnit get() = prefs.foodWeightUnit
+    private val volUnit: VolumeUnit get() = prefs.volumeUnit
+
+    /** Exposed to the Screen so labels update correctly. */
+    val unitPreferences: StateFlow<UnitPreferences> = MutableStateFlow(prefs)
+
     private val current get() = targetsStore.targets.value
 
     var calories by mutableStateOf(current.caloriesKcal.toInt().toString())
-    var protein by mutableStateOf(current.proteinG.toInt().toString())
-    var fat by mutableStateOf(current.fatG.toInt().toString())
-    var netCarbs by mutableStateOf(current.netCarbsG.toInt().toString())
-    var water by mutableStateOf(current.waterMl.toInt().toString())
+    // Protein, fat, net carbs displayed in selected food-weight unit
+    var protein by mutableStateOf(
+        formatTarget(foodUnit.fromG(current.proteinG))
+    )
+    var fat by mutableStateOf(
+        formatTarget(foodUnit.fromG(current.fatG))
+    )
+    var netCarbs by mutableStateOf(
+        formatTarget(foodUnit.fromG(current.netCarbsG))
+    )
+    // Water displayed in selected volume unit
+    var water by mutableStateOf(
+        formatTarget(volUnit.fromMl(current.waterMl))
+    )
     var sodium by mutableStateOf(current.sodiumMg.toInt().toString())
     var potassium by mutableStateOf(current.potassiumMg.toInt().toString())
     var magnesium by mutableStateOf(current.magnesiumMg.toInt().toString())
 
     fun save(): Boolean {
+        val storedProtein = foodUnit.toG(protein.toDoubleOrNull() ?: return false).takeIf { it > 0 } ?: return false
+        val storedFat = foodUnit.toG(fat.toDoubleOrNull() ?: return false).takeIf { it > 0 } ?: return false
+        val storedNetCarbs = foodUnit.toG(netCarbs.toDoubleOrNull() ?: return false).takeIf { it > 0 } ?: return false
+        val storedWater = volUnit.toMl(water.toDoubleOrNull() ?: return false).takeIf { it > 0 } ?: return false
+
         val targets = KetoTargets(
             caloriesKcal = calories.toDoubleOrNull()?.takeIf { it > 0 } ?: return false,
-            proteinG = protein.toDoubleOrNull()?.takeIf { it > 0 } ?: return false,
-            fatG = fat.toDoubleOrNull()?.takeIf { it > 0 } ?: return false,
-            netCarbsG = netCarbs.toDoubleOrNull()?.takeIf { it > 0 } ?: return false,
-            waterMl = water.toDoubleOrNull()?.takeIf { it > 0 } ?: return false,
+            proteinG = storedProtein,
+            fatG = storedFat,
+            netCarbsG = storedNetCarbs,
+            waterMl = storedWater,
             sodiumMg = sodium.toDoubleOrNull()?.takeIf { it > 0 } ?: return false,
             potassiumMg = potassium.toDoubleOrNull()?.takeIf { it > 0 } ?: return false,
             magnesiumMg = magnesium.toDoubleOrNull()?.takeIf { it > 0 } ?: return false,
@@ -45,14 +77,20 @@ class KetoTargetsViewModel(private val targetsStore: KetoTargetsStore) : ViewMod
         targetsStore.save(targets)
         return true
     }
+
+    companion object {
+        private fun formatTarget(d: Double): String =
+            if (d == 0.0) "" else d.toBigDecimal().stripTrailingZeros().toPlainString()
+    }
 }
 
 class KetoTargetsViewModelFactory(
-    private val targetsStore: KetoTargetsStore
+    private val targetsStore: KetoTargetsStore,
+    private val unitsPreferencesStore: UnitsPreferencesStore? = null
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T =
-        KetoTargetsViewModel(targetsStore) as T
+        KetoTargetsViewModel(targetsStore, unitsPreferencesStore) as T
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -61,6 +99,10 @@ fun KetoTargetsScreen(
     viewModel: KetoTargetsViewModel,
     onNavigateBack: () -> Unit
 ) {
+    val unitPrefs by viewModel.unitPreferences.collectAsState()
+    val foodSym = unitPrefs.foodWeightUnit.symbol
+    val volSym  = unitPrefs.volumeUnit.symbol
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -95,10 +137,10 @@ fun KetoTargetsScreen(
             Spacer(modifier = Modifier.height(4.dp))
 
             TargetField("Calories (kcal)", viewModel.calories) { viewModel.calories = it }
-            TargetField("Protein (g)", viewModel.protein) { viewModel.protein = it }
-            TargetField("Fat (g)", viewModel.fat) { viewModel.fat = it }
-            TargetField("Net Carbs (g)", viewModel.netCarbs) { viewModel.netCarbs = it }
-            TargetField("Water (mL)", viewModel.water) { viewModel.water = it }
+            TargetField("Protein ($foodSym)", viewModel.protein) { viewModel.protein = it }
+            TargetField("Fat ($foodSym)", viewModel.fat) { viewModel.fat = it }
+            TargetField("Net Carbs ($foodSym)", viewModel.netCarbs) { viewModel.netCarbs = it }
+            TargetField("Water ($volSym)", viewModel.water) { viewModel.water = it }
             TargetField("Sodium (mg)", viewModel.sodium) { viewModel.sodium = it }
             TargetField("Potassium (mg)", viewModel.potassium) { viewModel.potassium = it }
             TargetField("Magnesium (mg)", viewModel.magnesium) { viewModel.magnesium = it }

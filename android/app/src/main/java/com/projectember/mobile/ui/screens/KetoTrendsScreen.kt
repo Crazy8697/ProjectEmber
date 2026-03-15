@@ -14,6 +14,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.projectember.mobile.data.local.FoodWeightUnit
+import com.projectember.mobile.data.local.VolumeUnit
 import com.projectember.mobile.data.local.WeightUnit
 import com.projectember.mobile.ui.theme.KetoBorder
 import com.projectember.mobile.ui.theme.KetoAccent
@@ -116,14 +118,18 @@ fun KetoTrendsScreen(
         }
     }
 
-    // Build chart data — for weight, convert stored kg to selected display unit
+    // Build chart data — for weight/hydration, convert stored values to selected display units
     val weightUnit: WeightUnit = unitPrefs.weightUnit
+    val volUnit = unitPrefs.volumeUnit
+    val foodUnit = unitPrefs.foodWeightUnit
     val selector: (DayTotals) -> Float = { day ->
-        if (trendsMetric == "weight") {
-            val rawKg = day.weightKg ?: 0.0
-            weightUnit.fromKg(rawKg).toFloat()
-        } else {
-            day.selectMetric(trendsMetric)
+        when (trendsMetric) {
+            "weight"    -> weightUnit.fromKg(day.weightKg ?: 0.0).toFloat()
+            "hydration" -> volUnit.fromMl(day.waterMl).toFloat()
+            "protein"   -> foodUnit.fromG(day.proteinG).toFloat()
+            "fat"       -> foodUnit.fromG(day.fatG).toFloat()
+            "net_carbs" -> foodUnit.fromG(day.netCarbsG).toFloat()
+            else        -> day.selectMetric(trendsMetric)
         }
     }
     val rawData = trendsData.map { it.label to selector(it) }
@@ -134,10 +140,10 @@ fun KetoTrendsScreen(
     }
     val targetValue: Float? = when (trendsMetric) {
         "calories"  -> targets.caloriesKcal.toFloat()
-        "protein"   -> targets.proteinG.toFloat()
-        "fat"       -> targets.fatG.toFloat()
-        "net_carbs" -> targets.netCarbsG.toFloat()
-        "hydration" -> targets.waterMl.toFloat()
+        "protein"   -> foodUnit.fromG(targets.proteinG).toFloat()
+        "fat"       -> foodUnit.fromG(targets.fatG).toFloat()
+        "net_carbs" -> foodUnit.fromG(targets.netCarbsG).toFloat()
+        "hydration" -> volUnit.fromMl(targets.waterMl).toFloat()
         "sodium"    -> targets.sodiumMg.toFloat()
         "potassium" -> targets.potassiumMg.toFloat()
         "magnesium" -> targets.magnesiumMg.toFloat()
@@ -452,7 +458,12 @@ fun KetoTrendsScreen(
                 (trendsMetric != "nak_ratio" || trendsData.any { it.nakRatio != null })
             if (hasData) {
                 val metricLabel = METRIC_OPTIONS.firstOrNull { it.first == trendsMetric }?.third ?: trendsMetric
-                val unit = if (trendsMetric == "weight") weightUnit.symbol else metricUnit(trendsMetric)
+                val unit = when (trendsMetric) {
+                    "weight"    -> weightUnit.symbol
+                    "hydration" -> volUnit.symbol
+                    "protein", "fat", "net_carbs" -> foodUnit.symbol
+                    else        -> metricUnit(trendsMetric)
+                }
                 val barColor = metricBarColor(trendsMetric)
 
                 Card(

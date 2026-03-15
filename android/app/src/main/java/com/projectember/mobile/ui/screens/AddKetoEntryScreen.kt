@@ -46,6 +46,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.runtime.collectAsState
 import com.projectember.mobile.ui.theme.KetoAccent
 import com.projectember.mobile.ui.theme.OnSurface
 import java.time.LocalDate
@@ -59,6 +60,7 @@ fun AddKetoEntryScreen(
     viewModel: AddKetoEntryViewModel,
     onNavigateBack: () -> Unit
 ) {
+    val unitPrefs by viewModel.unitPreferences.collectAsState()
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
@@ -286,12 +288,12 @@ fun AddKetoEntryScreen(
 
             // ── Type-adaptive fields ─────────────────────────────────────────
             if (viewModel.isRecipeDerived) {
-                RecipeDerivedFields(viewModel)
+                RecipeDerivedFields(viewModel, unitPrefs)
             } else {
                 when (viewModel.eventType) {
                     "exercise" -> ExerciseFields(viewModel)
                     "supplement" -> SupplementFields(viewModel)
-                    else -> if (viewModel.eventType.isNotBlank()) NutritionFields(viewModel)
+                    else -> if (viewModel.eventType.isNotBlank()) NutritionFields(viewModel, unitPrefs)
                 }
             }
 
@@ -323,7 +325,12 @@ fun AddKetoEntryScreen(
 
 // ── Nutrition fields (Meal / Drink / Snack) ──────────────────────────────────
 @Composable
-private fun NutritionFields(viewModel: AddKetoEntryViewModel) {
+private fun NutritionFields(
+    viewModel: AddKetoEntryViewModel,
+    unitPrefs: com.projectember.mobile.data.local.UnitPreferences
+) {
+    val foodSym = unitPrefs.foodWeightUnit.symbol
+    val volSym  = unitPrefs.volumeUnit.symbol
     OutlinedTextField(
         value = viewModel.servings,
         onValueChange = viewModel::onServingsChange,
@@ -343,7 +350,7 @@ private fun NutritionFields(viewModel: AddKetoEntryViewModel) {
     OutlinedTextField(
         value = viewModel.proteinG,
         onValueChange = viewModel::onProteinGChange,
-        label = { Text("Protein (g)") },
+        label = { Text("Protein ($foodSym)") },
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
         modifier = Modifier.fillMaxWidth(),
         singleLine = true
@@ -351,7 +358,7 @@ private fun NutritionFields(viewModel: AddKetoEntryViewModel) {
     OutlinedTextField(
         value = viewModel.fatG,
         onValueChange = viewModel::onFatGChange,
-        label = { Text("Fat (g)") },
+        label = { Text("Fat ($foodSym)") },
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
         modifier = Modifier.fillMaxWidth(),
         singleLine = true
@@ -359,7 +366,7 @@ private fun NutritionFields(viewModel: AddKetoEntryViewModel) {
     OutlinedTextField(
         value = viewModel.netCarbsG,
         onValueChange = viewModel::onNetCarbsGChange,
-        label = { Text("Net Carbs (g)") },
+        label = { Text("Net Carbs ($foodSym)") },
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
         modifier = Modifier.fillMaxWidth(),
         singleLine = true
@@ -367,7 +374,7 @@ private fun NutritionFields(viewModel: AddKetoEntryViewModel) {
     OutlinedTextField(
         value = viewModel.waterMl,
         onValueChange = viewModel::onWaterMlChange,
-        label = { Text("Water (mL)") },
+        label = { Text("Water ($volSym)") },
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
         modifier = Modifier.fillMaxWidth(),
         singleLine = true
@@ -497,7 +504,13 @@ private fun SupplementFields(viewModel: AddKetoEntryViewModel) {
 
 // ── Recipe-derived fields (servings-only edit + read-only nutrition) ─────────
 @Composable
-private fun RecipeDerivedFields(viewModel: AddKetoEntryViewModel) {
+private fun RecipeDerivedFields(
+    viewModel: AddKetoEntryViewModel,
+    unitPrefs: com.projectember.mobile.data.local.UnitPreferences
+) {
+    val foodSym = unitPrefs.foodWeightUnit.symbol
+    val volSym  = unitPrefs.volumeUnit.symbol
+
     // Servings consumed — the only editable field for recipe-derived entries
     OutlinedTextField(
         value = viewModel.servings,
@@ -534,9 +547,9 @@ private fun RecipeDerivedFields(viewModel: AddKetoEntryViewModel) {
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             ReadOnlyRow("Calories",  "%.0f kcal".format(perServingCalories), "%.0f kcal".format(perServingCalories * consumed))
-            ReadOnlyRow("Protein",   "%.1f g".format(perServingProtein),     "%.1f g".format(perServingProtein    * consumed))
-            ReadOnlyRow("Fat",       "%.1f g".format(perServingFat),         "%.1f g".format(perServingFat        * consumed))
-            ReadOnlyRow("Net Carbs", "%.1f g".format(perServingCarbs),       "%.1f g".format(perServingCarbs      * consumed))
+            ReadOnlyRow("Protein",   "%.1f $foodSym".format(perServingProtein),  "%.1f $foodSym".format(perServingProtein  * consumed))
+            ReadOnlyRow("Fat",       "%.1f $foodSym".format(perServingFat),      "%.1f $foodSym".format(perServingFat      * consumed))
+            ReadOnlyRow("Net Carbs", "%.1f $foodSym".format(perServingCarbs),    "%.1f $foodSym".format(perServingCarbs    * consumed))
 
             val hasMinerals = (viewModel.waterMl.toDoubleOrNull() ?: 0.0) > 0 ||
                 (viewModel.sodiumMg.toDoubleOrNull() ?: 0.0) > 0 ||
@@ -548,10 +561,10 @@ private fun RecipeDerivedFields(viewModel: AddKetoEntryViewModel) {
                 val perPotassium  = viewModel.potassiumMg.toDoubleOrNull()  ?: 0.0
                 val perMagnesium  = viewModel.magnesiumMg.toDoubleOrNull()  ?: 0.0
                 val perWater      = viewModel.waterMl.toDoubleOrNull()      ?: 0.0
-                if (perSodium    > 0) ReadOnlyRow("Sodium",    "%.0f mg".format(perSodium),    "%.0f mg".format(perSodium    * consumed))
-                if (perPotassium > 0) ReadOnlyRow("Potassium", "%.0f mg".format(perPotassium), "%.0f mg".format(perPotassium * consumed))
-                if (perMagnesium > 0) ReadOnlyRow("Magnesium", "%.0f mg".format(perMagnesium), "%.0f mg".format(perMagnesium * consumed))
-                if (perWater     > 0) ReadOnlyRow("Water",     "%.0f mL".format(perWater),     "%.0f mL".format(perWater     * consumed))
+                if (perSodium    > 0) ReadOnlyRow("Sodium",    "%.0f mg".format(perSodium),        "%.0f mg".format(perSodium    * consumed))
+                if (perPotassium > 0) ReadOnlyRow("Potassium", "%.0f mg".format(perPotassium),     "%.0f mg".format(perPotassium * consumed))
+                if (perMagnesium > 0) ReadOnlyRow("Magnesium", "%.0f mg".format(perMagnesium),     "%.0f mg".format(perMagnesium * consumed))
+                if (perWater     > 0) ReadOnlyRow("Water",     "%.1f $volSym".format(perWater),    "%.1f $volSym".format(perWater * consumed))
             }
         }
     }

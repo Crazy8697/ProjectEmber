@@ -3,6 +3,8 @@ package com.projectember.mobile.ui.screens
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.projectember.mobile.data.local.UnitPreferences
+import com.projectember.mobile.data.local.UnitsPreferencesStore
 import com.projectember.mobile.data.local.entities.KetoEntry
 import com.projectember.mobile.data.local.entities.Recipe
 import com.projectember.mobile.data.repository.KetoRepository
@@ -19,7 +21,8 @@ import java.time.format.DateTimeFormatter
 
 class RecipesViewModel(
     private val recipeRepository: RecipeRepository,
-    private val ketoRepository: KetoRepository
+    private val ketoRepository: KetoRepository,
+    private val unitsPreferencesStore: UnitsPreferencesStore? = null
 ) : ViewModel() {
 
     companion object {
@@ -27,6 +30,16 @@ class RecipesViewModel(
         private const val TIMESTAMP_FORMAT = "yyyy-MM-dd HH:mm"
         const val ALL_CATEGORIES = "All"
     }
+
+    /** Live unit preferences — used by the Screen for display conversions. */
+    val unitPreferences: StateFlow<UnitPreferences> = unitsPreferencesStore
+        ?.preferencesFlow
+        ?.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = unitsPreferencesStore.getPreferences()
+        )
+        ?: MutableStateFlow(UnitPreferences())
 
     private val _allRecipes: StateFlow<List<Recipe>> = recipeRepository
         .getAllRecipes()
@@ -120,9 +133,10 @@ class RecipesViewModel(
 
 class RecipesViewModelFactory(
     private val recipeRepository: RecipeRepository,
-    private val ketoRepository: KetoRepository
+    private val ketoRepository: KetoRepository,
+    private val unitsPreferencesStore: UnitsPreferencesStore? = null
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T =
-        RecipesViewModel(recipeRepository, ketoRepository) as T
+        RecipesViewModel(recipeRepository, ketoRepository, unitsPreferencesStore) as T
 }
