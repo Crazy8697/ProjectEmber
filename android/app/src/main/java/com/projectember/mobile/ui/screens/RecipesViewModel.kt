@@ -73,6 +73,11 @@ class RecipesViewModel(
     fun deleteSelectedRecipe(onDone: () -> Unit) {
         val recipe = _selectedRecipe.value ?: return
         viewModelScope.launch {
+            // Detach any keto entries that reference this recipe before deleting it.
+            // This preserves the historical log as a standalone snapshot (all nutrition
+            // values, servings, notes and timestamps are kept) while ensuring no
+            // dangling recipeId references remain in the database.
+            ketoRepository.clearRecipeReference(recipe.id)
             recipeRepository.deleteRecipeById(recipe.id)
             _selectedRecipe.value = null
             onDone()

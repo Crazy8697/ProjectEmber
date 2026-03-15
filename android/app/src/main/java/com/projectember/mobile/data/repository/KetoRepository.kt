@@ -29,4 +29,11 @@ class KetoRepository(private val ketoDao: KetoDao) {
     }
 
     suspend fun getAllOnce(): List<KetoEntry> = ketoDao.getAllOnce()
+
+    /**
+     * Clears the recipeId from all keto entries that reference the given recipe,
+     * preserving the historical nutrition snapshot. Call this before deleting the
+     * recipe so that no dangling recipeId references are left in the database.
+     */
+    suspend fun clearRecipeReference(recipeId: Int) = ketoDao.clearRecipeReference(recipeId)
 }

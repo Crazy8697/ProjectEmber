@@ -43,4 +43,12 @@ interface KetoDao {
 
     @Query("SELECT * FROM keto_entries ORDER BY eventTimestamp DESC")
     suspend fun getAllOnce(): List<KetoEntry>
+
+    /**
+     * Detaches all keto entries that were logged from the given recipe.
+     * Sets recipeId to NULL, preserving the historical entry and all its
+     * nutrition values, so the log remains accurate after the recipe is deleted.
+     */
+    @Query("UPDATE keto_entries SET recipeId = NULL WHERE recipeId = :recipeId")
+    suspend fun clearRecipeReference(recipeId: Int)
 }
