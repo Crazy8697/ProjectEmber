@@ -36,6 +36,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -130,22 +131,6 @@ fun HomeScreen(
     }
 }
 
-/**
- * Returns a goal-style status color for a metric where higher is better (protein, water, …).
- * green ≥ 80 %, yellow ≥ 50 %, muted otherwise.
- */
-@Composable
-private fun goalColor(value: Double, target: Double) =
-    if (target <= 0) MaterialTheme.colorScheme.onSurface
-    else {
-        val ratio = value / target
-        when {
-            ratio >= 0.8 -> SuccessGreen
-            ratio >= 0.5 -> WarningYellow
-            else         -> MaterialTheme.colorScheme.onSurfaceVariant
-        }
-    }
-
 @Composable
 private fun TodaySummaryCard(
     summary: TodaySummary,
@@ -160,11 +145,9 @@ private fun TodaySummaryCard(
 ) {
     val calRatio = if (caloriesTarget > 0) (summary.calories / caloriesTarget).toFloat() else 0f
     val calPct = calRatio.coerceIn(0f, 1f)
-    val calColor = when {
-        calRatio > 1f   -> ErrorRed
-        calRatio >= 0.8f -> WarningYellow
-        else             -> SuccessGreen
-    }
+    val calColor = if (caloriesTarget > 0)
+        targetRangeStatusColor(summary.calories, caloriesTarget)
+    else SuccessGreen
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -248,6 +231,7 @@ private fun TodaySummaryCard(
                     value = summary.proteinG,
                     target = proteinTarget,
                     unit = "g",
+                    colorFn = ::goalStatusColor,
                     modifier = Modifier.weight(1f)
                 )
                 MacroChip(
@@ -255,6 +239,7 @@ private fun TodaySummaryCard(
                     value = summary.netCarbsG,
                     target = netCarbsTarget,
                     unit = "g",
+                    colorFn = ::strictLimitStatusColor,
                     modifier = Modifier.weight(1f)
                 )
                 MacroChip(
@@ -262,13 +247,15 @@ private fun TodaySummaryCard(
                     value = summary.fatG,
                     target = fatTarget,
                     unit = "g",
+                    colorFn = ::targetRangeStatusColor,
                     modifier = Modifier.weight(1f)
                 )
             }
 
             // Hydration row — shown only when a water target is set
             if (waterTarget > 0) {
-                val waterColor = goalColor(summary.waterMl, waterTarget)
+                val waterColor = goalStatusColor(summary.waterMl, waterTarget)
+                    .takeIf { it != Color.Unspecified } ?: SuccessGreen
                 val waterPct = (summary.waterMl / waterTarget).toFloat().coerceIn(0f, 1f)
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Row(
@@ -329,9 +316,11 @@ private fun MacroChip(
     value: Double,
     target: Double,
     unit: String,
+    colorFn: (Double, Double) -> Color = ::goalStatusColor,
     modifier: Modifier = Modifier
 ) {
-    val color = goalColor(value, target)
+    val rawColor = colorFn(value, target)
+    val color = if (rawColor != Color.Unspecified) rawColor else MaterialTheme.colorScheme.onSurface
 
     Box(modifier = modifier) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {

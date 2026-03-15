@@ -53,28 +53,6 @@ private val KetoCard    = SurfaceMid
 private val KetoBorderC = KetoBorder
 private val KetoMuted   = OnSurfaceVariant
 
-/** Limit targets (calories, net carbs, fat, sodium): green < 80 %, yellow 80–100 %, red > 100 % */
-private fun limitStatusColor(value: Double, target: Double): Color {
-    if (target <= 0) return Color.Unspecified
-    val pct = value / target
-    return when {
-        pct > 1.0  -> ErrorRed
-        pct >= 0.8 -> WarningYellow
-        else       -> SuccessGreen
-    }
-}
-
-/** Goal targets (protein, water, potassium, magnesium): green >= 80 %, yellow 50–80 %, red < 50 % */
-private fun goalStatusColor(value: Double, target: Double): Color {
-    if (target <= 0) return Color.Unspecified
-    val pct = value / target
-    return when {
-        pct >= 0.8 -> SuccessGreen
-        pct >= 0.5 -> WarningYellow
-        else       -> ErrorRed
-    }
-}
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun KetoScreen(
@@ -288,7 +266,7 @@ fun KetoScreen(
                         unit = " kcal",
                         targetLabel = "target %.0f".format(targets.caloriesKcal),
                         diff = todayCalories - targets.caloriesKcal,
-                        statusColor = limitStatusColor(todayCalories, targets.caloriesKcal),
+                        statusColor = targetRangeStatusColor(todayCalories, targets.caloriesKcal),
                         onClick = { onNavigateToTrends("calories") },
                         burnedLabel = if (todayExerciseBurned > 0)
                             "\u2212%.0f burned".format(todayExerciseBurned) else null
@@ -319,7 +297,7 @@ fun KetoScreen(
                         unit = "g",
                         targetLabel = "target %.0f".format(targets.fatG),
                         diff = todayFat - targets.fatG,
-                        statusColor = limitStatusColor(todayFat, targets.fatG),
+                        statusColor = targetRangeStatusColor(todayFat, targets.fatG),
                         onClick = { onNavigateToTrends("fat") }
                     )
                     MetricBlock(
@@ -329,7 +307,7 @@ fun KetoScreen(
                         unit = "g",
                         targetLabel = "target %.0f".format(targets.netCarbsG),
                         diff = todayCarbs - targets.netCarbsG,
-                        statusColor = limitStatusColor(todayCarbs, targets.netCarbsG),
+                        statusColor = strictLimitStatusColor(todayCarbs, targets.netCarbsG),
                         onClick = { onNavigateToTrends("net_carbs") }
                     )
                 }
@@ -466,11 +444,8 @@ private fun MetricBlock(
     burnedLabel: String? = null
 ) {
     val valueColor = if (statusColor != Color.Unspecified) statusColor else OnSurface
-    val diffColor  = when {
-        diff == 0.0  -> KetoMuted
-        diff < 0     -> ErrorRed
-        else         -> SuccessGreen
-    }
+    // Use the same status color for the diff indicator so it always matches the metric health.
+    val diffColor  = if (statusColor != Color.Unspecified) statusColor else KetoMuted
     val diffText = if (diff >= 0) "+%.1f".format(diff) else "%.1f".format(diff)
 
     Card(

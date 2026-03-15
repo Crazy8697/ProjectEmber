@@ -19,6 +19,7 @@ import com.projectember.mobile.ui.theme.KetoAccent
 import com.projectember.mobile.ui.theme.SurfaceMid
 import com.projectember.mobile.ui.theme.OnSurface
 import com.projectember.mobile.ui.theme.OnSurfaceVariant
+import com.projectember.mobile.ui.theme.ErrorRed
 import com.projectember.mobile.ui.theme.SuccessGreen
 import com.projectember.mobile.ui.theme.WarningYellow
 import java.time.LocalDate
@@ -483,16 +484,33 @@ fun KetoTrendsScreen(
                                     val diff = currentDisplayValue - targetValue
                                     val diffText = if (diff >= 0)
                                         "+%.1f".format(diff) else "%.1f".format(diff)
+                                    // Normalize deviation by target for tolerance-band comparisons.
+                                    val deviation = diff / targetValue
                                     val diffColor = when (trendsMetric) {
-                                        // For limit metrics: over target is bad
-                                        "calories", "net_carbs", "fat", "sodium" ->
-                                            if (diff > 0) Color(0xFFFF4D4D) else SuccessGreen
-                                        // For Na:K ratio: over 1.0 is worse
-                                        "nak_ratio" ->
-                                            if (diff > 0) Color(0xFFFF4D4D) else SuccessGreen
-                                        // For goal metrics: under target is bad
-                                        else ->
-                                            if (diff < 0) Color(0xFFFF4D4D) else SuccessGreen
+                                        // Two-sided target: ±15 % green, ±30 % yellow, outside red
+                                        "calories", "fat" -> when {
+                                            kotlin.math.abs(deviation) <= 0.15f -> SuccessGreen
+                                            kotlin.math.abs(deviation) <= 0.30f -> WarningYellow
+                                            else                                 -> ErrorRed
+                                        }
+                                        // Strict upper limit: clearly over = red, just over = yellow
+                                        "net_carbs", "sodium" -> when {
+                                            deviation > 0.20f -> ErrorRed
+                                            deviation > 0f    -> WarningYellow
+                                            else              -> SuccessGreen
+                                        }
+                                        // Na:K ratio: target 1.0; >2.0 = red, 1.0–2.0 = yellow
+                                        "nak_ratio" -> when {
+                                            currentDisplayValue > 2.0f -> ErrorRed
+                                            currentDisplayValue > 1.0f -> WarningYellow
+                                            else                        -> SuccessGreen
+                                        }
+                                        // Goal metrics: -15 % green, -40 % yellow, further red
+                                        else -> when {
+                                            deviation >= -0.15f -> SuccessGreen
+                                            deviation >= -0.40f -> WarningYellow
+                                            else                -> ErrorRed
+                                        }
                                     }
                                     Column(horizontalAlignment = Alignment.End) {
                                         Text(
