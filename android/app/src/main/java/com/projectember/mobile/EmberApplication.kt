@@ -52,6 +52,10 @@ class EmberApplication : Application() {
         super.onCreate()
         applicationScope.launch {
             DatabaseSeeder.seed(database)
+            // Repair any pre-existing keto entries whose recipeId no longer points
+            // to a recipe in the database.  This is idempotent and a no-op once
+            // all dangling references have been cleared.
+            ketoRepository.clearDanglingRecipeReferences()
         }
     }
 }

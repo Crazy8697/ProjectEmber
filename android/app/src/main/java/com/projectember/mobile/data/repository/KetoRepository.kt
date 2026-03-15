@@ -36,4 +36,12 @@ class KetoRepository(private val ketoDao: KetoDao) {
      * recipe so that no dangling recipeId references are left in the database.
      */
     suspend fun clearRecipeReference(recipeId: Int) = ketoDao.clearRecipeReference(recipeId)
+
+    /**
+     * One-time startup repair: nulls out recipeId on any keto entry that references
+     * a recipe which no longer exists, repairing pre-existing dangling references
+     * created before the recipe-delete detach fix was in place.
+     * Idempotent — safe to call on every app launch.
+     */
+    suspend fun clearDanglingRecipeReferences() = ketoDao.clearDanglingRecipeReferences()
 }

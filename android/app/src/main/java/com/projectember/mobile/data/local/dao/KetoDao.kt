@@ -51,4 +51,22 @@ interface KetoDao {
      */
     @Query("UPDATE keto_entries SET recipeId = NULL WHERE recipeId = :recipeId")
     suspend fun clearRecipeReference(recipeId: Int)
+
+    /**
+     * One-time startup repair: clears recipeId on any keto entry that references
+     * a recipe which no longer exists in the recipes table.  Uses NOT EXISTS rather
+     * than NOT IN to avoid NULL-semantics pitfalls.  The query is idempotent — it
+     * is safe to call on every launch and is a no-op when the data is already clean.
+     */
+    @Query(
+        """
+        UPDATE keto_entries
+        SET recipeId = NULL
+        WHERE recipeId IS NOT NULL
+          AND NOT EXISTS (
+              SELECT 1 FROM recipes WHERE recipes.id = keto_entries.recipeId
+          )
+        """
+    )
+    suspend fun clearDanglingRecipeReferences()
 }
