@@ -347,9 +347,15 @@ fun SettingsScreen(
             onDismissRequest = { viewModel.cancelImport() },
             title = { Text("Overwrite All Data?") },
             text = {
+                val exportDate = runCatching {
+                    java.time.Instant.parse(payload.exportedAt)
+                        .atZone(java.time.ZoneId.systemDefault())
+                        .toLocalDate()
+                        .toString()
+                }.getOrElse { payload.exportedAt.take(10) }
                 Text(
                     "This will permanently replace all current app data with the backup " +
-                        "from ${payload.appVersion} (exported ${payload.exportedAt.take(10)}). " +
+                        "from ${payload.appVersion} (exported $exportDate). " +
                         "This action cannot be undone."
                 )
             },

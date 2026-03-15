@@ -18,8 +18,8 @@ import kotlinx.coroutines.launch
 
 /** State for a backup operation (export, import, or reset). */
 sealed class BackupOpState {
-    object Idle : BackupOpState()
-    object InProgress : BackupOpState()
+    data object Idle : BackupOpState()
+    data object InProgress : BackupOpState()
     data class Success(val message: String) : BackupOpState()
     data class Error(val message: String) : BackupOpState()
 }
