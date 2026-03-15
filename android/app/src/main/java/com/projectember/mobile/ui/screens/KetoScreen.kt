@@ -100,14 +100,25 @@ fun KetoScreen(
 
     val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
 
-    val todayCalories  = selectedDateEntries.sumOf { it.effectiveCalories() }
-    val todayProtein   = selectedDateEntries.sumOf { it.effectiveProtein() }
-    val todayFat       = selectedDateEntries.sumOf { it.effectiveFat() }
-    val todayCarbs     = selectedDateEntries.sumOf { it.effectiveNetCarbs() }
-    val todayWater     = selectedDateEntries.sumOf { it.effectiveWater() }
-    val todaySodium    = selectedDateEntries.sumOf { it.effectiveSodium() }
-    val todayPotassium = selectedDateEntries.sumOf { it.effectivePotassium() }
-    val todayMagnesium = selectedDateEntries.sumOf { it.effectiveMagnesium() }
+    // Food-only entries — exercise entries are displayed in the list but excluded from
+    // macro totals so that the numbers match the Home dashboard (which is also food-only).
+    val foodEntries = selectedDateEntries.filter {
+        !it.eventType.equals("exercise", ignoreCase = true)
+    }
+    val todayCalories  = foodEntries.sumOf { it.effectiveCalories() }
+    val todayProtein   = foodEntries.sumOf { it.effectiveProtein() }
+    val todayFat       = foodEntries.sumOf { it.effectiveFat() }
+    val todayCarbs     = foodEntries.sumOf { it.effectiveNetCarbs() }
+    val todayWater     = foodEntries.sumOf { it.effectiveWater() }
+    val todaySodium    = foodEntries.sumOf { it.effectiveSodium() }
+    val todayPotassium = foodEntries.sumOf { it.effectivePotassium() }
+    val todayMagnesium = foodEntries.sumOf { it.effectiveMagnesium() }
+
+    // Exercise calories burned today — shown as a subtitle on the CALORIES block so the
+    // user can still see exercise impact without the number conflicting with the Home total.
+    val todayExerciseBurned = selectedDateEntries
+        .filter { it.eventType.equals("exercise", ignoreCase = true) }
+        .sumOf { it.calories * it.servings }
 
     val hydrationPct = if (targets.waterMl > 0)
         (todayWater / targets.waterMl * 100).toInt() else 0
@@ -278,7 +289,9 @@ fun KetoScreen(
                         targetLabel = "target %.0f".format(targets.caloriesKcal),
                         diff = todayCalories - targets.caloriesKcal,
                         statusColor = limitStatusColor(todayCalories, targets.caloriesKcal),
-                        onClick = { onNavigateToTrends("calories") }
+                        onClick = { onNavigateToTrends("calories") },
+                        burnedLabel = if (todayExerciseBurned > 0)
+                            "\u2212%.0f burned".format(todayExerciseBurned) else null
                     )
                     MetricBlock(
                         modifier = Modifier.weight(1f),
@@ -448,7 +461,9 @@ private fun MetricBlock(
     targetLabel: String,
     diff: Double,
     statusColor: Color,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    /** Optional extra line shown below the target row, e.g. "−250 burned" for calories. */
+    burnedLabel: String? = null
 ) {
     val valueColor = if (statusColor != Color.Unspecified) statusColor else OnSurface
     val diffColor  = when {
@@ -496,6 +511,14 @@ private fun MetricBlock(
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.SemiBold,
                     color = diffColor,
+                    fontSize = 10.sp
+                )
+            }
+            if (burnedLabel != null) {
+                Text(
+                    text = burnedLabel,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = SuccessGreen,
                     fontSize = 10.sp
                 )
             }
