@@ -64,12 +64,14 @@ class AddKetoEntryViewModel(
         private set
     var calories by mutableStateOf("")
         private set
+    // Held in display units (g or oz per foodUnit preference)
     var proteinG by mutableStateOf("")
         private set
     var fatG by mutableStateOf("")
         private set
     var netCarbsG by mutableStateOf("")
         private set
+    // Held in display units (mL or cups per volUnit preference)
     var waterMl by mutableStateOf("")
         private set
     var sodiumMg by mutableStateOf("")
@@ -118,11 +120,11 @@ class AddKetoEntryViewModel(
                     eventType = entry.eventType
                     calories = formatDouble(entry.calories)
                     // Convert stored base-unit values to display units
-                    proteinG = formatDouble(foodUnit.fromG(entry.proteinG))
-                    fatG = formatDouble(foodUnit.fromG(entry.fatG))
+                    proteinG  = formatDouble(foodUnit.fromG(entry.proteinG))
+                    fatG      = formatDouble(foodUnit.fromG(entry.fatG))
                     netCarbsG = formatDouble(foodUnit.fromG(entry.netCarbsG))
-                    waterMl = formatDouble(volUnit.fromMl(entry.waterMl))
-                    sodiumMg = formatDouble(entry.sodiumMg)
+                    waterMl   = formatDouble(volUnit.fromMl(entry.waterMl))
+                    sodiumMg    = formatDouble(entry.sodiumMg)
                     potassiumMg = formatDouble(entry.potassiumMg)
                     magnesiumMg = formatDouble(entry.magnesiumMg)
                     notes = entry.notes ?: ""
@@ -191,10 +193,10 @@ class AddKetoEntryViewModel(
         val ts = "$dateStr $timeStr"
 
         // Convert display-unit values back to storage base units before persisting
-        val storedProteinG = foodUnit.toG(parseDoubleOrZero(proteinG))
-        val storedFatG = foodUnit.toG(parseDoubleOrZero(fatG))
+        val storedProteinG  = foodUnit.toG(parseDoubleOrZero(proteinG))
+        val storedFatG      = foodUnit.toG(parseDoubleOrZero(fatG))
         val storedNetCarbsG = foodUnit.toG(parseDoubleOrZero(netCarbsG))
-        val storedWaterMl = volUnit.toMl(parseDoubleOrZero(waterMl))
+        val storedWaterMl   = volUnit.toMl(parseDoubleOrZero(waterMl))
 
         viewModelScope.launch {
             val existing = originalEntry
@@ -273,3 +275,11 @@ class AddKetoEntryViewModel(
 }
 
 class AddKetoEntryViewModelFactory(
+    private val ketoRepository: KetoRepository,
+    private val editEntryId: Int? = null,
+    private val unitsPreferencesStore: UnitsPreferencesStore? = null
+) : ViewModelProvider.Factory {
+    @Suppress("UNCHECKED_CAST")
+    override fun <T : ViewModel> create(modelClass: Class<T>): T =
+        AddKetoEntryViewModel(ketoRepository, editEntryId, unitsPreferencesStore) as T
+}
