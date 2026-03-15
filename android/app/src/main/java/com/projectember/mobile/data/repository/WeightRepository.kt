@@ -20,6 +20,11 @@ class WeightRepository(private val dao: WeightDao) {
     /** Insert (or replace-by-id) a weight entry. */
     suspend fun insert(entry: WeightEntry) = dao.insert(entry)
 
+    /** All weight entries, newest first — drives the history screen. */
+    fun getAllEntries(): Flow<List<WeightEntry>> = dao.getAllEntries()
+
+    suspend fun delete(entry: WeightEntry) = dao.delete(entry)
+
     suspend fun count(): Int = dao.count()
 
     suspend fun getAllOnce(): List<WeightEntry> = dao.getAllOnce()

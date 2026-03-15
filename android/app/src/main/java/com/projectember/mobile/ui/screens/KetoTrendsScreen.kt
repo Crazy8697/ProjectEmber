@@ -37,6 +37,7 @@ private val METRIC_OPTIONS = listOf(
     Triple("sodium",    "Na",   "Sodium"),
     Triple("potassium", "K",    "Potassium"),
     Triple("magnesium", "Mg",   "Magnesium"),
+    Triple("nak_ratio", "Na:K", "Na:K Ratio"),
     Triple("weight",    "Wt",   "Weight")
 )
 
@@ -49,6 +50,7 @@ private fun DayTotals.selectMetric(metric: String): Float = when (metric) {
     "sodium"    -> sodiumMg.toFloat()
     "potassium" -> potassiumMg.toFloat()
     "magnesium" -> magnesiumMg.toFloat()
+    "nak_ratio" -> nakRatio?.toFloat() ?: 0f
     "weight"    -> weightKg?.toFloat() ?: 0f
     else        -> calories.toFloat()
 }
@@ -57,6 +59,7 @@ private fun metricUnit(metric: String): String = when (metric) {
     "calories"  -> "kcal"
     "hydration" -> "mL"
     "sodium", "potassium", "magnesium" -> "mg"
+    "nak_ratio" -> ":1"
     "weight"    -> "kg"
     else        -> "g"
 }
@@ -70,6 +73,7 @@ private fun metricBarColor(metric: String): Color = when (metric) {
     "sodium"    -> WarningYellow
     "potassium" -> SuccessGreen
     "magnesium" -> Color(0xFF4A8FE8)
+    "nak_ratio" -> Color(0xFFFF8C42)
     "weight"    -> Color(0xFF9C69E2)
     else        -> KetoAccent
 }
@@ -126,9 +130,13 @@ fun KetoTrendsScreen(
         "sodium"    -> targets.sodiumMg.toFloat()
         "potassium" -> targets.potassiumMg.toFloat()
         "magnesium" -> targets.magnesiumMg.toFloat()
+        "nak_ratio" -> 1.0f  // 1:1 is ideal Na:K balance
         "weight"    -> null   // No fixed target for body weight
         else        -> null
     }
+
+    // Current displayed value: last meaningful data point in the chart
+    val currentDisplayValue: Float? = chartData.lastOrNull { it.second > 0 }?.second
 
     // From date picker
     if (showFromPicker) {
@@ -270,23 +278,45 @@ fun KetoTrendsScreen(
                         }
                     }
                     Spacer(modifier = Modifier.height(6.dp))
-                    // Row 3: Weight (single chip, left-aligned)
+                    // Row 3: Na:K Ratio, Weight
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        val (key, abbr, fullName) = METRIC_OPTIONS.last()
-                        val selected = trendsMetric == key
+                        // Na:K Ratio chip
+                        val (nakKey, nakAbbr, nakFullName) = METRIC_OPTIONS[8]
+                        val nakSelected = trendsMetric == nakKey
                         FilterChip(
-                            selected = selected,
-                            onClick = { viewModel.setTrendsMetric(key) },
+                            selected = nakSelected,
+                            onClick = { viewModel.setTrendsMetric(nakKey) },
                             label = {
                                  Column(
                                      modifier = Modifier.fillMaxWidth(),
                                      horizontalAlignment = Alignment.CenterHorizontally
                                  ) {
-                                     Text(abbr, fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                                     Text(fullName, fontSize = 8.sp, color = if (selected) OnSurface.copy(alpha = 0.8f) else KetoMuted)
+                                     Text(nakAbbr, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                     Text(nakFullName, fontSize = 8.sp, color = if (nakSelected) OnSurface.copy(alpha = 0.8f) else KetoMuted)
+                                 }
+                             },
+                            modifier = Modifier.weight(1f),
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = Color(0xFFFF8C42),
+                                selectedLabelColor = OnSurface
+                            )
+                        )
+                        // Weight chip
+                        val (wtKey, wtAbbr, wtFullName) = METRIC_OPTIONS.last()
+                        val wtSelected = trendsMetric == wtKey
+                        FilterChip(
+                            selected = wtSelected,
+                            onClick = { viewModel.setTrendsMetric(wtKey) },
+                            label = {
+                                 Column(
+                                     modifier = Modifier.fillMaxWidth(),
+                                     horizontalAlignment = Alignment.CenterHorizontally
+                                 ) {
+                                     Text(wtAbbr, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                     Text(wtFullName, fontSize = 8.sp, color = if (wtSelected) OnSurface.copy(alpha = 0.8f) else KetoMuted)
                                  }
                              },
                             modifier = Modifier.weight(1f),
@@ -295,8 +325,7 @@ fun KetoTrendsScreen(
                                 selectedLabelColor = OnSurface
                             )
                         )
-                        // Empty spacers to keep chip width consistent with rows above
-                        Spacer(modifier = Modifier.weight(1f))
+                        // Two empty spacers to keep chip width consistent with rows above
                         Spacer(modifier = Modifier.weight(1f))
                         Spacer(modifier = Modifier.weight(1f))
                     }
@@ -406,7 +435,8 @@ fun KetoTrendsScreen(
             // so that a hypothetical 0.0 kg entry (not physically meaningful but technically
             // possible) would still render rather than triggering the empty state.
             val hasData = chartData.isNotEmpty() &&
-                (trendsMetric != "weight" || trendsData.any { it.weightKg != null })
+                (trendsMetric != "weight" || trendsData.any { it.weightKg != null }) &&
+                (trendsMetric != "nak_ratio" || trendsData.any { it.nakRatio != null })
             if (hasData) {
                 val metricLabel = METRIC_OPTIONS.firstOrNull { it.first == trendsMetric }?.third ?: trendsMetric
                 val unit = metricUnit(trendsMetric)
@@ -425,6 +455,61 @@ fun KetoTrendsScreen(
                             fontWeight = FontWeight.SemiBold,
                             color = OnSurface
                         )
+                        // ── Numeric summary ──────────────────────────────────
+                        if (currentDisplayValue != null) {
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.Bottom
+                            ) {
+                                // Current value
+                                val valueText = when (trendsMetric) {
+                                    "nak_ratio" -> "%.2f:1".format(currentDisplayValue)
+                                    "weight"    -> "%.1f $unit".format(currentDisplayValue)
+                                    "calories"  -> "%.0f $unit".format(currentDisplayValue)
+                                    else        -> "%.1f $unit".format(currentDisplayValue)
+                                }
+                                Text(
+                                    text = valueText,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = barColor
+                                )
+                                // Target + diff (where meaningful)
+                                if (targetValue != null && targetValue > 0) {
+                                    val diff = currentDisplayValue - targetValue
+                                    val diffText = if (diff >= 0)
+                                        "+%.1f".format(diff) else "%.1f".format(diff)
+                                    val diffColor = when (trendsMetric) {
+                                        // For limit metrics: over target is bad
+                                        "calories", "net_carbs", "fat", "sodium" ->
+                                            if (diff > 0) Color(0xFFFF4D4D) else SuccessGreen
+                                        // For Na:K ratio: over 1.0 is worse
+                                        "nak_ratio" ->
+                                            if (diff > 0) Color(0xFFFF4D4D) else SuccessGreen
+                                        // For goal metrics: under target is bad
+                                        else ->
+                                            if (diff < 0) Color(0xFFFF4D4D) else SuccessGreen
+                                    }
+                                    Column(horizontalAlignment = Alignment.End) {
+                                        Text(
+                                            text = "target %.1f".format(targetValue),
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = KetoMuted,
+                                            fontSize = 10.sp
+                                        )
+                                        Text(
+                                            text = diffText,
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = diffColor,
+                                            fontSize = 10.sp
+                                        )
+                                    }
+                                }
+                            }
+                        }
                         Spacer(modifier = Modifier.height(12.dp))
                         WeeklyTrendCard(
                             title = "",

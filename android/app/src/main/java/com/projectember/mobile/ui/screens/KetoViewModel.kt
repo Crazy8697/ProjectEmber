@@ -43,7 +43,9 @@ data class DayTotals(
     val potassiumMg: Double = 0.0,
     val magnesiumMg: Double = 0.0,
     /** Weight logged on this day (kg), or null if none. */
-    val weightKg: Double? = null
+    val weightKg: Double? = null,
+    /** Na:K ratio (sodiumMg / potassiumMg) for the day, or null if potassiumMg == 0. */
+    val nakRatio: Double? = null
 )
 
 class KetoViewModel(
@@ -81,8 +83,7 @@ class KetoViewModel(
                     val mappedId = if (ex.id > 0) -ex.id else Int.MIN_VALUE
                     KetoEntry(
                         id = mappedId,
-                        label = if (!ex.subtype.isNullOrBlank())
-                            "${ex.type} · ${ex.subtype}" else ex.type,
+                        label = ex.type,
                         eventType = "exercise",
                         calories = ex.caloriesBurned ?: 0.0,
                         proteinG = 0.0,
@@ -175,6 +176,8 @@ class KetoViewModel(
                         val date = from.plusDays(offset.toLong())
                         val dateStr = date.format(dateFormatter)
                         val dayEntries = ketoEntries.filter { it.entryDate == dateStr }
+                        val sodiumMg  = dayEntries.sumOf { it.effectiveSodium() }
+                        val potassiumMg = dayEntries.sumOf { it.effectivePotassium() }
                         DayTotals(
                             label = date.format(dayShortFmt),
                             date = dateStr,
@@ -184,10 +187,11 @@ class KetoViewModel(
                             proteinG = dayEntries.sumOf { it.effectiveProtein() },
                             fatG = dayEntries.sumOf { it.effectiveFat() },
                             waterMl = dayEntries.sumOf { it.effectiveWater() },
-                            sodiumMg = dayEntries.sumOf { it.effectiveSodium() },
-                            potassiumMg = dayEntries.sumOf { it.effectivePotassium() },
+                            sodiumMg = sodiumMg,
+                            potassiumMg = potassiumMg,
                             magnesiumMg = dayEntries.sumOf { it.effectiveMagnesium() },
-                            weightKg = weightByDate[dateStr]
+                            weightKg = weightByDate[dateStr],
+                            nakRatio = if (potassiumMg > 0) sodiumMg / potassiumMg else null
                         )
                     }
                 }
@@ -207,6 +211,8 @@ class KetoViewModel(
                 val dateStr = date.format(dateFormatter)
                 val dayEntries = entries.filter { it.entryDate == dateStr }
                 val cals = dayEntries.sumOf { it.effectiveCalories() }
+                val sodiumMg  = dayEntries.sumOf { it.effectiveSodium() }
+                val potassiumMg = dayEntries.sumOf { it.effectivePotassium() }
                 DayTotals(
                     label = date.format(dayShortFmt),
                     date = dateStr,
@@ -215,9 +221,10 @@ class KetoViewModel(
                     proteinG = dayEntries.sumOf { it.effectiveProtein() },
                     fatG = dayEntries.sumOf { it.effectiveFat() },
                     waterMl = dayEntries.sumOf { it.effectiveWater() },
-                    sodiumMg = dayEntries.sumOf { it.effectiveSodium() },
-                    potassiumMg = dayEntries.sumOf { it.effectivePotassium() },
-                    magnesiumMg = dayEntries.sumOf { it.effectiveMagnesium() }
+                    sodiumMg = sodiumMg,
+                    potassiumMg = potassiumMg,
+                    magnesiumMg = dayEntries.sumOf { it.effectiveMagnesium() },
+                    nakRatio = if (potassiumMg > 0) sodiumMg / potassiumMg else null
                 )
             }
         }

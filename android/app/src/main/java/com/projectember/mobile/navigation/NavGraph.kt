@@ -39,6 +39,9 @@ import com.projectember.mobile.ui.screens.RecipesViewModelFactory
 import com.projectember.mobile.ui.screens.SettingsScreen
 import com.projectember.mobile.ui.screens.SettingsViewModel
 import com.projectember.mobile.ui.screens.SettingsViewModelFactory
+import com.projectember.mobile.ui.screens.WeightHistoryScreen
+import com.projectember.mobile.ui.screens.WeightHistoryViewModel
+import com.projectember.mobile.ui.screens.WeightHistoryViewModelFactory
 
 @Composable
 fun EmberNavGraph(
@@ -91,7 +94,8 @@ fun EmberNavGraph(
                 onNavigateToTrends = { metric -> navController.navigate(Screen.KetoTrends.createRoute(metric)) },
                 onNavigateToLogExercise = { date ->
                     navController.navigate(Screen.ExerciseAddEntry.createRoute(date))
-                }
+                },
+                onNavigateToWeightHistory = { navController.navigate(Screen.WeightHistory.route) }
             )
         }
 
@@ -274,6 +278,16 @@ fun EmberNavGraph(
                 )
             )
             AddEditExerciseScreen(
+                viewModel = viewModel,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Screen.WeightHistory.route) {
+            val viewModel: WeightHistoryViewModel = viewModel(
+                factory = WeightHistoryViewModelFactory(app.weightRepository)
+            )
+            WeightHistoryScreen(
                 viewModel = viewModel,
                 onNavigateBack = { navController.popBackStack() }
             )

@@ -210,22 +210,21 @@ private fun ExerciseEntryCard(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                // Type · Subtype
-                val activityLabel = if (!entry.subtype.isNullOrBlank())
-                    "${entry.type} · ${entry.subtype}" else entry.type
+                // Main title: activity type (the broader "category" label)
                 Text(
-                    text = activityLabel,
+                    text = entry.type,
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold
                 )
 
-                // Meta row: time + optional duration/calories
+                // Meta row: time + optional duration/calories + DB category name
                 val metaParts = buildList {
                     add(entry.entryTime)
                     entry.durationMinutes?.let { add("$it min") }
                     entry.caloriesBurned?.let {
                         add("${it.toBigDecimal().stripTrailingZeros().toPlainString()} kcal")
                     }
+                    category?.let { add(it.name) }
                 }
                 Text(
                     text = metaParts.joinToString(" · "),
@@ -238,13 +237,13 @@ private fun ExerciseEntryCard(
                 horizontalAlignment = Alignment.End,
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                // Category chip
-                category?.let {
+                // Subtype pill — only shown when a subtype is present
+                if (!entry.subtype.isNullOrBlank()) {
                     SuggestionChip(
                         onClick = {},
                         label = {
                             Text(
-                                it.name,
+                                entry.subtype!!,
                                 style = MaterialTheme.typography.labelSmall
                             )
                         },

@@ -2,7 +2,9 @@ package com.projectember.mobile.ui.screens
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -83,7 +85,8 @@ fun KetoScreen(
     onNavigateToEditExercise: (Int) -> Unit,
     onNavigateToTargets: () -> Unit,
     onNavigateToTrends: (String) -> Unit,
-    onNavigateToLogExercise: (String) -> Unit
+    onNavigateToLogExercise: (String) -> Unit,
+    onNavigateToWeightHistory: () -> Unit
 ) {
     val selectedDateEntries by viewModel.selectedDateEntries.collectAsState()
     val selectedDate by viewModel.selectedDate.collectAsState()
@@ -337,7 +340,7 @@ fun KetoScreen(
                         nakRatio = nakRatio,
                         todaySodium = todaySodium,
                         todayPotassium = todayPotassium,
-                        onClick = { onNavigateToTrends("sodium") }
+                        onClick = { onNavigateToTrends("nak_ratio") }
                     )
                 }
             }
@@ -361,7 +364,8 @@ fun KetoScreen(
                     WeightBlock(
                         modifier = Modifier.weight(1f),
                         lastEntry = lastWeightEntry,
-                        onClick = {
+                        onClick = { onNavigateToWeightHistory() },
+                        onLongClick = {
                             weightInput = lastWeightEntry?.weightKg?.let { "%.1f".format(it) } ?: ""
                             showWeightDialog = true
                         }
@@ -896,14 +900,16 @@ private fun MacroDetail(label: String, value: String, color: Color = OnSurface) 
 }
 
 // ── Weight block ──────────────────────────────────────────────────────────────
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun WeightBlock(
     modifier: Modifier = Modifier,
     lastEntry: WeightEntry?,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onLongClick: () -> Unit = {}
 ) {
     Card(
-        modifier = modifier.clickable { onClick() },
+        modifier = modifier.combinedClickable(onClick = onClick, onLongClick = onLongClick),
         colors = CardDefaults.cardColors(containerColor = KetoCard),
         border = BorderStroke(1.dp, KetoBorderC)
     ) {
@@ -923,7 +929,7 @@ private fun WeightBlock(
             )
             Spacer(modifier = Modifier.height(2.dp))
             Text(
-                text = if (lastEntry != null) lastEntry.entryDate else "tap to log",
+                text = if (lastEntry != null) lastEntry.entryDate else "tap to view history",
                 style = MaterialTheme.typography.labelSmall,
                 color = KetoMuted,
                 fontSize = 10.sp
