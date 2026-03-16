@@ -673,6 +673,7 @@ private fun NakRatioBlock(
             }
             Spacer(modifier = Modifier.height(4.dp))
             // Balance indicator bar: left = Na-heavy, right = K-heavy (matches "Na:K" label order)
+            val trackColor = MaterialTheme.colorScheme.outlineVariant
             Box(modifier = Modifier.fillMaxWidth()) {
                 Canvas(
                     modifier = Modifier
@@ -681,7 +682,7 @@ private fun NakRatioBlock(
                 ) {
                     // Track
                     drawRoundRect(
-                        color = MaterialTheme.colorScheme.outlineVariant,
+                        color = trackColor,
                         size = size,
                         cornerRadius = androidx.compose.ui.geometry.CornerRadius(2.dp.toPx())
                     )

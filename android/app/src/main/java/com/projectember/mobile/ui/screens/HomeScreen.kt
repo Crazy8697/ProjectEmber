@@ -216,6 +216,7 @@ private fun TodaySummaryCard(
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.SemiBold,
                         color = calTextColor
+                    )
                     Text(
                         text = "food %.0f \u2212 %.0f burned".format(summary.calories, burned),
                         style = MaterialTheme.typography.labelSmall,
@@ -284,6 +285,9 @@ private fun TodaySummaryCard(
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.SemiBold,
                             color = waterTextColor
+                        )
+                    }
+                    LinearProgressIndicator(
                         progress = { waterPct },
                         modifier = Modifier.fillMaxWidth(),
                         color = waterColor,
