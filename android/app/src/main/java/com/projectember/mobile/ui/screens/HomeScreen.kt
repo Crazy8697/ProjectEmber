@@ -155,10 +155,15 @@ private fun TodaySummaryCard(
     val displayCalories = if (burned > 0) (summary.calories - burned).coerceAtLeast(0.0) else summary.calories
     val calRatio = if (caloriesTarget > 0) (displayCalories / caloriesTarget).toFloat() else 0f
     val calPct = calRatio.coerceIn(0f, 1f)
-    val calColor = if (caloriesTarget > 0)
-        targetRangeStatusColor(displayCalories, caloriesTarget)
-    else SuccessGreen
+
+    // Pacing-aware colors: neutral/muted before window opens, status color once eating starts.
+    // windowOpen = true once at least one pacing result is available (eating window started).
+    val windowOpen = pacing.calories != null || pacing.protein != null
+    val calColor = pacingStatusColor(pacing.calories)
     val calTextColor = calColor.accessible()
+    // Progress bar must not receive Color.Unspecified — fall back to primary for neutral.
+    val calBarColor = (if (calColor != Color.Unspecified) calColor
+                       else MaterialTheme.colorScheme.primary).accessible()
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -238,7 +243,7 @@ private fun TodaySummaryCard(
                     LinearProgressIndicator(
                         progress = { calPct },
                         modifier = Modifier.fillMaxWidth(),
-                        color = calColor,
+                        color = calBarColor,
                         trackColor = MaterialTheme.colorScheme.surfaceVariant
                     )
                 }
@@ -249,37 +254,46 @@ private fun TodaySummaryCard(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
+                // Protein: pacing-aware (null → neutral before window opens)
                 MacroChip(
                     label = "P",
                     value = summary.proteinG,
-                    target = proteinTarget,
                     unit = "g",
-                    colorFn = ::goalStatusColor,
+                    statusColor = pacingStatusColor(pacing.protein),
                     modifier = Modifier.weight(1f)
                 )
+                // Net carbs: pacing-aware when available; strict-limit rule otherwise
                 MacroChip(
                     label = "NC",
                     value = summary.netCarbsG,
-                    target = netCarbsTarget,
                     unit = "g",
-                    colorFn = ::strictLimitStatusColor,
+                    statusColor = pacingStatusColor(pacing.netCarbs)
+                        .takeIf { it != Color.Unspecified }
+                        ?: if (windowOpen) strictLimitStatusColor(summary.netCarbsG, netCarbsTarget)
+                           else Color.Unspecified,
                     modifier = Modifier.weight(1f)
                 )
+                // Fat: not pacing-tracked; neutral before window, target-range after
                 MacroChip(
                     label = "F",
                     value = summary.fatG,
-                    target = fatTarget,
                     unit = "g",
-                    colorFn = ::targetRangeStatusColor,
+                    statusColor = if (windowOpen) targetRangeStatusColor(summary.fatG, fatTarget)
+                                  else Color.Unspecified,
                     modifier = Modifier.weight(1f)
                 )
             }
 
             // Hydration row — shown only when a water target is set
             if (waterTarget > 0) {
-                val waterColor = goalStatusColor(summary.waterMl, waterTarget)
-                    .takeIf { it != Color.Unspecified } ?: SuccessGreen
-                val waterTextColor = waterColor.accessible()
+                // Water is not pacing-tracked, but use neutral before window opens
+                val waterRawColor = if (windowOpen)
+                    goalStatusColor(summary.waterMl, waterTarget)
+                        .takeIf { it != Color.Unspecified } ?: SuccessGreen
+                else Color.Unspecified
+                val waterBarColor = (if (waterRawColor != Color.Unspecified) waterRawColor
+                                     else MaterialTheme.colorScheme.primary).accessible()
+                val waterTextColor = waterRawColor.accessible()
                 val waterPct = (summary.waterMl / waterTarget).toFloat().coerceIn(0f, 1f)
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Row(
@@ -301,7 +315,7 @@ private fun TodaySummaryCard(
                     LinearProgressIndicator(
                         progress = { waterPct },
                         modifier = Modifier.fillMaxWidth(),
-                        color = waterColor,
+                        color = waterBarColor,
                         trackColor = MaterialTheme.colorScheme.surfaceVariant
                     )
                 }
@@ -340,13 +354,12 @@ private fun TodaySummaryCard(
 private fun MacroChip(
     label: String,
     value: Double,
-    target: Double,
     unit: String,
-    colorFn: (Double, Double) -> Color = ::goalStatusColor,
+    statusColor: Color,
     modifier: Modifier = Modifier
 ) {
-    val rawColor = colorFn(value, target)
-    val color = (if (rawColor != Color.Unspecified) rawColor else MaterialTheme.colorScheme.onSurface).accessible()
+    val color = (if (statusColor != Color.Unspecified) statusColor
+                 else MaterialTheme.colorScheme.onSurface).accessible()
 
     Box(modifier = modifier) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
