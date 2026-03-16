@@ -1,6 +1,21 @@
 package com.projectember.mobile.ui.screens
 
 import android.net.Uri
+import androidx.health.connect.client.permission.HealthPermission
+import androidx.health.connect.client.records.ActiveCaloriesBurnedRecord
+import androidx.health.connect.client.records.BloodGlucoseRecord
+import androidx.health.connect.client.records.BloodPressureRecord
+import androidx.health.connect.client.records.BodyTemperatureRecord
+import androidx.health.connect.client.records.DistanceRecord
+import androidx.health.connect.client.records.ExerciseSessionRecord
+import androidx.health.connect.client.records.HeartRateRecord
+import androidx.health.connect.client.records.OxygenSaturationRecord
+import androidx.health.connect.client.records.RespiratoryRateRecord
+import androidx.health.connect.client.records.RestingHeartRateRecord
+import androidx.health.connect.client.records.SleepSessionRecord
+import androidx.health.connect.client.records.StepsRecord
+import androidx.health.connect.client.records.TotalCaloriesBurnedRecord
+import androidx.health.connect.client.records.WeightRecord
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -60,6 +75,56 @@ class SettingsViewModel(
         MutableStateFlow<HealthConnectUiState>(HealthConnectUiState.Checking)
     val healthConnectState: StateFlow<HealthConnectUiState> = _healthConnectState.asStateFlow()
 
+    private fun permissionForMetric(metric: HealthMetric): Set<String> = when (metric) {
+        HealthMetric.WEIGHT -> setOf(
+            HealthPermission.getReadPermission(WeightRecord::class)
+        )
+        HealthMetric.STEPS -> setOf(
+            HealthPermission.getReadPermission(StepsRecord::class)
+        )
+        HealthMetric.DISTANCE -> setOf(
+            HealthPermission.getReadPermission(DistanceRecord::class)
+        )
+        HealthMetric.ACTIVE_CALORIES -> setOf(
+            HealthPermission.getReadPermission(ActiveCaloriesBurnedRecord::class),
+            HealthPermission.getReadPermission(TotalCaloriesBurnedRecord::class)
+        )
+        HealthMetric.EXERCISE_SESSIONS -> setOf(
+            HealthPermission.getReadPermission(ExerciseSessionRecord::class)
+        )
+        HealthMetric.HEART_RATE -> setOf(
+            HealthPermission.getReadPermission(HeartRateRecord::class)
+        )
+        HealthMetric.RESTING_HEART_RATE -> setOf(
+            HealthPermission.getReadPermission(RestingHeartRateRecord::class)
+        )
+        HealthMetric.SLEEP -> setOf(
+            HealthPermission.getReadPermission(SleepSessionRecord::class)
+        )
+        HealthMetric.BLOOD_PRESSURE -> setOf(
+            HealthPermission.getReadPermission(BloodPressureRecord::class)
+        )
+        HealthMetric.BLOOD_GLUCOSE -> setOf(
+            HealthPermission.getReadPermission(BloodGlucoseRecord::class)
+        )
+        HealthMetric.BODY_TEMPERATURE -> setOf(
+            HealthPermission.getReadPermission(BodyTemperatureRecord::class)
+        )
+        HealthMetric.OXYGEN_SATURATION -> setOf(
+            HealthPermission.getReadPermission(OxygenSaturationRecord::class)
+        )
+        HealthMetric.RESPIRATORY_RATE -> setOf(
+            HealthPermission.getReadPermission(RespiratoryRateRecord::class)
+        )
+    }
+
+    private fun enabledMetricPermissions(): Set<String> =
+        healthMetricPreferencesStore.getAllSettings()
+            .filterValues { it }
+            .keys
+            .flatMap { permissionForMetric(it) }
+            .toSet()
+
     /** Called when the Sync section is (re-)entered to refresh HC availability/permission state. */
     fun checkHealthConnectStatus() {
         viewModelScope.launch {
@@ -68,15 +133,16 @@ class SettingsViewModel(
                 _healthConnectState.value = HealthConnectUiState.NotInstalled
                 return@launch
             }
-            val hasPerms = try {
-                healthConnectManager.hasPermissions()
+            val granted = try {
+                healthConnectManager.getGrantedPermissions()
             } catch (e: Exception) {
                 _healthConnectState.value = HealthConnectUiState.Error(
                     e.message ?: "Could not check Health Connect permissions"
                 )
                 return@launch
             }
-            if (!hasPerms) {
+            val needed = enabledMetricPermissions()
+            if (needed.isNotEmpty() && !granted.containsAll(needed)) {
                 _healthConnectState.value = HealthConnectUiState.PermissionsRequired()
                 return@launch
             }
@@ -103,9 +169,9 @@ class SettingsViewModel(
      */
     fun onPermissionsResult(granted: Set<String>) {
         viewModelScope.launch {
-            val hasAll = healthConnectManager.requiredPermissions
-                .all { it in granted }
-            if (hasAll) {
+            val needed = enabledMetricPermissions()
+            val hasAllNeeded = needed.all { it in granted }
+            if (hasAllNeeded) {
                 _healthConnectState.value = HealthConnectUiState.Ready
             } else {
                 _healthConnectState.value = HealthConnectUiState.PermissionsRequired(

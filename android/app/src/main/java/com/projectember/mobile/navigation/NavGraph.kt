@@ -226,9 +226,13 @@ fun EmberNavGraph(
             val metric = backStackEntry.arguments?.getString("metric") ?: ""
             val viewModel: KetoViewModel = viewModel(
                 factory = KetoViewModelFactory(
-                    app.ketoRepository, app.ketoTargetsStore,
-                    app.weightRepository, app.exerciseRepository,
-                    app.exerciseCategoryRepository, app.unitsPreferencesStore
+                    app.ketoRepository,
+                    app.ketoTargetsStore,
+                    app.weightRepository,
+                    app.exerciseRepository,
+                    app.exerciseCategoryRepository,
+                    app.unitsPreferencesStore,
+                    app.healthMetricPreferencesStore
                 )
             )
             KetoTrendsScreen(

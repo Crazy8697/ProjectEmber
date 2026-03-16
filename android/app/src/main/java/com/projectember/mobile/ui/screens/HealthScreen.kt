@@ -139,9 +139,8 @@ fun HealthScreen(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(top = 24.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally,
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally)
                             ) {
                                 CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
                                 Text(
