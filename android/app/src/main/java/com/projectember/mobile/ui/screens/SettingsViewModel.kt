@@ -81,6 +81,31 @@ class SettingsViewModel(
 
     fun clearExportState() { _exportState.value = BackupOpState.Idle }
 
+    // ── Email Export ──────────────────────────────────────────────────────────
+
+    /** Non-null when backup bytes are ready to be delivered via email/share. */
+    private val _pendingEmailExport = MutableStateFlow<ByteArray?>(null)
+    val pendingEmailExport: StateFlow<ByteArray?> = _pendingEmailExport.asStateFlow()
+
+    /** Builds the backup payload and stages it for the UI to launch an email intent. */
+    fun prepareEmailExport() {
+        viewModelScope.launch {
+            _exportState.value = BackupOpState.InProgress
+            backupManager.buildBackupBytes()
+                .onSuccess { bytes ->
+                    _pendingEmailExport.value = bytes
+                    _exportState.value = BackupOpState.Idle
+                }
+                .onFailure { e ->
+                    _exportState.value = BackupOpState.Error(
+                        e.message ?: "Export failed. Please try again."
+                    )
+                }
+        }
+    }
+
+    fun clearPendingEmailExport() { _pendingEmailExport.value = null }
+
     // ── Import ────────────────────────────────────────────────────────────────
 
     private val _importState = MutableStateFlow<BackupOpState>(BackupOpState.Idle)

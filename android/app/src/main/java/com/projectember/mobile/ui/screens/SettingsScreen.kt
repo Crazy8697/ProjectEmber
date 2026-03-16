@@ -1,5 +1,6 @@
 package com.projectember.mobile.ui.screens
 
+import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -50,13 +51,17 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.core.content.FileProvider
 import com.projectember.mobile.BuildConfig
 import com.projectember.mobile.data.local.FoodWeightUnit
 import com.projectember.mobile.data.local.VolumeUnit
 import com.projectember.mobile.data.local.WeightUnit
 import com.projectember.mobile.ui.theme.ThemeOption
+import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -69,13 +74,19 @@ fun SettingsScreen(
     val exportState by viewModel.exportState.collectAsState()
     val importState by viewModel.importState.collectAsState()
     val pendingImport by viewModel.pendingImport.collectAsState()
+    val pendingEmailExport by viewModel.pendingEmailExport.collectAsState()
     val resetState by viewModel.resetState.collectAsState()
     val selectedTheme by viewModel.selectedTheme.collectAsState()
     val unitPrefs by viewModel.unitPreferences.collectAsState()
 
+    val context = LocalContext.current
+
     // Danger Zone confirmation state
     var showResetConfirm1 by remember { mutableStateOf(false) }
     var showResetConfirm2 by remember { mutableStateOf(false) }
+
+    // Export method chooser state
+    var showExportChooser by remember { mutableStateOf(false) }
 
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -121,6 +132,34 @@ fun SettingsScreen(
                 viewModel.clearResetState()
             }
             else -> Unit
+        }
+    }
+
+    // ── Email/share intent launcher for email export ──────────────────────────
+    LaunchedEffect(pendingEmailExport) {
+        val bytes = pendingEmailExport ?: return@LaunchedEffect
+        try {
+            val cacheFile = File(context.cacheDir, "ember_backup_${System.currentTimeMillis()}.json")
+            cacheFile.writeBytes(bytes)
+            val uri = FileProvider.getUriForFile(
+                context,
+                "${context.packageName}.fileprovider",
+                cacheFile
+            )
+            val intent = Intent(Intent.ACTION_SEND).apply {
+                type = "application/json"
+                putExtra(Intent.EXTRA_SUBJECT, "Project Ember Backup")
+                putExtra(Intent.EXTRA_TEXT, "Backup export attached/generated from the mobile app.")
+                putExtra(Intent.EXTRA_STREAM, uri)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            context.startActivity(Intent.createChooser(intent, "Email Backup"))
+        } catch (e: Exception) {
+            snackbarHostState.showSnackbar(
+                "Email export failed: ${e.message ?: "Could not prepare email export."}"
+            )
+        } finally {
+            viewModel.clearPendingEmailExport()
         }
     }
 
@@ -274,7 +313,7 @@ fun SettingsScreen(
             SettingsSection(title = "Data Management") {
                 TextButton(
                     onClick = {
-                        exportLauncher.launch("ember_backup.json")
+                        showExportChooser = true
                     },
                     enabled = !isBusy,
                     modifier = Modifier.fillMaxWidth()
@@ -433,6 +472,54 @@ fun SettingsScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
         }
+    }
+
+    // ── Export method chooser dialog ─────────────────────────────────────────
+    if (showExportChooser) {
+        AlertDialog(
+            onDismissRequest = { showExportChooser = false },
+            title = { Text("Export Backup") },
+            text = {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    TextButton(
+                        onClick = {
+                            showExportChooser = false
+                            exportLauncher.launch("ember_backup.json")
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = "Save to device",
+                            modifier = Modifier.fillMaxWidth(),
+                            textAlign = TextAlign.Start
+                        )
+                    }
+                    HorizontalDivider(
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                        thickness = 0.5.dp
+                    )
+                    TextButton(
+                        onClick = {
+                            showExportChooser = false
+                            viewModel.prepareEmailExport()
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = "Email to myself",
+                            modifier = Modifier.fillMaxWidth(),
+                            textAlign = TextAlign.Start
+                        )
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { showExportChooser = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 
     // ── Import overwrite confirmation dialog ─────────────────────────────────

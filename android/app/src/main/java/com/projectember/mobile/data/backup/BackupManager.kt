@@ -53,10 +53,17 @@ class BackupManager(
     // ── Export ────────────────────────────────────────────────────────────────
 
     suspend fun exportToUri(uri: Uri): Result<Unit> = runCatching {
-        val json = buildPayloadJson()
+        val bytes = buildBackupBytes().getOrThrow()
         context.contentResolver.openOutputStream(uri)?.use { os ->
-            os.write(json.toByteArray(Charsets.UTF_8))
+            os.write(bytes)
         } ?: error("Cannot open output stream for export URI")
+    }
+
+    /** Builds the backup payload and returns it as UTF-8 bytes.
+     *  Both the local-save and email export paths share this single
+     *  backup-generation implementation. */
+    suspend fun buildBackupBytes(): Result<ByteArray> = runCatching {
+        buildPayloadJson().toByteArray(Charsets.UTF_8)
     }
 
     // ── Import ────────────────────────────────────────────────────────────────
