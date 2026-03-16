@@ -39,9 +39,6 @@ import com.projectember.mobile.data.local.entities.effectiveWater
 import com.projectember.mobile.ui.theme.KetoBorder
 import com.projectember.mobile.ui.theme.KetoAccent
 import com.projectember.mobile.ui.theme.KetoAccentLight
-import com.projectember.mobile.ui.theme.OnSurface
-import com.projectember.mobile.ui.theme.OnSurfaceVariant
-import com.projectember.mobile.ui.theme.SurfaceMid
 import com.projectember.mobile.ui.theme.SuccessGreen
 import com.projectember.mobile.ui.theme.WarningYellow
 import com.projectember.mobile.ui.theme.ErrorRed
@@ -49,9 +46,6 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
 // ── Palette constants (desktop-matched) ─────────────────────────────────────
-private val KetoCard    = SurfaceMid
-private val KetoBorderC = KetoBorder
-private val KetoMuted   = OnSurfaceVariant
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -260,7 +254,7 @@ fun KetoScreen(
                     Text(
                         text = "tap to change",
                         style = MaterialTheme.typography.labelSmall,
-                        color = KetoMuted
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -390,7 +384,7 @@ fun KetoScreen(
                 OutlinedButton(
                     onClick = { onNavigateToLogExercise(selectedDate) },
                     modifier = Modifier.fillMaxWidth(),
-                    border = BorderStroke(1.dp, KetoBorderC)
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                 ) {
                     Icon(
                         imageVector = Icons.Default.FitnessCenter,
@@ -466,21 +460,21 @@ private fun MetricBlock(
     /** Optional extra line shown below the target row, e.g. "−250 burned" for calories. */
     burnedLabel: String? = null
 ) {
-    val valueColor = if (statusColor != Color.Unspecified) statusColor else OnSurface
+    val valueColor = if (statusColor != Color.Unspecified) statusColor.accessible() else MaterialTheme.colorScheme.onSurface
     // Use the same status color for the diff indicator so it always matches the metric health.
-    val diffColor  = if (statusColor != Color.Unspecified) statusColor else KetoMuted
+    val diffColor  = if (statusColor != Color.Unspecified) statusColor.accessible() else MaterialTheme.colorScheme.onSurfaceVariant
     val diffText = if (diff >= 0) "+%.1f".format(diff) else "%.1f".format(diff)
 
     Card(
         modifier = modifier.clickable { onClick() },
-        colors = CardDefaults.cardColors(containerColor = KetoCard),
-        border = BorderStroke(1.dp, KetoBorderC)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelSmall,
-                color = KetoMuted,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 letterSpacing = 0.8.sp
             )
             Spacer(modifier = Modifier.height(4.dp))
@@ -495,13 +489,13 @@ private fun MetricBlock(
                 Text(
                     text = targetLabel,
                     style = MaterialTheme.typography.labelSmall,
-                    color = KetoMuted,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 10.sp
                 )
                 Text(
                     text = "·",
                     style = MaterialTheme.typography.labelSmall,
-                    color = KetoMuted,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 10.sp
                 )
                 Text(
@@ -544,14 +538,14 @@ private fun HydrationBlock(
 
     Card(
         modifier = modifier.clickable { onClick() },
-        colors = CardDefaults.cardColors(containerColor = KetoCard),
-        border = BorderStroke(1.dp, KetoBorderC)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
             Text(
                 text = "HYDRATION %",
                 style = MaterialTheme.typography.labelSmall,
-                color = KetoMuted,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 letterSpacing = 0.8.sp
             )
             Spacer(modifier = Modifier.height(4.dp))
@@ -559,13 +553,13 @@ private fun HydrationBlock(
                 text = "$hydrationPct%",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
-                color = if (statusColor != Color.Unspecified) statusColor else OnSurface
+                color = if (statusColor != Color.Unspecified) statusColor.accessible() else MaterialTheme.colorScheme.onSurface
             )
             Spacer(modifier = Modifier.height(2.dp))
             Text(
                 text = "%.1f / %.1f $volSym".format(displayToday, displayTarget),
                 style = MaterialTheme.typography.labelSmall,
-                color = KetoMuted,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontSize = 10.sp
             )
             Spacer(modifier = Modifier.height(4.dp))
@@ -575,15 +569,15 @@ private fun HydrationBlock(
                     .fillMaxWidth()
                     .height(4.dp),
                 color = barColor,
-                trackColor = KetoBorderC
+                trackColor = MaterialTheme.colorScheme.outlineVariant
             )
             Spacer(modifier = Modifier.height(2.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text("0%", style = MaterialTheme.typography.labelSmall, color = KetoMuted, fontSize = 9.sp)
-                Text("100%", style = MaterialTheme.typography.labelSmall, color = KetoMuted, fontSize = 9.sp)
+                Text("0%", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 9.sp)
+                Text("100%", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 9.sp)
             }
         }
     }
@@ -630,21 +624,21 @@ private fun NakRatioBlock(
             // No data
             ratio = 0.0
             position = 0.5f   // center (no data → neutral)
-            ratioColor = OnSurface
-            dotColor = KetoMuted
+            ratioColor = MaterialTheme.colorScheme.onSurface
+            dotColor = MaterialTheme.colorScheme.onSurfaceVariant
         }
     }
 
     Card(
         modifier = modifier.clickable { onClick() },
-        colors = CardDefaults.cardColors(containerColor = KetoCard),
-        border = BorderStroke(1.dp, KetoBorderC)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
             Text(
                 text = "NA:K RATIO",
                 style = MaterialTheme.typography.labelSmall,
-                color = KetoMuted,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 letterSpacing = 0.8.sp
             )
             Spacer(modifier = Modifier.height(4.dp))
@@ -652,7 +646,7 @@ private fun NakRatioBlock(
                 text = nakRatio,
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
-                color = ratioColor
+                color = ratioColor.accessible()
             )
             Spacer(modifier = Modifier.height(2.dp))
             Row(
@@ -666,14 +660,14 @@ private fun NakRatioBlock(
                         else                                   -> "Na \u00f7 K"
                     },
                     style = MaterialTheme.typography.labelSmall,
-                    color = KetoMuted,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 10.sp
                 )
                 // Explicit target reference
                 Text(
                     text = "target \u22641.0",
                     style = MaterialTheme.typography.labelSmall,
-                    color = KetoMuted,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 10.sp
                 )
             }
@@ -687,7 +681,7 @@ private fun NakRatioBlock(
                 ) {
                     // Track
                     drawRoundRect(
-                        color = KetoBorderC,
+                        color = MaterialTheme.colorScheme.outlineVariant,
                         size = size,
                         cornerRadius = androidx.compose.ui.geometry.CornerRadius(2.dp.toPx())
                     )
@@ -718,14 +712,14 @@ private fun KetoHelpDialog(onDismiss: () -> Unit) {
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Surface(
-                    color = KetoCard,
+                    color = MaterialTheme.colorScheme.surface,
                     shape = MaterialTheme.shapes.small,
-                    border = BorderStroke(1.dp, KetoBorderC)
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                 ) {
                     Text(
                         text = "\u26a0\ufe0f Not medical advice. This tracker is for informational purposes only. Consult a healthcare professional before making dietary changes.",
                         style = MaterialTheme.typography.bodySmall,
-                        color = KetoMuted,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp)
                     )
                 }
@@ -787,11 +781,11 @@ private fun KetoEntryCard(
     val cardBorder = if (isExercise)
         BorderStroke(1.dp, SuccessGreen.copy(alpha = 0.4f))
     else
-        BorderStroke(1.dp, KetoBorderC)
+        BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = KetoCard),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         border = cardBorder,
         onClick = { expanded = !expanded }
     ) {
@@ -805,7 +799,7 @@ private fun KetoEntryCard(
                     text = entry.label,
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.SemiBold,
-                    color = OnSurface,
+                    color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.weight(1f)
                 )
                 EventTypeBadge(type = entry.eventType)
@@ -823,7 +817,7 @@ private fun KetoEntryCard(
                         text = "Tap for details",
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Medium,
-                        color = KetoMuted
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     isExercise -> Text(
                         text = "\u2212%.0f kcal".format(entry.calories * entry.servings),
@@ -835,7 +829,7 @@ private fun KetoEntryCard(
                         text = "%.0f kcal".format(entry.calories * entry.servings),
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Medium,
-                        color = OnSurface
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                 }
                 val timeText = if (entry.eventTimestamp.length >= 16)
@@ -850,34 +844,33 @@ private fun KetoEntryCard(
                         Text(
                             text = servingsLabel,
                             style = MaterialTheme.typography.labelSmall,
-                            color = KetoMuted
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                     Text(
                         text = timeText,
                         style = MaterialTheme.typography.labelSmall,
-                        color = KetoMuted
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
 
             if (expanded) {
                 Spacer(modifier = Modifier.height(8.dp))
-                HorizontalDivider(color = KetoBorderC)
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
-                    MacroDetail(label = "Protein",   value = "%.1f $foodSym".format(foodUnit.fromG(entry.proteinG  * entry.servings)), color = OnSurface)
-                    MacroDetail(label = "Fat",       value = "%.1f $foodSym".format(foodUnit.fromG(entry.fatG      * entry.servings)), color = OnSurface)
-                    MacroDetail(label = "Net Carbs", value = "%.1f $foodSym".format(foodUnit.fromG(entry.netCarbsG * entry.servings)), color = OnSurface)
+                    MacroDetail(label = "Protein",   value = "%.1f $foodSym".format(foodUnit.fromG(entry.proteinG  * entry.servings)))
+                    MacroDetail(label = "Fat",       value = "%.1f $foodSym".format(foodUnit.fromG(entry.fatG      * entry.servings)))
+                    MacroDetail(label = "Net Carbs", value = "%.1f $foodSym".format(foodUnit.fromG(entry.netCarbsG * entry.servings)))
                     if (!isSupplement && !isExercise) {
                         MacroDetail(
                             label = "Servings",
-                            value = servingsLabel,
-                            color = OnSurface
+                            value = servingsLabel
                         )
                     }
                 }
@@ -888,23 +881,23 @@ private fun KetoEntryCard(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
-                        MacroDetail(label = "Water", value = "%.1f $volSym".format(volUnit.fromMl(entry.waterMl    * entry.servings)), color = OnSurface)
-                        MacroDetail(label = "Na",    value = "%.0f mg".format(entry.sodiumMg   * entry.servings), color = OnSurface)
-                        MacroDetail(label = "K",     value = "%.0f mg".format(entry.potassiumMg* entry.servings), color = OnSurface)
-                        MacroDetail(label = "Mg",    value = "%.0f mg".format(entry.magnesiumMg* entry.servings), color = OnSurface)
+                        MacroDetail(label = "Water", value = "%.1f $volSym".format(volUnit.fromMl(entry.waterMl    * entry.servings)))
+                        MacroDetail(label = "Na",    value = "%.0f mg".format(entry.sodiumMg   * entry.servings))
+                        MacroDetail(label = "K",     value = "%.0f mg".format(entry.potassiumMg* entry.servings))
+                        MacroDetail(label = "Mg",    value = "%.0f mg".format(entry.magnesiumMg* entry.servings))
                     }
                 }
 
                 if (!entry.notes.isNullOrBlank()) {
                     Spacer(modifier = Modifier.height(6.dp))
-                    Text(text = entry.notes, style = MaterialTheme.typography.bodySmall, color = OnSurface)
+                    Text(text = entry.notes, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface)
                 }
 
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = entry.eventTimestamp,
                     style = MaterialTheme.typography.labelSmall,
-                    color = KetoMuted
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
                 Spacer(modifier = Modifier.height(4.dp))
@@ -925,7 +918,7 @@ private fun EventTypeBadge(type: String) {
         "meal"       -> Pair(MaterialTheme.colorScheme.primary,            MaterialTheme.colorScheme.onPrimary)
         "drink"      -> Pair(MaterialTheme.colorScheme.secondary,          MaterialTheme.colorScheme.onSecondary)
         "snack"      -> Pair(MaterialTheme.colorScheme.secondaryContainer, MaterialTheme.colorScheme.onSecondaryContainer)
-        "supplement" -> Pair(KetoAccentLight,                              OnSurface)
+        "supplement" -> Pair(KetoAccentLight,                              MaterialTheme.colorScheme.onSurface)
         else         -> Pair(MaterialTheme.colorScheme.surfaceVariant,     MaterialTheme.colorScheme.onSurfaceVariant)
     }
     Surface(shape = MaterialTheme.shapes.extraSmall, color = bg) {
@@ -939,10 +932,11 @@ private fun EventTypeBadge(type: String) {
 }
 
 @Composable
-private fun MacroDetail(label: String, value: String, color: Color = OnSurface) {
+private fun MacroDetail(label: String, value: String, color: Color = Color.Unspecified) {
+    val textColor = if (color != Color.Unspecified) color else MaterialTheme.colorScheme.onSurface
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(text = value, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold, color = color)
-        Text(text = label, style = MaterialTheme.typography.labelSmall, color = color.copy(alpha = 0.7f))
+        Text(text = value, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold, color = textColor)
+        Text(text = label, style = MaterialTheme.typography.labelSmall, color = textColor.copy(alpha = 0.7f))
     }
 }
 
@@ -959,14 +953,14 @@ private fun WeightBlock(
     val weightSym = weightUnit.symbol
     Card(
         modifier = modifier.combinedClickable(onClick = onClick, onLongClick = onLongClick),
-        colors = CardDefaults.cardColors(containerColor = KetoCard),
-        border = BorderStroke(1.dp, KetoBorderC)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
             Text(
                 text = "WEIGHT",
                 style = MaterialTheme.typography.labelSmall,
-                color = KetoMuted,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 letterSpacing = 0.8.sp
             )
             Spacer(modifier = Modifier.height(4.dp))
@@ -974,13 +968,13 @@ private fun WeightBlock(
                 text = if (lastEntry != null) "%.1f $weightSym".format(weightUnit.fromKg(lastEntry.weightKg)) else "--",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
-                color = OnSurface
+                color = MaterialTheme.colorScheme.onSurface
             )
             Spacer(modifier = Modifier.height(2.dp))
             Text(
                 text = if (lastEntry != null) lastEntry.entryDate else "--",
                 style = MaterialTheme.typography.labelSmall,
-                color = KetoMuted,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontSize = 10.sp
             )
         }
