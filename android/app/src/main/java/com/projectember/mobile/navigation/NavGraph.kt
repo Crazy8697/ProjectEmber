@@ -62,7 +62,9 @@ fun EmberNavGraph(
                     app.ketoTargetsStore,
                     app.weightRepository,
                     app.unitsPreferencesStore,
-                    app.exerciseRepository
+                    app.exerciseRepository,
+                    app.dailyRhythmStore,
+                    app.mealTimingStore
                 )
             )
             HomeScreen(
@@ -238,7 +240,9 @@ fun EmberNavGraph(
                     app.healthConnectManager,
                     app.backupManager,
                     app.themePreferencesStore,
-                    app.unitsPreferencesStore
+                    app.unitsPreferencesStore,
+                    app.dailyRhythmStore,
+                    app.mealTimingStore
                 )
             )
             SettingsScreen(

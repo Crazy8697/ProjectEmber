@@ -6,7 +6,13 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.projectember.mobile.data.backup.BackupManager
 import com.projectember.mobile.data.backup.BackupPayloadV1
+import com.projectember.mobile.data.local.DailyRhythm
+import com.projectember.mobile.data.local.DailyRhythmStore
+import com.projectember.mobile.data.local.EatingStyle
 import com.projectember.mobile.data.local.FoodWeightUnit
+import com.projectember.mobile.data.local.MealTiming
+import com.projectember.mobile.data.local.MealTimingStore
+import com.projectember.mobile.data.local.MealWindow
 import com.projectember.mobile.data.local.ThemePreferencesStore
 import com.projectember.mobile.data.local.UnitPreferences
 import com.projectember.mobile.data.local.UnitsPreferencesStore
@@ -37,7 +43,9 @@ class SettingsViewModel(
     private val healthConnectManager: HealthConnectManager,
     private val backupManager: BackupManager,
     private val themePreferencesStore: ThemePreferencesStore,
-    private val unitsPreferencesStore: UnitsPreferencesStore
+    private val unitsPreferencesStore: UnitsPreferencesStore,
+    private val dailyRhythmStore: DailyRhythmStore,
+    private val mealTimingStore: MealTimingStore
 ) : ViewModel() {
 
     // ── Health Connect state ──────────────────────────────────────────────────
@@ -276,6 +284,51 @@ class SettingsViewModel(
         unitsPreferencesStore.setVolumeUnit(unit)
         _unitPreferences.value = _unitPreferences.value.copy(volumeUnit = unit)
     }
+
+    // ── Daily Rhythm ──────────────────────────────────────────────────────────
+
+    private val _dailyRhythm = MutableStateFlow(dailyRhythmStore.getRhythm())
+    val dailyRhythm: StateFlow<DailyRhythm> = _dailyRhythm.asStateFlow()
+
+    fun setWakeTime(hour: Int, minute: Int) {
+        dailyRhythmStore.setWakeTime(hour, minute)
+        _dailyRhythm.value = _dailyRhythm.value.copy(wakeHour = hour, wakeMinute = minute)
+    }
+
+    fun setSleepTime(hour: Int, minute: Int) {
+        dailyRhythmStore.setSleepTime(hour, minute)
+        _dailyRhythm.value = _dailyRhythm.value.copy(sleepHour = hour, sleepMinute = minute)
+    }
+
+    fun setEatingStyle(style: EatingStyle) {
+        dailyRhythmStore.setEatingStyle(style)
+        _dailyRhythm.value = _dailyRhythm.value.copy(eatingStyle = style)
+    }
+
+    // ── Meal Timing ───────────────────────────────────────────────────────────
+
+    private val _mealTiming = MutableStateFlow(mealTimingStore.getMealTiming())
+    val mealTiming: StateFlow<MealTiming> = _mealTiming.asStateFlow()
+
+    fun setBreakfastWindow(window: MealWindow?) {
+        mealTimingStore.setBreakfastWindow(window)
+        _mealTiming.value = _mealTiming.value.copy(breakfastWindow = window)
+    }
+
+    fun setLunchWindow(window: MealWindow?) {
+        mealTimingStore.setLunchWindow(window)
+        _mealTiming.value = _mealTiming.value.copy(lunchWindow = window)
+    }
+
+    fun setDinnerWindow(window: MealWindow?) {
+        mealTimingStore.setDinnerWindow(window)
+        _mealTiming.value = _mealTiming.value.copy(dinnerWindow = window)
+    }
+
+    fun setSnackWindow(window: MealWindow?) {
+        mealTimingStore.setSnackWindow(window)
+        _mealTiming.value = _mealTiming.value.copy(snackWindow = window)
+    }
 }
 
 class SettingsViewModelFactory(
@@ -283,7 +336,9 @@ class SettingsViewModelFactory(
     private val healthConnectManager: HealthConnectManager,
     private val backupManager: BackupManager,
     private val themePreferencesStore: ThemePreferencesStore,
-    private val unitsPreferencesStore: UnitsPreferencesStore
+    private val unitsPreferencesStore: UnitsPreferencesStore,
+    private val dailyRhythmStore: DailyRhythmStore,
+    private val mealTimingStore: MealTimingStore
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T =
@@ -292,6 +347,8 @@ class SettingsViewModelFactory(
             healthConnectManager,
             backupManager,
             themePreferencesStore,
-            unitsPreferencesStore
+            unitsPreferencesStore,
+            dailyRhythmStore,
+            mealTimingStore
         ) as T
 }

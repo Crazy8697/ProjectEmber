@@ -38,10 +38,13 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TimePicker
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -58,7 +61,9 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import androidx.health.connect.client.PermissionController
 import com.projectember.mobile.BuildConfig
+import com.projectember.mobile.data.local.EatingStyle
 import com.projectember.mobile.data.local.FoodWeightUnit
+import com.projectember.mobile.data.local.MealWindow
 import com.projectember.mobile.data.local.VolumeUnit
 import com.projectember.mobile.data.local.WeightUnit
 import com.projectember.mobile.sync.HealthConnectUiState
@@ -80,6 +85,8 @@ fun SettingsScreen(
     val resetState by viewModel.resetState.collectAsState()
     val selectedTheme by viewModel.selectedTheme.collectAsState()
     val unitPrefs by viewModel.unitPreferences.collectAsState()
+    val dailyRhythm by viewModel.dailyRhythm.collectAsState()
+    val mealTiming by viewModel.mealTiming.collectAsState()
 
     val context = LocalContext.current
 
@@ -321,6 +328,158 @@ fun SettingsScreen(
                         )
                     }
                 }
+            }
+
+            // ── Daily Rhythm ────────────────────────────────────────────────
+            SettingsSection(title = "Daily Rhythm") {
+                Text(
+                    text = "Helps the app calculate smarter pacing by using your actual waking and eating schedule instead of a flat midnight-to-midnight baseline.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+
+                // ── Wake time ─────────────────────────────────────────────────
+                var showWakePicker by remember { mutableStateOf(false) }
+                SettingsTimeRow(
+                    label = "Wake time",
+                    hour = dailyRhythm.wakeHour,
+                    minute = dailyRhythm.wakeMinute,
+                    onEditClick = { showWakePicker = true }
+                )
+                if (showWakePicker) {
+                    val tpState = rememberTimePickerState(
+                        initialHour = dailyRhythm.wakeHour,
+                        initialMinute = dailyRhythm.wakeMinute,
+                        is24Hour = true
+                    )
+                    AlertDialog(
+                        onDismissRequest = { showWakePicker = false },
+                        confirmButton = {
+                            TextButton(onClick = {
+                                showWakePicker = false
+                                viewModel.setWakeTime(tpState.hour, tpState.minute)
+                            }) { Text("OK") }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = { showWakePicker = false }) { Text("Cancel") }
+                        },
+                        text = { TimePicker(state = tpState) }
+                    )
+                }
+
+                HorizontalDivider(
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                    thickness = 0.5.dp
+                )
+
+                // ── Sleep time ────────────────────────────────────────────────
+                var showSleepPicker by remember { mutableStateOf(false) }
+                SettingsTimeRow(
+                    label = "Sleep time",
+                    hour = dailyRhythm.sleepHour,
+                    minute = dailyRhythm.sleepMinute,
+                    onEditClick = { showSleepPicker = true }
+                )
+                if (showSleepPicker) {
+                    val tpState = rememberTimePickerState(
+                        initialHour = dailyRhythm.sleepHour,
+                        initialMinute = dailyRhythm.sleepMinute,
+                        is24Hour = true
+                    )
+                    AlertDialog(
+                        onDismissRequest = { showSleepPicker = false },
+                        confirmButton = {
+                            TextButton(onClick = {
+                                showSleepPicker = false
+                                viewModel.setSleepTime(tpState.hour, tpState.minute)
+                            }) { Text("OK") }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = { showSleepPicker = false }) { Text("Cancel") }
+                        },
+                        text = { TimePicker(state = tpState) }
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // ── Eating style preset ───────────────────────────────────────
+                SettingsSubLabel(text = "Eating Style")
+                EatingStyle.entries.forEachIndexed { index, style ->
+                    SettingsRadioRow(
+                        label = style.displayName,
+                        selected = dailyRhythm.eatingStyle == style,
+                        onClick = { viewModel.setEatingStyle(style) }
+                    )
+                    if (index < EatingStyle.entries.lastIndex) {
+                        HorizontalDivider(
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                            thickness = 0.5.dp
+                        )
+                    }
+                }
+            }
+
+            // ── Meal Timing (optional) ───────────────────────────────────────
+            SettingsSection(title = "Meal Timing (Optional)") {
+                Text(
+                    text = "Refines pacing by using your actual meal windows. When left blank the app falls back to the Daily Rhythm setting above.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+
+                // ── Breakfast ─────────────────────────────────────────────────
+                MealWindowRow(
+                    mealName = "Breakfast",
+                    window = mealTiming.breakfastWindow,
+                    defaultStartHour = 7,
+                    defaultEndHour = 9,
+                    onWindowChange = { viewModel.setBreakfastWindow(it) }
+                )
+
+                HorizontalDivider(
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                    thickness = 0.5.dp
+                )
+
+                // ── Lunch ─────────────────────────────────────────────────────
+                MealWindowRow(
+                    mealName = "Lunch",
+                    window = mealTiming.lunchWindow,
+                    defaultStartHour = 12,
+                    defaultEndHour = 13,
+                    onWindowChange = { viewModel.setLunchWindow(it) }
+                )
+
+                HorizontalDivider(
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                    thickness = 0.5.dp
+                )
+
+                // ── Dinner ────────────────────────────────────────────────────
+                MealWindowRow(
+                    mealName = "Dinner",
+                    window = mealTiming.dinnerWindow,
+                    defaultStartHour = 18,
+                    defaultEndHour = 20,
+                    onWindowChange = { viewModel.setDinnerWindow(it) }
+                )
+
+                HorizontalDivider(
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                    thickness = 0.5.dp
+                )
+
+                // ── Snack ─────────────────────────────────────────────────────
+                MealWindowRow(
+                    mealName = "Snack",
+                    window = mealTiming.snackWindow,
+                    defaultStartHour = 15,
+                    defaultEndHour = 16,
+                    onWindowChange = { viewModel.setSnackWindow(it) }
+                )
             }
 
             // ── Data Management ─────────────────────────────────────────────
@@ -815,6 +974,169 @@ private fun SettingsRadioRow(
                 modifier = Modifier.fillMaxWidth()
             )
         }
+    }
+}
+
+/**
+ * A settings row that displays a time value and opens a time picker when tapped.
+ */
+@Composable
+private fun SettingsTimeRow(
+    label: String,
+    hour: Int,
+    minute: Int,
+    onEditClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 6.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(start = 4.dp)
+        )
+        TextButton(onClick = onEditClick) {
+            Text(
+                text = "%02d:%02d".format(hour, minute),
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.primary
+            )
+        }
+    }
+}
+
+/**
+ * A row for one optional meal window with a toggle and individual start/end time pickers.
+ * When the toggle is off the window is cleared (null); when on, tapping either time
+ * opens the corresponding time picker dialog.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun MealWindowRow(
+    mealName: String,
+    window: MealWindow?,
+    defaultStartHour: Int,
+    defaultEndHour: Int,
+    onWindowChange: (MealWindow?) -> Unit
+) {
+    val isEnabled = window != null
+    val startH = window?.startHour ?: defaultStartHour
+    val startM = window?.startMinute ?: 0
+    val endH = window?.endHour ?: defaultEndHour
+    val endM = window?.endMinute ?: 0
+
+    var showStartPicker by remember { mutableStateOf(false) }
+    var showEndPicker by remember { mutableStateOf(false) }
+
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = mealName,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.padding(start = 4.dp)
+            )
+            Switch(
+                checked = isEnabled,
+                onCheckedChange = { checked ->
+                    if (checked) {
+                        onWindowChange(MealWindow(startH, startM, endH, endM))
+                    } else {
+                        onWindowChange(null)
+                    }
+                }
+            )
+        }
+        if (isEnabled) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 4.dp, bottom = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Start:",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                TextButton(onClick = { showStartPicker = true }) {
+                    Text(
+                        text = "%02d:%02d".format(startH, startM),
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+                Text(
+                    text = "End:",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                TextButton(onClick = { showEndPicker = true }) {
+                    Text(
+                        text = "%02d:%02d".format(endH, endM),
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+        }
+    }
+
+    if (showStartPicker) {
+        val tpState = rememberTimePickerState(
+            initialHour = startH,
+            initialMinute = startM,
+            is24Hour = true
+        )
+        AlertDialog(
+            onDismissRequest = { showStartPicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    showStartPicker = false
+                    onWindowChange(MealWindow(tpState.hour, tpState.minute, endH, endM))
+                }) { Text("OK") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showStartPicker = false }) { Text("Cancel") }
+            },
+            text = { TimePicker(state = tpState) }
+        )
+    }
+
+    if (showEndPicker) {
+        val tpState = rememberTimePickerState(
+            initialHour = endH,
+            initialMinute = endM,
+            is24Hour = true
+        )
+        AlertDialog(
+            onDismissRequest = { showEndPicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    showEndPicker = false
+                    onWindowChange(MealWindow(startH, startM, tpState.hour, tpState.minute))
+                }) { Text("OK") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showEndPicker = false }) { Text("Cancel") }
+            },
+            text = { TimePicker(state = tpState) }
+        )
     }
 }
 

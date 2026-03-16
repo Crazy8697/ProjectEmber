@@ -41,6 +41,28 @@ internal fun goalStatusColor(value: Double, target: Double): Color {
 }
 
 /**
+ * Pacing-aware color derived from a [PacingResult].
+ *
+ * - null result (eating window not yet open) → [Color.Unspecified] so the caller can
+ *   fall back to a neutral/muted style (e.g. [MaterialTheme.colorScheme.onSurface]).
+ * - ON_TRACK  → green
+ * - AHEAD     → yellow
+ * - BEHIND    → red
+ *
+ * This replaces full-day-deficit colors in the Home Today card so that the app never
+ * shows a deep red number for calories at 7 AM just because the daily target hasn't
+ * been reached yet.
+ */
+internal fun pacingStatusColor(result: PacingResult?): Color {
+    if (result == null) return Color.Unspecified
+    return when (result.status) {
+        PacingStatus.ON_TRACK -> SuccessGreen
+        PacingStatus.AHEAD    -> WarningYellow
+        PacingStatus.BEHIND   -> ErrorRed
+    }
+}
+
+/**
  * Strict upper-limit color for net carbs and sodium (core keto constraints).
  * < 80 % of the limit → green; 80–100 % → yellow; > 100 % → red.
  */
