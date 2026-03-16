@@ -162,9 +162,10 @@ class AddEditRecipeViewModel(
         }
     }
 
-    fun save(onSuccess: () -> Unit) {
+    fun save(onSuccess: () -> Unit, onValidationFailed: () -> Unit = {}) {
         if (name.isBlank()) {
             nameError = "Recipe name is required"
+            onValidationFailed()
             return
         }
 
