@@ -20,10 +20,7 @@ import androidx.compose.ui.unit.dp
 import com.projectember.mobile.data.local.WeightUnit
 import com.projectember.mobile.data.local.entities.WeightEntry
 import com.projectember.mobile.ui.theme.KetoAccent
-import com.projectember.mobile.ui.theme.KetoBorder
-import com.projectember.mobile.ui.theme.OnSurface
 import com.projectember.mobile.ui.theme.OnSurfaceVariant
-import com.projectember.mobile.ui.theme.SurfaceMid
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -188,8 +185,8 @@ private fun WeightHistoryChart(entries: List<WeightEntry>, weightUnit: WeightUni
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = SurfaceMid),
-        border = BorderStroke(1.dp, KetoBorder)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             val displayValues = chartEntries.map { weightUnit.fromKg(it.weightKg) }
@@ -306,8 +303,8 @@ private fun WeightEntryRow(
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = SurfaceMid),
-        border = BorderStroke(1.dp, KetoBorder)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
         Row(
             modifier = Modifier
@@ -321,7 +318,7 @@ private fun WeightEntryRow(
                     text = entry.entryDate,
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.SemiBold,
-                    color = OnSurface
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             }
             Row(

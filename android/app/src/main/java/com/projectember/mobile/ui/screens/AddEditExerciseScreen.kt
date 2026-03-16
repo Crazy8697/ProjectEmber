@@ -50,7 +50,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.projectember.mobile.ui.theme.KetoAccent
-import com.projectember.mobile.ui.theme.OnSurface
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -363,7 +362,7 @@ fun AddEditExerciseScreen(
                         colors = AssistChipDefaults.assistChipColors(
                             containerColor = if (isSelected) KetoAccent
                                 else MaterialTheme.colorScheme.surfaceVariant,
-                            labelColor = if (isSelected) OnSurface
+                            labelColor = if (isSelected) MaterialTheme.colorScheme.onPrimary
                                 else MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     )
@@ -415,7 +414,7 @@ fun AddEditExerciseScreen(
                         colors = AssistChipDefaults.assistChipColors(
                             containerColor = if (isSelected) KetoAccent
                                 else MaterialTheme.colorScheme.surfaceVariant,
-                            labelColor = if (isSelected) OnSurface
+                            labelColor = if (isSelected) MaterialTheme.colorScheme.onPrimary
                                 else MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     )
@@ -447,7 +446,7 @@ fun AddEditExerciseScreen(
                         colors = AssistChipDefaults.assistChipColors(
                             containerColor = if (noneSelected) KetoAccent
                                 else MaterialTheme.colorScheme.surfaceVariant,
-                            labelColor = if (noneSelected) OnSurface
+                            labelColor = if (noneSelected) MaterialTheme.colorScheme.onPrimary
                                 else MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     )
@@ -459,7 +458,7 @@ fun AddEditExerciseScreen(
                             colors = AssistChipDefaults.assistChipColors(
                                 containerColor = if (isSelected) KetoAccent
                                     else MaterialTheme.colorScheme.surfaceVariant,
-                                labelColor = if (isSelected) OnSurface
+                                labelColor = if (isSelected) MaterialTheme.colorScheme.onPrimary
                                     else MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         )

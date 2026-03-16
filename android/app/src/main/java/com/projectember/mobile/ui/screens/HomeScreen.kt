@@ -154,6 +154,7 @@ private fun TodaySummaryCard(
     val calColor = if (caloriesTarget > 0)
         targetRangeStatusColor(displayCalories, caloriesTarget)
     else SuccessGreen
+    val calTextColor = calColor.accessible()
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -214,10 +215,7 @@ private fun TodaySummaryCard(
                             "%.0f kcal".format(displayCalories),
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.SemiBold,
-                        color = calColor
-                    )
-                }
-                if (burned > 0) {
+                        color = calTextColor
                     Text(
                         text = "food %.0f \u2212 %.0f burned".format(summary.calories, burned),
                         style = MaterialTheme.typography.labelSmall,
@@ -269,6 +267,7 @@ private fun TodaySummaryCard(
             if (waterTarget > 0) {
                 val waterColor = goalStatusColor(summary.waterMl, waterTarget)
                     .takeIf { it != Color.Unspecified } ?: SuccessGreen
+                val waterTextColor = waterColor.accessible()
                 val waterPct = (summary.waterMl / waterTarget).toFloat().coerceIn(0f, 1f)
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Row(
@@ -284,10 +283,7 @@ private fun TodaySummaryCard(
                             text = "%.0f / %.0f mL".format(summary.waterMl, waterTarget),
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.SemiBold,
-                            color = waterColor
-                        )
-                    }
-                    LinearProgressIndicator(
+                            color = waterTextColor
                         progress = { waterPct },
                         modifier = Modifier.fillMaxWidth(),
                         color = waterColor,
@@ -335,7 +331,7 @@ private fun MacroChip(
     modifier: Modifier = Modifier
 ) {
     val rawColor = colorFn(value, target)
-    val color = if (rawColor != Color.Unspecified) rawColor else MaterialTheme.colorScheme.onSurface
+    val color = (if (rawColor != Color.Unspecified) rawColor else MaterialTheme.colorScheme.onSurface).accessible()
 
     Box(modifier = modifier) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {

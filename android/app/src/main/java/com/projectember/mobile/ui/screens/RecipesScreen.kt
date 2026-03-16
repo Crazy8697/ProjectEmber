@@ -58,7 +58,6 @@ import androidx.compose.ui.unit.dp
 import com.projectember.mobile.data.local.entities.Recipe
 import com.projectember.mobile.data.local.entities.decodeIngredients
 import com.projectember.mobile.ui.theme.KetoAccent
-import com.projectember.mobile.ui.theme.OnSurface
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -154,7 +153,7 @@ fun RecipesScreen(
                 FloatingActionButton(
                     onClick = onNavigateToAddRecipe,
                     containerColor = KetoAccent,
-                    contentColor = OnSurface
+                    contentColor = MaterialTheme.colorScheme.onPrimary
                 ) {
                     Icon(Icons.Default.Add, contentDescription = "Add recipe")
                 }
@@ -250,7 +249,7 @@ private fun RecipeListView(
                             colors = AssistChipDefaults.assistChipColors(
                                 containerColor = if (isSelected) KetoAccent
                                     else MaterialTheme.colorScheme.surfaceVariant,
-                                labelColor = if (isSelected) OnSurface
+                                labelColor = if (isSelected) MaterialTheme.colorScheme.onPrimary
                                     else MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         )

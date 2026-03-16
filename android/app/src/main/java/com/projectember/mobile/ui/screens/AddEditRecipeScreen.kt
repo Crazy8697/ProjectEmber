@@ -44,7 +44,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.projectember.mobile.ui.theme.KetoAccent
-import com.projectember.mobile.ui.theme.OnSurface
 
 private val CATEGORIES = AddEditRecipeViewModel.CATEGORIES
 
@@ -146,7 +145,7 @@ fun AddEditRecipeScreen(
                             colors = AssistChipDefaults.assistChipColors(
                                 containerColor = if (isSelected) KetoAccent
                                     else MaterialTheme.colorScheme.surfaceVariant,
-                                labelColor = if (isSelected) OnSurface
+                                labelColor = if (isSelected) MaterialTheme.colorScheme.onPrimary
                                     else MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         )
