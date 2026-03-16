@@ -9,12 +9,14 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import com.projectember.mobile.data.local.dao.ExerciseCategoryDao
 import com.projectember.mobile.data.local.dao.ExerciseEntryDao
 import com.projectember.mobile.data.local.dao.KetoDao
+import com.projectember.mobile.data.local.dao.ManualHealthEntryDao
 import com.projectember.mobile.data.local.dao.RecipeDao
 import com.projectember.mobile.data.local.dao.SyncStatusDao
 import com.projectember.mobile.data.local.dao.WeightDao
 import com.projectember.mobile.data.local.entities.ExerciseCategory
 import com.projectember.mobile.data.local.entities.ExerciseEntry
 import com.projectember.mobile.data.local.entities.KetoEntry
+import com.projectember.mobile.data.local.entities.ManualHealthEntry
 import com.projectember.mobile.data.local.entities.Recipe
 import com.projectember.mobile.data.local.entities.SyncStatus
 import com.projectember.mobile.data.local.entities.WeightEntry
@@ -22,8 +24,8 @@ import com.projectember.mobile.data.local.entities.WeightEntry
 @Database(
     entities = [KetoEntry::class, Recipe::class, SyncStatus::class,
                 ExerciseCategory::class, ExerciseEntry::class,
-                WeightEntry::class],
-    version = 12,
+                WeightEntry::class, ManualHealthEntry::class],
+    version = 13,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -33,6 +35,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun exerciseCategoryDao(): ExerciseCategoryDao
     abstract fun exerciseEntryDao(): ExerciseEntryDao
     abstract fun weightDao(): WeightDao
+    abstract fun manualHealthEntryDao(): ManualHealthEntryDao
 
     companion object {
         @Volatile
@@ -166,6 +169,30 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * Creates the manual_health_entries table for local-only health metric entries.
+         * These are never written back to Health Connect.
+         */
+        private val MIGRATION_12_13 = object : Migration(12, 13) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL(
+                    """CREATE TABLE IF NOT EXISTS `manual_health_entries` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `metricType` TEXT NOT NULL,
+                        `value1` REAL NOT NULL,
+                        `value2` REAL,
+                        `entryDate` TEXT NOT NULL,
+                        `entryTime` TEXT NOT NULL,
+                        `source` TEXT NOT NULL
+                    )"""
+                )
+                database.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_manual_health_entries_metricType_entryDate` " +
+                        "ON `manual_health_entries` (`metricType`, `entryDate`)"
+                )
+            }
+        }
+
         fun getInstance(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 INSTANCE ?: Room.databaseBuilder(
@@ -177,7 +204,7 @@ abstract class AppDatabase : RoomDatabase() {
                         MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4,
                         MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7,
                         MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10,
-                        MIGRATION_10_11, MIGRATION_11_12
+                        MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13
                     )
                     .build().also { INSTANCE = it }
             }

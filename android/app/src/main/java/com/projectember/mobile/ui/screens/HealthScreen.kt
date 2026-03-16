@@ -1,6 +1,8 @@
 package com.projectember.mobile.ui.screens
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -28,6 +30,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -44,12 +49,28 @@ import com.projectember.mobile.ui.theme.OnSurfaceVariant
 fun HealthScreen(
     viewModel: HealthViewModel,
     onNavigateBack: () -> Unit,
+    onNavigateToTrends: (HealthMetric) -> Unit = {},
 ) {
     val enabledMetrics by viewModel.enabledMetrics.collectAsState()
     val healthData by viewModel.healthData.collectAsState()
 
+    // Metric being edited via long-press
+    var editingMetric by remember { mutableStateOf<HealthMetric?>(null) }
+
     // Refresh whenever the screen is entered
     LaunchedEffect(Unit) { viewModel.refreshHealthScreen() }
+
+    // Hold → manual edit dialog
+    editingMetric?.let { metric ->
+        HealthMetricEntryDialog(
+            metric = metric,
+            onDismiss = { editingMetric = null },
+            onSave = { v1, v2, date, time ->
+                viewModel.saveManualEntry(metric, v1, v2, date, time)
+                editingMetric = null
+            }
+        )
+    }
 
     Scaffold(
         topBar = {
@@ -176,7 +197,9 @@ fun HealthScreen(
                                             "${snapshot.heartRateBpm} bpm" to snapshot.heartRateTimestamp
                                         else -> null to "No data yet"
                                     },
-                                    permissionNeeded = HealthConnectManager.PERM_HEART_RATE !in granted
+                                    permissionNeeded = HealthConnectManager.PERM_HEART_RATE !in granted,
+                                    onClick = { onNavigateToTrends(HealthMetric.HEART_RATE) },
+                                    onLongClick = { editingMetric = HealthMetric.HEART_RATE }
                                 )
                             }
                         }
@@ -192,7 +215,9 @@ fun HealthScreen(
                                             "${snapshot.restingHeartRateBpm} bpm" to snapshot.restingHeartRateTimestamp
                                         else -> null to "No data yet"
                                     },
-                                    permissionNeeded = HealthConnectManager.PERM_RESTING_HEART_RATE !in granted
+                                    permissionNeeded = HealthConnectManager.PERM_RESTING_HEART_RATE !in granted,
+                                    onClick = { onNavigateToTrends(HealthMetric.RESTING_HEART_RATE) },
+                                    onLongClick = { editingMetric = HealthMetric.RESTING_HEART_RATE }
                                 )
                             }
                         }
@@ -201,7 +226,9 @@ fun HealthScreen(
                             item {
                                 HealthSleepCard(
                                     permissionNeeded = HealthConnectManager.PERM_SLEEP !in granted,
-                                    session = snapshot.latestSleepSession
+                                    session = snapshot.latestSleepSession,
+                                    onClick = { onNavigateToTrends(HealthMetric.SLEEP) },
+                                    onLongClick = { editingMetric = HealthMetric.SLEEP }
                                 )
                             }
                         }
@@ -220,7 +247,9 @@ fun HealthScreen(
                                             ) to snapshot.bloodPressureTimestamp
                                         else -> null to "No data yet"
                                     },
-                                    permissionNeeded = HealthConnectManager.PERM_BLOOD_PRESSURE !in granted
+                                    permissionNeeded = HealthConnectManager.PERM_BLOOD_PRESSURE !in granted,
+                                    onClick = { onNavigateToTrends(HealthMetric.BLOOD_PRESSURE) },
+                                    onLongClick = { editingMetric = HealthMetric.BLOOD_PRESSURE }
                                 )
                             }
                         }
@@ -236,7 +265,9 @@ fun HealthScreen(
                                             "%.1f mmol/L".format(snapshot.bloodGlucoseMmol) to snapshot.bloodGlucoseTimestamp
                                         else -> null to "No data yet"
                                     },
-                                    permissionNeeded = HealthConnectManager.PERM_BLOOD_GLUCOSE !in granted
+                                    permissionNeeded = HealthConnectManager.PERM_BLOOD_GLUCOSE !in granted,
+                                    onClick = { onNavigateToTrends(HealthMetric.BLOOD_GLUCOSE) },
+                                    onLongClick = { editingMetric = HealthMetric.BLOOD_GLUCOSE }
                                 )
                             }
                         }
@@ -252,7 +283,9 @@ fun HealthScreen(
                                             "%.1f °C".format(snapshot.bodyTemperatureCelsius) to snapshot.bodyTemperatureTimestamp
                                         else -> null to "No data yet"
                                     },
-                                    permissionNeeded = HealthConnectManager.PERM_BODY_TEMPERATURE !in granted
+                                    permissionNeeded = HealthConnectManager.PERM_BODY_TEMPERATURE !in granted,
+                                    onClick = { onNavigateToTrends(HealthMetric.BODY_TEMPERATURE) },
+                                    onLongClick = { editingMetric = HealthMetric.BODY_TEMPERATURE }
                                 )
                             }
                         }
@@ -268,7 +301,9 @@ fun HealthScreen(
                                             "%.0f%%".format(snapshot.oxygenSaturationPct) to snapshot.oxygenSaturationTimestamp
                                         else -> null to "No data yet"
                                     },
-                                    permissionNeeded = HealthConnectManager.PERM_OXYGEN_SATURATION !in granted
+                                    permissionNeeded = HealthConnectManager.PERM_OXYGEN_SATURATION !in granted,
+                                    onClick = { onNavigateToTrends(HealthMetric.OXYGEN_SATURATION) },
+                                    onLongClick = { editingMetric = HealthMetric.OXYGEN_SATURATION }
                                 )
                             }
                         }
@@ -284,7 +319,9 @@ fun HealthScreen(
                                             "%.0f breaths/min".format(snapshot.respiratoryRateBreath) to snapshot.respiratoryRateTimestamp
                                         else -> null to "No data yet"
                                     },
-                                    permissionNeeded = HealthConnectManager.PERM_RESPIRATORY_RATE !in granted
+                                    permissionNeeded = HealthConnectManager.PERM_RESPIRATORY_RATE !in granted,
+                                    onClick = { onNavigateToTrends(HealthMetric.RESPIRATORY_RATE) },
+                                    onLongClick = { editingMetric = HealthMetric.RESPIRATORY_RATE }
                                 )
                             }
                         }
@@ -303,16 +340,23 @@ fun HealthScreen(
  * @param label  All-caps label.
  * @param value  Pair of (data string, empty/error string). Only one non-null at a time.
  * @param permissionNeeded  When true the card uses an error-tinted subtitle.
+ * @param onClick  Called on a single tap — navigates to trends.
+ * @param onLongClick  Called on a long press — opens manual edit dialog.
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun HealthMetricCard(
     label: String,
     value: Pair<String?, String?>,
     permissionNeeded: Boolean = false,
+    onClick: () -> Unit = {},
+    onLongClick: () -> Unit = {},
 ) {
     val (dataValue, subtitleText) = value
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .combinedClickable(onClick = onClick, onLongClick = onLongClick),
         colors = CardDefaults.cardColors(
             containerColor = if (permissionNeeded)
                 MaterialTheme.colorScheme.surfaceVariant
@@ -358,13 +402,18 @@ private fun HealthMetricCard(
 }
 
 /** Card specifically for the sleep session metric. */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun HealthSleepCard(
     permissionNeeded: Boolean,
     session: SleepSessionSummary?,
+    onClick: () -> Unit = {},
+    onLongClick: () -> Unit = {},
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .combinedClickable(onClick = onClick, onLongClick = onLongClick),
         colors = CardDefaults.cardColors(
             containerColor = if (permissionNeeded)
                 MaterialTheme.colorScheme.surfaceVariant

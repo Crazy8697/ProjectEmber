@@ -14,6 +14,7 @@ import com.projectember.mobile.data.local.entities.WeightEntry
 import com.projectember.mobile.data.repository.ExerciseCategoryRepository
 import com.projectember.mobile.data.repository.ExerciseRepository
 import com.projectember.mobile.data.repository.KetoRepository
+import com.projectember.mobile.data.repository.ManualHealthEntryRepository
 import com.projectember.mobile.data.repository.RecipeRepository
 import com.projectember.mobile.data.repository.SyncRepository
 import com.projectember.mobile.data.repository.WeightRepository
@@ -47,6 +48,7 @@ class EmberApplication : Application() {
     }
     val exerciseCategoryRepository by lazy { ExerciseCategoryRepository(database.exerciseCategoryDao()) }
     val exerciseRepository by lazy { ExerciseRepository(database.exerciseEntryDao()) }
+    val manualHealthEntryRepository by lazy { ManualHealthEntryRepository(database.manualHealthEntryDao()) }
     val themePreferencesStore by lazy { ThemePreferencesStore(this) }
     val unitsPreferencesStore by lazy { UnitsPreferencesStore(this) }
     val dailyRhythmStore by lazy { DailyRhythmStore(this) }

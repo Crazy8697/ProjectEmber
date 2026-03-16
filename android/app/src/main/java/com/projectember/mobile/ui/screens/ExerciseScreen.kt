@@ -1,6 +1,8 @@
 package com.projectember.mobile.ui.screens
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -62,7 +64,8 @@ fun ExerciseScreen(
     viewModel: ExerciseViewModel,
     onNavigateBack: () -> Unit,
     onNavigateToAddEntry: (String) -> Unit,
-    onNavigateToEditEntry: (Int) -> Unit
+    onNavigateToEditEntry: (Int) -> Unit,
+    onNavigateToTrends: (HealthMetric) -> Unit = {},
 ) {
     val selectedDate by viewModel.selectedDate.collectAsState()
     val entries by viewModel.selectedDateEntries.collectAsState()
@@ -75,6 +78,7 @@ fun ExerciseScreen(
     // Refresh HC activity summary whenever the screen is entered
     LaunchedEffect(Unit) { viewModel.refreshActivitySummary() }
 
+    var editingMetric by remember { mutableStateOf<HealthMetric?>(null) }
     var showDatePicker by remember { mutableStateOf(false) }
     val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
 
@@ -102,6 +106,18 @@ fun ExerciseScreen(
         ) {
             DatePicker(state = dpState)
         }
+    }
+
+    // Hold → manual edit dialog
+    editingMetric?.let { metric ->
+        HealthMetricEntryDialog(
+            metric = metric,
+            onDismiss = { editingMetric = null },
+            onSave = { v1, v2, date, time ->
+                viewModel.saveManualHealthEntry(metric, v1, v2, date, time)
+                editingMetric = null
+            }
+        )
     }
 
     Scaffold(
@@ -232,7 +248,9 @@ fun ExerciseScreen(
                                             "%.0f".format(summary.stepsToday.toDouble()) to null
                                         else -> null to "No data yet"
                                     },
-                                    permissionNeeded = HealthConnectManager.PERM_STEPS !in granted
+                                    permissionNeeded = HealthConnectManager.PERM_STEPS !in granted,
+                                    onClick = { onNavigateToTrends(HealthMetric.STEPS) },
+                                    onLongClick = { editingMetric = HealthMetric.STEPS }
                                 )
                             }
                         }
@@ -248,7 +266,9 @@ fun ExerciseScreen(
                                             "%.2f km".format(summary.distanceMeters / 1000.0) to null
                                         else -> null to "No data yet"
                                     },
-                                    permissionNeeded = HealthConnectManager.PERM_DISTANCE !in granted
+                                    permissionNeeded = HealthConnectManager.PERM_DISTANCE !in granted,
+                                    onClick = { onNavigateToTrends(HealthMetric.DISTANCE) },
+                                    onLongClick = { editingMetric = HealthMetric.DISTANCE }
                                 )
                             }
                         }
@@ -277,7 +297,9 @@ fun ExerciseScreen(
                                         valueStr != null -> valueStr to null
                                         else -> null to "No data yet"
                                     },
-                                    permissionNeeded = permNeeded
+                                    permissionNeeded = permNeeded,
+                                    onClick = { onNavigateToTrends(HealthMetric.ACTIVE_CALORIES) },
+                                    onLongClick = { editingMetric = HealthMetric.ACTIVE_CALORIES }
                                 )
                             }
                         }
@@ -425,16 +447,23 @@ private fun ExerciseEntryCard(
  * @param label  Short all-caps label (e.g. "STEPS")
  * @param value  Pair of (data string, empty-state string). Exactly one should be non-null.
  * @param permissionNeeded  When true the card is styled subtly to indicate a permission issue.
+ * @param onClick  Called on a single tap — navigates to trends.
+ * @param onLongClick  Called on a long press — opens manual edit dialog.
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun ActivityMetricCard(
     label: String,
     value: Pair<String?, String?>,
     permissionNeeded: Boolean = false,
+    onClick: () -> Unit = {},
+    onLongClick: () -> Unit = {},
 ) {
     val (dataValue, emptyLabel) = value
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .combinedClickable(onClick = onClick, onLongClick = onLongClick),
         colors = CardDefaults.cardColors(
             containerColor = if (permissionNeeded)
                 MaterialTheme.colorScheme.surfaceVariant

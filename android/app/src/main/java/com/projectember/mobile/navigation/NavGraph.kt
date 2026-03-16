@@ -10,6 +10,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.projectember.mobile.EmberApplication
+import com.projectember.mobile.data.local.HealthMetric
 import com.projectember.mobile.ui.screens.AddEditExerciseScreen
 import com.projectember.mobile.ui.screens.AddEditExerciseViewModelFactory
 import com.projectember.mobile.ui.screens.AddEditExerciseViewModel
@@ -24,6 +25,9 @@ import com.projectember.mobile.ui.screens.ExerciseScreen
 import com.projectember.mobile.ui.screens.ExerciseViewModel
 import com.projectember.mobile.ui.screens.ExerciseViewModelFactory
 import com.projectember.mobile.ui.screens.HealthScreen
+import com.projectember.mobile.ui.screens.HealthMetricTrendsScreen
+import com.projectember.mobile.ui.screens.HealthMetricTrendsViewModel
+import com.projectember.mobile.ui.screens.HealthMetricTrendsViewModelFactory
 import com.projectember.mobile.ui.screens.HealthViewModel
 import com.projectember.mobile.ui.screens.HealthViewModelFactory
 import com.projectember.mobile.ui.screens.HomeScreen
@@ -269,6 +273,7 @@ fun EmberNavGraph(
                     app.exerciseCategoryRepository,
                     app.healthConnectManager,
                     app.healthMetricPreferencesStore,
+                    app.manualHealthEntryRepository,
                 )
             )
             ExerciseScreen(
@@ -279,6 +284,9 @@ fun EmberNavGraph(
                 },
                 onNavigateToEditEntry = { entryId ->
                     navController.navigate(Screen.ExerciseEditEntry.createRoute(entryId))
+                },
+                onNavigateToTrends = { metric ->
+                    navController.navigate(Screen.HealthMetricTrends.createRoute(metric.name))
                 }
             )
         }
@@ -345,9 +353,36 @@ fun EmberNavGraph(
                 factory = HealthViewModelFactory(
                     app.healthConnectManager,
                     app.healthMetricPreferencesStore,
+                    app.manualHealthEntryRepository,
                 )
             )
             HealthScreen(
+                viewModel = viewModel,
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToTrends = { metric ->
+                    navController.navigate(Screen.HealthMetricTrends.createRoute(metric.name))
+                }
+            )
+        }
+
+        // ── Health Metric Trends ──────────────────────────────────────────────
+        composable(
+            route = Screen.HealthMetricTrends.route,
+            arguments = listOf(navArgument("metric") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val metricName = backStackEntry.arguments?.getString("metric") ?: return@composable
+            val metric = runCatching { HealthMetric.valueOf(metricName) }.getOrNull()
+                ?: return@composable
+            val viewModel: HealthMetricTrendsViewModel = viewModel(
+                key = "trends_$metricName",
+                factory = HealthMetricTrendsViewModelFactory(
+                    metric,
+                    app.manualHealthEntryRepository,
+                    app.healthMetricPreferencesStore,
+                )
+            )
+            HealthMetricTrendsScreen(
+                metric = metric,
                 viewModel = viewModel,
                 onNavigateBack = { navController.popBackStack() }
             )
