@@ -45,4 +45,11 @@ interface ExerciseEntryDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(entries: List<ExerciseEntry>)
+
+    /**
+     * Returns the set of timestamps for entries that were imported from Health Connect.
+     * Used to deduplicate re-imported sessions.
+     */
+    @Query("SELECT timestamp FROM exercise_entries WHERE notes = 'Imported from Health Connect'")
+    suspend fun getImportedTimestamps(): List<String>
 }

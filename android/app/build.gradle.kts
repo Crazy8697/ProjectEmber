@@ -12,7 +12,7 @@ android {
         applicationId = "com.projectember.mobile"
         minSdk = 26
         targetSdk = 34
-        versionCode = 33
+        versionCode = 35
         versionName = "0.2"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -73,6 +73,8 @@ dependencies {
     implementation(libs.retrofit)
     implementation(libs.retrofit.moshi)
     implementation(libs.moshi.kotlin)
+
+    implementation(libs.health.connect)
 
     debugImplementation(libs.androidx.ui.tooling)
 }

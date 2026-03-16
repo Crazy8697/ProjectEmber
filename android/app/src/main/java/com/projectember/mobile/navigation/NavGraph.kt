@@ -235,7 +235,7 @@ fun EmberNavGraph(
             val viewModel: SettingsViewModel = viewModel(
                 factory = SettingsViewModelFactory(
                     app.syncRepository,
-                    app.syncManager,
+                    app.healthConnectManager,
                     app.backupManager,
                     app.themePreferencesStore,
                     app.unitsPreferencesStore
