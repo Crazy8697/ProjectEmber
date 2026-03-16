@@ -639,6 +639,23 @@ private fun RecipeDetailView(
             }
         }
 
+        // Real-time nutrition preview for the entered serving count
+        val previewServings = logServingsInput.toDoubleOrNull()
+        if (previewServings != null && previewServings > 0.0) {
+            val recipeServings = recipe.servings.coerceAtLeast(1.0)
+            val previewCal     = recipe.calories   / recipeServings * previewServings
+            val previewProtein = foodUnit.fromG(recipe.proteinG   / recipeServings * previewServings)
+            val previewFat     = foodUnit.fromG(recipe.fatG       / recipeServings * previewServings)
+            val previewNc      = foodUnit.fromG(recipe.netCarbsG  / recipeServings * previewServings)
+            Text(
+                text = "≈ %.0f kcal · P %.1f%s · F %.1f%s · NC %.1f%s".format(
+                    previewCal, previewProtein, foodSym, previewFat, foodSym, previewNc, foodSym
+                ),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+
         Spacer(modifier = Modifier.height(24.dp))
     }
 }

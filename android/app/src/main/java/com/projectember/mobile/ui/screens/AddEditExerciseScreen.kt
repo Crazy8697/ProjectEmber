@@ -95,19 +95,26 @@ fun AddEditExerciseScreen(
                                     else MaterialTheme.colorScheme.primary
                         )
                     }
-                    categories.forEach { cat ->
-                        Column {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = cat.name + if (cat.isBuiltIn) " (built-in)" else "",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    modifier = Modifier.weight(1f)
-                                )
-                                if (!cat.isBuiltIn) {
+                    val customCategories = categories.filter { !it.isBuiltIn }
+                    if (customCategories.isEmpty()) {
+                        Text(
+                            text = "No custom categories yet.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    } else {
+                        customCategories.forEach { cat ->
+                            Column {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = cat.name,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        modifier = Modifier.weight(1f)
+                                    )
                                     TextButton(
                                         onClick = {
                                             renamingCategoryId = if (renamingCategoryId == cat.id) null else cat.id
@@ -142,38 +149,38 @@ fun AddEditExerciseScreen(
                                         Text("Delete", color = MaterialTheme.colorScheme.error)
                                     }
                                 }
-                            }
-                            // Inline rename field — only shown for the category being renamed
-                            if (renamingCategoryId == cat.id) {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(bottom = 4.dp),
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    OutlinedTextField(
-                                        value = renameInput,
-                                        onValueChange = { renameInput = it },
-                                        label = { Text("New name") },
-                                        singleLine = true,
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                    TextButton(onClick = {
-                                        coroutineScope.launch {
-                                            val newName = renameInput.trim()
-                                            val error = viewModel.renameCategory(cat.id, renameInput)
-                                            if (error != null) {
-                                                isActionError = true
-                                                actionMessage = error
-                                            } else {
-                                                isActionError = false
-                                                actionMessage = "\"${cat.name}\" renamed to \"$newName\"."
-                                                renamingCategoryId = null
-                                                renameInput = ""
+                                // Inline rename field — only shown for the category being renamed
+                                if (renamingCategoryId == cat.id) {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(bottom = 4.dp),
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        OutlinedTextField(
+                                            value = renameInput,
+                                            onValueChange = { renameInput = it },
+                                            label = { Text("New name") },
+                                            singleLine = true,
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                        TextButton(onClick = {
+                                            coroutineScope.launch {
+                                                val newName = renameInput.trim()
+                                                val error = viewModel.renameCategory(cat.id, renameInput)
+                                                if (error != null) {
+                                                    isActionError = true
+                                                    actionMessage = error
+                                                } else {
+                                                    isActionError = false
+                                                    actionMessage = "\"${cat.name}\" renamed to \"$newName\"."
+                                                    renamingCategoryId = null
+                                                    renameInput = ""
+                                                }
                                             }
-                                        }
-                                    }) { Text("Save") }
+                                        }) { Text("Save") }
+                                    }
                                 }
                             }
                         }
@@ -349,6 +356,11 @@ fun AddEditExerciseScreen(
 
             // ── Category picker ───────────────────────────────────────────────
             SectionLabel("Category *")
+            Text(
+                text = "How to group this activity in your log",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
 
             FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -401,6 +413,11 @@ fun AddEditExerciseScreen(
 
             // ── Activity type ─────────────────────────────────────────────────
             SectionLabel("Activity Type *")
+            Text(
+                text = "The specific exercise performed",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
 
             FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
