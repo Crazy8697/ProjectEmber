@@ -6,13 +6,13 @@ plugins {
 
 android {
     namespace = "com.projectember.mobile"
-    compileSdk = 34
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.projectember.mobile"
         minSdk = 26
         targetSdk = 34
-        versionCode = 32
+        versionCode = 33
         versionName = "0.2"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
