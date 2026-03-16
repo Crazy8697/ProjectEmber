@@ -7,6 +7,8 @@ import com.projectember.mobile.data.local.db.DatabaseSeeder
 import com.projectember.mobile.data.local.KetoTargetsStore
 import com.projectember.mobile.data.local.ThemePreferencesStore
 import com.projectember.mobile.data.local.UnitsPreferencesStore
+import com.projectember.mobile.data.local.DailyRhythmStore
+import com.projectember.mobile.data.local.MealTimingStore
 import com.projectember.mobile.data.local.entities.WeightEntry
 import com.projectember.mobile.data.repository.ExerciseCategoryRepository
 import com.projectember.mobile.data.repository.ExerciseRepository
@@ -46,6 +48,8 @@ class EmberApplication : Application() {
     val exerciseRepository by lazy { ExerciseRepository(database.exerciseEntryDao()) }
     val themePreferencesStore by lazy { ThemePreferencesStore(this) }
     val unitsPreferencesStore by lazy { UnitsPreferencesStore(this) }
+    val dailyRhythmStore by lazy { DailyRhythmStore(this) }
+    val mealTimingStore by lazy { MealTimingStore(this) }
 
     val backupManager by lazy {
         BackupManager(

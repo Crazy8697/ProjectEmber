@@ -3,8 +3,12 @@ package com.projectember.mobile.ui.screens
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.projectember.mobile.data.local.DailyRhythm
+import com.projectember.mobile.data.local.DailyRhythmStore
 import com.projectember.mobile.data.local.KetoTargets
 import com.projectember.mobile.data.local.KetoTargetsStore
+import com.projectember.mobile.data.local.MealTiming
+import com.projectember.mobile.data.local.MealTimingStore
 import com.projectember.mobile.data.local.UnitPreferences
 import com.projectember.mobile.data.local.UnitsPreferencesStore
 import com.projectember.mobile.data.local.entities.SyncStatus
@@ -38,6 +42,17 @@ data class TodaySummary(
     val exerciseBurnedKcal: Double = 0.0
 )
 
+/**
+ * Bundles the three per-metric pacing results shown on the dashboard.
+ * Any field may be null when no target is set or the eating window has not yet
+ * opened (suppresses false "behind" labels early in the morning).
+ */
+data class TodayPacing(
+    val calories: PacingResult?,
+    val protein: PacingResult?,
+    val netCarbs: PacingResult?
+)
+
 class HomeViewModel(
     private val syncRepository: SyncRepository,
     private val syncManager: SyncManager,
@@ -45,7 +60,9 @@ class HomeViewModel(
     targetsStore: KetoTargetsStore,
     weightRepository: WeightRepository,
     private val unitsPreferencesStore: UnitsPreferencesStore,
-    exerciseRepository: ExerciseRepository
+    exerciseRepository: ExerciseRepository,
+    dailyRhythmStore: DailyRhythmStore,
+    mealTimingStore: MealTimingStore
 ) : ViewModel() {
 
     private val today: String =
@@ -103,6 +120,52 @@ class HomeViewModel(
             initialValue = TodaySummary(0.0, 0.0, 0.0, 0.0, 0.0)
         )
 
+    // ── Smart pacing ──────────────────────────────────────────────────────────
+
+    private val dailyRhythm: StateFlow<DailyRhythm> = dailyRhythmStore
+        .rhythmFlow
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = dailyRhythmStore.getRhythm()
+        )
+
+    private val mealTiming: StateFlow<MealTiming> = mealTimingStore
+        .mealTimingFlow
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = mealTimingStore.getMealTiming()
+        )
+
+    /**
+     * Per-metric pacing results driven by the user's Daily Rhythm and optional
+     * Meal Timing configuration.  Null entries mean pacing is not applicable for
+     * that metric right now (no target, or eating window has not opened yet).
+     */
+    val todayPacing: StateFlow<TodayPacing> = combine(
+        todaySummary,
+        targets,
+        dailyRhythm,
+        mealTiming
+    ) { summary, tgts, rhythm, timing ->
+        val netCal = (summary.calories - summary.exerciseBurnedKcal).coerceAtLeast(0.0)
+        TodayPacing(
+            calories = PacingEngine.evaluate(netCal, tgts.caloriesKcal, rhythm, timing),
+            protein  = PacingEngine.evaluate(summary.proteinG, tgts.proteinG, rhythm, timing),
+            netCarbs = if (tgts.netCarbsG > 0)
+                PacingEngine.evaluate(summary.netCarbsG, tgts.netCarbsG, rhythm, timing)
+            else null
+        )
+    }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = TodayPacing(null, null, null)
+        )
+
+    // ── Weight & units ────────────────────────────────────────────────────────
+
     /** Latest logged body weight, or null if none recorded. */
     val lastWeightEntry: StateFlow<WeightEntry?> = weightRepository
         .getLatestEntry()
@@ -129,12 +192,16 @@ class HomeViewModelFactory(
     private val targetsStore: KetoTargetsStore,
     private val weightRepository: WeightRepository,
     private val unitsPreferencesStore: UnitsPreferencesStore,
-    private val exerciseRepository: ExerciseRepository
+    private val exerciseRepository: ExerciseRepository,
+    private val dailyRhythmStore: DailyRhythmStore,
+    private val mealTimingStore: MealTimingStore
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T =
         HomeViewModel(
             syncRepository, syncManager, ketoRepository, targetsStore,
-            weightRepository, unitsPreferencesStore, exerciseRepository
+            weightRepository, unitsPreferencesStore, exerciseRepository,
+            dailyRhythmStore, mealTimingStore
         ) as T
 }
+

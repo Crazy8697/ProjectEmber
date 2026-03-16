@@ -27,6 +27,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -60,6 +61,7 @@ fun HomeScreen(
     val targets by viewModel.targets.collectAsState()
     val lastWeight by viewModel.lastWeightEntry.collectAsState()
     val unitPrefs by viewModel.unitPreferences.collectAsState()
+    val pacing by viewModel.todayPacing.collectAsState()
 
     Scaffold(
         topBar = {
@@ -105,6 +107,7 @@ fun HomeScreen(
                 lastWeightKg = lastWeight?.weightKg,
                 lastWeightDate = lastWeight?.entryDate,
                 weightUnit = unitPrefs.weightUnit,
+                pacing = pacing,
                 onNavigateToTrends = onNavigateToTrends
             )
 
@@ -145,6 +148,7 @@ private fun TodaySummaryCard(
     lastWeightKg: Double?,
     lastWeightDate: String?,
     weightUnit: WeightUnit,
+    pacing: TodayPacing,
     onNavigateToTrends: () -> Unit
 ) {
     val burned = summary.exerciseBurnedKcal
@@ -174,11 +178,18 @@ private fun TodaySummaryCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = "Today",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = "Today",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    // Pacing chip — visible only when eating window is open
+                    pacing.calories?.let { PacingChip(result = it) }
+                }
                 TextButton(
                     onClick = onNavigateToTrends
                 ) {
@@ -351,6 +362,30 @@ private fun MacroChip(
                 color = color
             )
         }
+    }
+}
+
+/**
+ * Small pill-shaped chip that displays the smart pacing status label.
+ * Color mirrors the metric-status palette: green = on track, yellow = ahead, red = behind.
+ */
+@Composable
+private fun PacingChip(result: PacingResult) {
+    val chipColor = when (result.status) {
+        PacingStatus.ON_TRACK -> SuccessGreen
+        PacingStatus.AHEAD    -> WarningYellow
+        PacingStatus.BEHIND   -> ErrorRed
+    }.accessible()
+    Surface(
+        shape = MaterialTheme.shapes.small,
+        color = chipColor.copy(alpha = 0.15f)
+    ) {
+        Text(
+            text = result.status.label,
+            style = MaterialTheme.typography.labelSmall,
+            color = chipColor,
+            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+        )
     }
 }
 
