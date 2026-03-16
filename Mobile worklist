@@ -34,6 +34,14 @@ Current app progress already includes:
   - manual sync action
   - last sync time / result state
   - first usable Health Connect data import path
+- Smart Daily Pacing foundation:
+  - Daily Rhythm settings
+  - optional Meal Timing settings
+  - centralized pacing engine
+  - pacing-aware Home feedback
+  - settings persistence for rhythm/timing
+  - Home screen uses time-aware “on track” logic
+  - Keto screen keeps full-day target math/detail view
 
 ---
 
@@ -63,63 +71,16 @@ These are considered done and should not keep clogging the active list:
 - Android toolchain upgrade required for Health Connect support
 - Health Connect foundation
 - repurpose Sync section into real Health Sync behavior
+- Smart Daily Pacing foundation
+- Daily Rhythm settings
+- optional Meal Timing settings
+- pacing-aware Home status feedback
 
 ---
 
 ## Highest priority
 
-### 1. Smart Daily Rhythm pacing foundation
-Queue as:
-- **PR36 — Smart daily pacing foundation**
-
-Goal:
-Add time-aware expected-by-now pacing based on the user’s day structure so the app stops acting like they failed nutrition by 10 AM just because clocks exist.
-
-Default/base feature:
-- wake time
-- sleep time
-- eating style preset:
-  - early eater
-  - normal eater
-  - late eater
-
-Behavior:
-- app calculates expected-by-now pacing using daily rhythm instead of a flat full-day distribution
-- pacing labels should feel smarter:
-  - behind
-  - on track
-  - ahead
-
-Rules:
-- this should be the default smart behavior
-- keep setup low-friction
-- do not turn it into a giant scheduling system in this PR
-
-### 2. Meal Timing windows foundation
-Queue as:
-- **PR36 — bundled into Smart daily pacing foundation**
-
-Goal:
-Add optional custom meal timing for users who want more precise pacing than Daily Rhythm alone.
-
-Advanced behavior:
-- breakfast window
-- lunch window
-- dinner window
-- optional snack windows
-- more exact expected-by-now pacing curves
-
-Rules:
-- this is part of the same pacing system as Daily Rhythm
-- bundle it into the same PR rather than split into fake separate foundations
-- structure it so it can support a Pro/premium feature later
-- do not overcomplicate first-run setup
-
----
-
-## Active polish backlog
-
-### 3. Recipe polish
+### 1. Recipe polish and real-device flow cleanup
 Core recipe functionality exists, so this is no longer “build recipes.”
 
 Focus now:
@@ -127,8 +88,9 @@ Focus now:
 - validate add/edit/detail/logging flow quality on real device
 - improve category/filter behavior only where it feels clunky
 - tighten recipe browsing/index flow if needed
+- identify any friction in servings-based recipe logging
 
-### 4. Exercise polish
+### 2. Exercise polish
 Core exercise functionality exists.
 
 Focus now:
@@ -138,7 +100,7 @@ Focus now:
 - improve quick logging speed/usability
 - clean up any awkward custom-category behavior
 
-### 5. Form UX polish
+### 3. Form UX polish
 Baseline forms exist and are usable, so this is polish, not greenfield work.
 
 Focus now:
@@ -147,7 +109,7 @@ Focus now:
 - verify scroll-to-error behavior is actually good in ugly real-world cases
 - remove any “nothing happened” moments
 
-### 6. Settings and personalization expansion
+### 4. Settings and personalization expansion
 Foundation exists already.
 
 Next work:
@@ -156,7 +118,7 @@ Next work:
 - avoid turning Settings into a junk drawer
 - continue visual cleanup to match intended dashboard style
 
-### 7. Dashboard / graph polish
+### 5. Dashboard / graph polish
 Graph system is already real and broad.
 
 Focus now:
@@ -166,19 +128,20 @@ Focus now:
 - keep visual hierarchy clean
 - refine labels/card consistency where needed
 
-### 8. Re-validate calorie behavior on device
-Calorie behavior has already been reworked, but this still deserves real-device sanity checking.
+### 6. Re-validate calorie behavior on device
+Calorie behavior has been reworked across the app, but still deserves real-device sanity checking.
 
 Focus:
-- confirm home and keto screens match intended calorie logic
+- confirm Home and Keto screens match intended calorie logic
 - confirm exercise burn interaction is correct in practice
+- confirm pacing-aware Home summary and full-target Keto detail continue to stay logically aligned
 - trust device behavior over theory
 
 ---
 
 ## Mobile architecture direction
 
-### 9. Mobile app remains a client, not the whole system
+### 7. Mobile app remains a client, not the whole system
 The Android app should be:
 - a practical front end
 - a fast daily-use control surface
@@ -189,14 +152,14 @@ It should not become:
 - the only way the user interacts with Ember
 - a giant pile of mixed UI/business logic sludge
 
-### 10. Preferred phased approach
+### 8. Preferred phased approach
 Saved longer-term direction:
 - Phase 1: Android client connected to current backend
 - Phase 2: local utility layer for time/reminders/log caching/offline queue
 - Phase 3: optional small offline local model fallback
 - Phase 4: fuller assistant/mobile integrations
 
-### 11. Cross-device Ember sync is later work
+### 9. Cross-device Ember sync is later work
 Keep this out of near-term mobile priorities for now.
 
 Not current priority:
@@ -212,43 +175,41 @@ Reason:
 
 ## Workflow / process rules for mobile work
 
-### 12. One actionable step at a time
+### 10. One actionable step at a time
 - one step at a time unless no feedback is needed
 
-### 13. Build/version rule
+### 11. Build/version rule
 - app version = shared release line
 - build number = active PR number during pre-v1 work
-- example: PR36 uses version `0.2`, build `36`
+- example: PR37 uses version `0.2`, build `37`
 
-### 14. Real-device testing wins
+### 12. Real-device testing wins
 - device behavior overrides simulator assumptions
 - user testing feedback overrides “the code looks right”
 
-### 15. Keep fixes local when obvious
+### 13. Keep fixes local when obvious
 - for small obvious code fixes, fix directly instead of punting everything to Copilot
 
 ---
 
 ## Suggested build order now
 
-1. Add Smart Daily Pacing foundation
-2. Bundle optional Meal Timing windows into the same pacing system PR
-3. Continue recipe polish only where real use shows friction
-4. Continue exercise polish/category-management cleanup
-5. Continue form UX polish and validation clarity
-6. Continue settings/theme cleanup as pacing options get added
-7. Re-validate calorie behavior on device
-8. Continue graph/dashboard polish
-9. Reassess after real pacing behavior exists on device
+1. Recipe polish and real-device recipe flow cleanup
+2. Exercise polish/category-management cleanup
+3. Continue form UX polish and validation clarity
+4. Continue settings/theme cleanup as pacing and health options expand
+5. Re-validate calorie behavior on device
+6. Continue graph/dashboard polish
+7. Reassess after more real-device usage
 
 ---
 
 ## Short version
 
 - Health Connect foundation is done
-- real Health Sync behavior is done enough for now
-- next real priority is smart nutrition pacing
-- make Daily Rhythm the smart default pacing model
-- bundle optional Meal Timing into the same pacing-system PR
-- keep recipes, exercise, forms, settings, and graphs as polish work now, not rebuild work
+- Smart Daily Pacing foundation is done
+- Home now shows pacing truth
+- Keto now shows full-day target truth
+- next work is polish and real-device cleanup across recipes, exercise, forms, settings, and graphs
+- keep cross-device Ember sync for later
 - keep the app as a client for Ember, not the whole damn system
