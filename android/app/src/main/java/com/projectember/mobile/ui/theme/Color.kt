@@ -24,6 +24,11 @@ val SuccessGreen = Color(0xFF00FF66)
 val WarningYellow = Color(0xFFFACC15)
 val ErrorRed = Color(0xFFFF4D4D)
 
+// ── Light-theme accessible status colors (sufficient contrast on white) ────────
+val StatusGreenLight  = Color(0xFF15803D)   // dark forest green
+val StatusAmberLight  = Color(0xFFD97706)   // amber
+val StatusRedLight    = Color(0xFFDC2626)   // accessible crimson red
+
 // ── Midnight Blue theme ───────────────────────────────────────────────────────
 
 val MidnightSurfaceDark = Color(0xFF080C14)

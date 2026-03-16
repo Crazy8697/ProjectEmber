@@ -1,7 +1,13 @@
 package com.projectember.mobile.ui.screens
 
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import com.projectember.mobile.ui.theme.ErrorRed
+import com.projectember.mobile.ui.theme.StatusAmberLight
+import com.projectember.mobile.ui.theme.StatusGreenLight
+import com.projectember.mobile.ui.theme.StatusRedLight
 import com.projectember.mobile.ui.theme.SuccessGreen
 import com.projectember.mobile.ui.theme.WarningYellow
 
@@ -45,5 +51,24 @@ internal fun strictLimitStatusColor(value: Double, target: Double): Color {
         pct > 1.0  -> ErrorRed
         pct >= 0.8 -> WarningYellow
         else       -> SuccessGreen
+    }
+}
+
+/**
+ * Adapts a raw status color to be readable against the current theme surface.
+ * On light themes (where [MaterialTheme.colorScheme.surface] has high luminance) the
+ * neon/pastel dark-optimised palette is swapped for darker accessible equivalents.
+ * On dark themes the original color is returned unchanged.
+ */
+@Composable
+internal fun Color.accessible(): Color {
+    if (this == Color.Unspecified) return this
+    val isLight = MaterialTheme.colorScheme.surface.luminance() > 0.5f
+    if (!isLight) return this
+    return when (this) {
+        SuccessGreen  -> StatusGreenLight
+        WarningYellow -> StatusAmberLight
+        ErrorRed      -> StatusRedLight
+        else          -> this
     }
 }

@@ -29,6 +29,8 @@ private val EmberDarkColorScheme = darkColorScheme(
     onSurface = OnSurface,
     surfaceVariant = SurfaceLight,
     onSurfaceVariant = OnSurfaceVariant,
+    outline = SurfaceLight,
+    outlineVariant = KetoBorder,
     error = ErrorRed,
     onError = OnSurface
 )
@@ -54,6 +56,7 @@ private val MidnightColorScheme = darkColorScheme(
     onSurface = OnSurface,
     surfaceVariant = MidnightSurfaceLight,
     onSurfaceVariant = OnSurfaceVariant,
+    outlineVariant = MidnightBorder,
     error = ErrorRed,
     onError = OnSurface
 )
@@ -79,6 +82,7 @@ private val ForestColorScheme = darkColorScheme(
     onSurface = OnSurface,
     surfaceVariant = ForestSurfaceLight,
     onSurfaceVariant = OnSurfaceVariant,
+    outlineVariant = ForestBorder,
     error = ErrorRed,
     onError = OnSurface
 )
@@ -104,6 +108,7 @@ private val SlateColorScheme = darkColorScheme(
     onSurface = OnSurface,
     surfaceVariant = SlateSurfaceLight,
     onSurfaceVariant = OnSurfaceVariant,
+    outlineVariant = SlateBorder,
     error = ErrorRed,
     onError = OnSurface
 )
@@ -129,6 +134,7 @@ private val CrimsonColorScheme = darkColorScheme(
     onSurface = OnSurface,
     surfaceVariant = CrimsonSurfaceLight,
     onSurfaceVariant = OnSurfaceVariant,
+    outlineVariant = CrimsonBorder,
     error = ErrorRed,
     onError = OnSurface
 )
@@ -154,6 +160,7 @@ private val DuskColorScheme = darkColorScheme(
     onSurface = OnSurface,
     surfaceVariant = DuskSurfaceLight,
     onSurfaceVariant = OnSurfaceVariant,
+    outlineVariant = DuskBorder,
     error = ErrorRed,
     onError = OnSurface
 )
@@ -204,6 +211,7 @@ private val AbyssColorScheme = darkColorScheme(
     onSurface = OnSurface,
     surfaceVariant = AbyssSurfaceLight,
     onSurfaceVariant = OnSurfaceVariant,
+    outlineVariant = AbyssBorder,
     error = ErrorRed,
     onError = OnSurface
 )

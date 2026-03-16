@@ -48,7 +48,6 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.collectAsState
 import com.projectember.mobile.ui.theme.KetoAccent
-import com.projectember.mobile.ui.theme.OnSurface
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
@@ -205,7 +204,7 @@ fun AddKetoEntryScreen(
                             modifier = Modifier.wrapContentWidth(),
                             colors = AssistChipDefaults.assistChipColors(
                                 containerColor = if (isSelected) KetoAccent else MaterialTheme.colorScheme.surfaceVariant,
-                                labelColor = if (isSelected) OnSurface else MaterialTheme.colorScheme.onSurfaceVariant
+                                labelColor = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         )
                     }
@@ -222,7 +221,7 @@ fun AddKetoEntryScreen(
                             modifier = Modifier.wrapContentWidth(),
                             colors = AssistChipDefaults.assistChipColors(
                                 containerColor = if (isSelected) KetoAccent else MaterialTheme.colorScheme.surfaceVariant,
-                                labelColor = if (isSelected) OnSurface else MaterialTheme.colorScheme.onSurfaceVariant
+                                labelColor = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         )
                     }

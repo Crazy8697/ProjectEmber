@@ -17,20 +17,12 @@ import androidx.compose.ui.unit.sp
 import com.projectember.mobile.data.local.FoodWeightUnit
 import com.projectember.mobile.data.local.VolumeUnit
 import com.projectember.mobile.data.local.WeightUnit
-import com.projectember.mobile.ui.theme.KetoBorder
 import com.projectember.mobile.ui.theme.KetoAccent
-import com.projectember.mobile.ui.theme.SurfaceMid
-import com.projectember.mobile.ui.theme.OnSurface
-import com.projectember.mobile.ui.theme.OnSurfaceVariant
 import com.projectember.mobile.ui.theme.ErrorRed
 import com.projectember.mobile.ui.theme.SuccessGreen
 import com.projectember.mobile.ui.theme.WarningYellow
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
-
-private val KetoCard    = SurfaceMid
-private val KetoBorderC = KetoBorder
-private val KetoMuted   = OnSurfaceVariant
 
 private val METRIC_OPTIONS = listOf(
     Triple("calories",  "C",    "Calories"),
@@ -229,14 +221,14 @@ fun KetoTrendsScreen(
             // ── Metric selector ──────────────────────────────────────────────
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = KetoCard),
-                border = BorderStroke(1.dp, KetoBorderC)
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
             ) {
                 Column(modifier = Modifier.padding(12.dp)) {
                     Text(
                         text = "METRIC",
                         style = MaterialTheme.typography.labelSmall,
-                        color = KetoMuted
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     // Row 1: Calories, Protein, Fat, Net Carbs
@@ -255,13 +247,13 @@ fun KetoTrendsScreen(
                                          horizontalAlignment = Alignment.CenterHorizontally
                                      ) {
                                          Text(abbr, fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                                         Text(fullName, fontSize = 8.sp, color = if (selected) OnSurface.copy(alpha = 0.8f) else KetoMuted)
+                                         Text(fullName, fontSize = 8.sp, color = if (selected) MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f) else MaterialTheme.colorScheme.onSurfaceVariant)
                                      }
                                  },
                                 modifier = Modifier.weight(1f),
                                 colors = FilterChipDefaults.filterChipColors(
                                     selectedContainerColor = KetoAccent,
-                                    selectedLabelColor = OnSurface
+                                    selectedLabelColor = MaterialTheme.colorScheme.onPrimary
                                 )
                             )
                         }
@@ -283,13 +275,13 @@ fun KetoTrendsScreen(
                                          horizontalAlignment = Alignment.CenterHorizontally
                                      ) {
                                          Text(abbr, fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                                         Text(fullName, fontSize = 8.sp, color = if (selected) OnSurface.copy(alpha = 0.8f) else KetoMuted)
+                                         Text(fullName, fontSize = 8.sp, color = if (selected) MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f) else MaterialTheme.colorScheme.onSurfaceVariant)
                                      }
                                  },
                                 modifier = Modifier.weight(1f),
                                 colors = FilterChipDefaults.filterChipColors(
                                     selectedContainerColor = KetoAccent,
-                                    selectedLabelColor = OnSurface
+                                    selectedLabelColor = MaterialTheme.colorScheme.onPrimary
                                 )
                             )
                         }
@@ -313,13 +305,13 @@ fun KetoTrendsScreen(
                                      horizontalAlignment = Alignment.CenterHorizontally
                                  ) {
                                      Text(nakAbbr, fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                                     Text(nakFullName, fontSize = 8.sp, color = if (nakSelected) OnSurface.copy(alpha = 0.8f) else KetoMuted)
+                                     Text(nakFullName, fontSize = 8.sp, color = if (nakSelected) MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f) else MaterialTheme.colorScheme.onSurfaceVariant)
                                  }
                              },
                             modifier = Modifier.weight(1f),
                             colors = FilterChipDefaults.filterChipColors(
                                 selectedContainerColor = Color(0xFFFF8C42),
-                                selectedLabelColor = OnSurface
+                                selectedLabelColor = MaterialTheme.colorScheme.onPrimary
                             )
                         )
                         // Weight chip
@@ -335,13 +327,13 @@ fun KetoTrendsScreen(
                                      horizontalAlignment = Alignment.CenterHorizontally
                                  ) {
                                      Text(wtAbbr, fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                                     Text(wtFullName, fontSize = 8.sp, color = if (wtSelected) OnSurface.copy(alpha = 0.8f) else KetoMuted)
+                                     Text(wtFullName, fontSize = 8.sp, color = if (wtSelected) MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f) else MaterialTheme.colorScheme.onSurfaceVariant)
                                  }
                              },
                             modifier = Modifier.weight(1f),
                             colors = FilterChipDefaults.filterChipColors(
                                 selectedContainerColor = Color(0xFF9C69E2),
-                                selectedLabelColor = OnSurface
+                                selectedLabelColor = MaterialTheme.colorScheme.onPrimary
                             )
                         )
                         // Two empty spacers to keep chip width consistent with rows above
@@ -354,8 +346,8 @@ fun KetoTrendsScreen(
             // ── Date range ───────────────────────────────────────────────────
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = KetoCard),
-                border = BorderStroke(1.dp, KetoBorderC)
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
             ) {
                 Row(
                     modifier = Modifier
@@ -365,7 +357,7 @@ fun KetoTrendsScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("FROM", style = MaterialTheme.typography.labelSmall, color = KetoMuted)
+                        Text("FROM", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         TextButton(
                             onClick = { showFromPicker = true },
                             contentPadding = PaddingValues(0.dp)
@@ -378,9 +370,9 @@ fun KetoTrendsScreen(
                             )
                         }
                     }
-                    Text("—", color = KetoMuted)
+                    Text("—", color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("TO", style = MaterialTheme.typography.labelSmall, color = KetoMuted)
+                        Text("TO", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         TextButton(
                             onClick = { showToPicker = true },
                             contentPadding = PaddingValues(0.dp)
@@ -399,11 +391,11 @@ fun KetoTrendsScreen(
             // ── Mode + rolling average selector ─────────────────────────────
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = KetoCard),
-                border = BorderStroke(1.dp, KetoBorderC)
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
             ) {
                 Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
-                    Text("MODE", style = MaterialTheme.typography.labelSmall, color = KetoMuted)
+                    Text("MODE", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Spacer(modifier = Modifier.height(6.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         FilterChip(
@@ -412,7 +404,7 @@ fun KetoTrendsScreen(
                             label = { Text("Daily") },
                             colors = FilterChipDefaults.filterChipColors(
                                 selectedContainerColor = KetoAccent,
-                                selectedLabelColor = OnSurface
+                                selectedLabelColor = MaterialTheme.colorScheme.onPrimary
                             )
                         )
                         FilterChip(
@@ -421,7 +413,7 @@ fun KetoTrendsScreen(
                             label = { Text("Rolling Avg") },
                             colors = FilterChipDefaults.filterChipColors(
                                 selectedContainerColor = KetoAccent,
-                                selectedLabelColor = OnSurface
+                                selectedLabelColor = MaterialTheme.colorScheme.onPrimary
                             )
                         )
                     }
@@ -431,7 +423,7 @@ fun KetoTrendsScreen(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Text("Window:", style = MaterialTheme.typography.labelSmall, color = KetoMuted)
+                            Text("Window:", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             listOf(3, 7, 14).forEach { n ->
                                 FilterChip(
                                     selected = rollingDays == n,
@@ -439,7 +431,7 @@ fun KetoTrendsScreen(
                                     label = { Text("${n}d") },
                                     colors = FilterChipDefaults.filterChipColors(
                                         selectedContainerColor = KetoAccent,
-                                        selectedLabelColor = OnSurface
+                                        selectedLabelColor = MaterialTheme.colorScheme.onPrimary
                                     )
                                 )
                             }
@@ -468,8 +460,8 @@ fun KetoTrendsScreen(
 
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = KetoCard),
-                    border = BorderStroke(1.dp, KetoBorderC)
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         val modeLabel = if (mode == "rolling") " (${rollingDays}d avg)" else ""
@@ -477,7 +469,7 @@ fun KetoTrendsScreen(
                             text = "$metricLabel ($unit)$modeLabel",
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.SemiBold,
-                            color = OnSurface
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         // ── Numeric summary ──────────────────────────────────
                         if (currentDisplayValue != null) {
@@ -537,14 +529,14 @@ fun KetoTrendsScreen(
                                         Text(
                                             text = "target %.1f".format(targetValue),
                                             style = MaterialTheme.typography.labelSmall,
-                                            color = KetoMuted,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             fontSize = 10.sp
                                         )
                                         Text(
                                             text = diffText,
                                             style = MaterialTheme.typography.labelSmall,
                                             fontWeight = FontWeight.SemiBold,
-                                            color = diffColor,
+                                            color = diffColor.accessible(),
                                             fontSize = 10.sp
                                         )
                                     }
@@ -565,7 +557,7 @@ fun KetoTrendsScreen(
                 Text(
                     text = "No data for the selected date range.",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = KetoMuted,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(vertical = 32.dp)
                 )
             }

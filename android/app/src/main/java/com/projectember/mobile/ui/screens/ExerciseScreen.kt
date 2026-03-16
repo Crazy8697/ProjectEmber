@@ -46,9 +46,7 @@ import androidx.compose.ui.unit.dp
 import com.projectember.mobile.data.local.entities.ExerciseCategory
 import com.projectember.mobile.data.local.entities.ExerciseEntry
 import com.projectember.mobile.ui.theme.KetoAccent
-import com.projectember.mobile.ui.theme.KetoBorder
 import com.projectember.mobile.ui.theme.OnSurfaceVariant
-import com.projectember.mobile.ui.theme.SurfaceMid
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
@@ -198,8 +196,8 @@ private fun ExerciseEntryCard(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = SurfaceMid),
-        border = BorderStroke(1.dp, KetoBorder),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
         onClick = onClick
     ) {
         Row(
