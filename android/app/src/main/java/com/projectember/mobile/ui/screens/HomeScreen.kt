@@ -15,6 +15,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.DirectionsRun
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.MonitorWeight
 import androidx.compose.material.icons.filled.Settings
@@ -54,6 +55,7 @@ fun HomeScreen(
     onNavigateToKeto: () -> Unit,
     onNavigateToRecipes: () -> Unit,
     onNavigateToExercise: () -> Unit,
+    onNavigateToHealth: () -> Unit,
     onNavigateToSettings: () -> Unit,
     onNavigateToTrends: () -> Unit
 ) {
@@ -130,6 +132,13 @@ fun HomeScreen(
                 subtitle = "Activity tracking",
                 icon = Icons.Default.DirectionsRun,
                 onClick = onNavigateToExercise
+            )
+
+            NavCard(
+                title = "Health",
+                subtitle = "Vitals & sleep from Health Connect",
+                icon = Icons.Default.Favorite,
+                onClick = onNavigateToHealth
             )
 
             Spacer(modifier = Modifier.height(24.dp))

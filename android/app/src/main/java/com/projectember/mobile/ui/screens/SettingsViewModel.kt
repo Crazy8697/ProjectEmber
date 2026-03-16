@@ -10,6 +10,8 @@ import com.projectember.mobile.data.local.DailyRhythm
 import com.projectember.mobile.data.local.DailyRhythmStore
 import com.projectember.mobile.data.local.EatingStyle
 import com.projectember.mobile.data.local.FoodWeightUnit
+import com.projectember.mobile.data.local.HealthMetric
+import com.projectember.mobile.data.local.HealthMetricPreferencesStore
 import com.projectember.mobile.data.local.MealTiming
 import com.projectember.mobile.data.local.MealTimingStore
 import com.projectember.mobile.data.local.MealWindow
@@ -45,7 +47,8 @@ class SettingsViewModel(
     private val themePreferencesStore: ThemePreferencesStore,
     private val unitsPreferencesStore: UnitsPreferencesStore,
     private val dailyRhythmStore: DailyRhythmStore,
-    private val mealTimingStore: MealTimingStore
+    private val mealTimingStore: MealTimingStore,
+    private val healthMetricPreferencesStore: HealthMetricPreferencesStore,
 ) : ViewModel() {
 
     // ── Health Connect state ──────────────────────────────────────────────────
@@ -329,6 +332,23 @@ class SettingsViewModel(
         mealTimingStore.setSnackWindow(window)
         _mealTiming.value = _mealTiming.value.copy(snackWindow = window)
     }
+
+    // ── Health metric toggles ─────────────────────────────────────────────────
+
+    val enabledMetrics: StateFlow<Map<HealthMetric, Boolean>> =
+        healthMetricPreferencesStore.settingsFlow
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5_000),
+                initialValue = healthMetricPreferencesStore.getAllSettings()
+            )
+
+    fun setMetricEnabled(metric: HealthMetric, enabled: Boolean) {
+        healthMetricPreferencesStore.setMetricEnabled(metric, enabled)
+    }
+
+    fun isMetricEnabled(metric: HealthMetric): Boolean =
+        healthMetricPreferencesStore.isMetricEnabled(metric)
 }
 
 class SettingsViewModelFactory(
@@ -338,7 +358,8 @@ class SettingsViewModelFactory(
     private val themePreferencesStore: ThemePreferencesStore,
     private val unitsPreferencesStore: UnitsPreferencesStore,
     private val dailyRhythmStore: DailyRhythmStore,
-    private val mealTimingStore: MealTimingStore
+    private val mealTimingStore: MealTimingStore,
+    private val healthMetricPreferencesStore: HealthMetricPreferencesStore,
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T =
@@ -349,6 +370,7 @@ class SettingsViewModelFactory(
             themePreferencesStore,
             unitsPreferencesStore,
             dailyRhythmStore,
-            mealTimingStore
+            mealTimingStore,
+            healthMetricPreferencesStore,
         ) as T
 }

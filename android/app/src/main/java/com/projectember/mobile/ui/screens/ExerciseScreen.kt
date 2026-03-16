@@ -18,10 +18,12 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -34,6 +36,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -43,6 +46,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.projectember.mobile.data.local.HealthMetric
 import com.projectember.mobile.data.local.entities.ExerciseCategory
 import com.projectember.mobile.data.local.entities.ExerciseEntry
 import com.projectember.mobile.sync.HealthConnectManager
@@ -62,8 +67,13 @@ fun ExerciseScreen(
     val selectedDate by viewModel.selectedDate.collectAsState()
     val entries by viewModel.selectedDateEntries.collectAsState()
     val categories by viewModel.categories.collectAsState()
+    val activityData by viewModel.activityData.collectAsState()
+    val enabledMetrics by viewModel.enabledMetrics.collectAsState()
 
     val categoryMap = remember(categories) { categories.associateBy { it.id } }
+
+    // Refresh HC activity summary whenever the screen is entered
+    LaunchedEffect(Unit) { viewModel.refreshActivitySummary() }
 
     var showDatePicker by remember { mutableStateOf(false) }
     val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
@@ -151,6 +161,137 @@ fun ExerciseScreen(
                         color = OnSurfaceVariant
                     )
                 }
+            }
+
+            // ── Health Connect activity summary cards ─────────────────────────
+            val anyActivityMetricEnabled = listOf(
+                HealthMetric.STEPS,
+                HealthMetric.DISTANCE,
+                HealthMetric.ACTIVE_CALORIES,
+            ).any { enabledMetrics[it] != false }
+
+            if (anyActivityMetricEnabled) {
+                item {
+                    Text(
+                        text = "TODAY'S ACTIVITY",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = OnSurfaceVariant,
+                        letterSpacing = 0.8.sp,
+                        modifier = Modifier.padding(top = 4.dp, bottom = 2.dp)
+                    )
+                }
+                when (val state = activityData) {
+                    is ActivityDataState.NotInstalled -> {
+                        // HC not available; silently skip activity cards
+                    }
+                    is ActivityDataState.Loading -> {
+                        item {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier
+                                        .height(16.dp)
+                                        .padding(0.dp),
+                                    strokeWidth = 2.dp
+                                )
+                                Text(
+                                    text = "Loading activity…",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = OnSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                    is ActivityDataState.Error -> {
+                        item {
+                            Text(
+                                text = "Could not load activity data",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.padding(vertical = 4.dp)
+                            )
+                        }
+                    }
+                    is ActivityDataState.Ready -> {
+                        val granted = state.grantedPermissions
+                        val summary = state.summary
+
+                        if (enabledMetrics[HealthMetric.STEPS] != false) {
+                            item {
+                                ActivityMetricCard(
+                                    label = "STEPS",
+                                    value = when {
+                                        HealthConnectManager.PERM_STEPS !in granted ->
+                                            null to "Permission needed"
+                                        summary.stepsToday != null ->
+                                            "%.0f".format(summary.stepsToday.toDouble()) to null
+                                        else -> null to "No data yet"
+                                    },
+                                    permissionNeeded = HealthConnectManager.PERM_STEPS !in granted
+                                )
+                            }
+                        }
+
+                        if (enabledMetrics[HealthMetric.DISTANCE] != false) {
+                            item {
+                                ActivityMetricCard(
+                                    label = "DISTANCE",
+                                    value = when {
+                                        HealthConnectManager.PERM_DISTANCE !in granted ->
+                                            null to "Permission needed"
+                                        summary.distanceMeters != null ->
+                                            "%.2f km".format(summary.distanceMeters / 1000.0) to null
+                                        else -> null to "No data yet"
+                                    },
+                                    permissionNeeded = HealthConnectManager.PERM_DISTANCE !in granted
+                                )
+                            }
+                        }
+
+                        if (enabledMetrics[HealthMetric.ACTIVE_CALORIES] != false) {
+                            item {
+                                val activeGranted = HealthConnectManager.PERM_ACTIVE_CALORIES in granted
+                                val totalGranted = HealthConnectManager.PERM_TOTAL_CALORIES in granted
+                                val permNeeded = !activeGranted && !totalGranted
+                                val valueStr = when {
+                                    permNeeded -> null
+                                    else -> buildString {
+                                        summary.activeCaloriesKcal?.let {
+                                            append("%.0f kcal active".format(it))
+                                        }
+                                        if (summary.activeCaloriesKcal != null && summary.totalCaloriesKcal != null) append(" · ")
+                                        summary.totalCaloriesKcal?.let {
+                                            append("%.0f kcal total".format(it))
+                                        }
+                                    }.ifEmpty { null }
+                                }
+                                ActivityMetricCard(
+                                    label = "CALORIES BURNED",
+                                    value = when {
+                                        permNeeded -> null to "Permission needed"
+                                        valueStr != null -> valueStr to null
+                                        else -> null to "No data yet"
+                                    },
+                                    permissionNeeded = permNeeded
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            // ── Section divider ───────────────────────────────────────────────
+            item {
+                HorizontalDivider(
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                    thickness = 0.5.dp,
+                    modifier = Modifier.padding(vertical = 4.dp)
+                )
             }
 
             if (entries.isEmpty()) {
@@ -272,6 +413,65 @@ private fun ExerciseEntryCard(
                     contentDescription = "Edit",
                     tint = OnSurfaceVariant,
                     modifier = Modifier.padding(top = 2.dp)
+                )
+            }
+        }
+    }
+}
+
+/**
+ * A compact card that shows a single Health Connect activity metric.
+ *
+ * @param label  Short all-caps label (e.g. "STEPS")
+ * @param value  Pair of (data string, empty-state string). Exactly one should be non-null.
+ * @param permissionNeeded  When true the card is styled subtly to indicate a permission issue.
+ */
+@Composable
+private fun ActivityMetricCard(
+    label: String,
+    value: Pair<String?, String?>,
+    permissionNeeded: Boolean = false,
+) {
+    val (dataValue, emptyLabel) = value
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = if (permissionNeeded)
+                MaterialTheme.colorScheme.surfaceVariant
+            else
+                MaterialTheme.colorScheme.surface
+        ),
+        border = BorderStroke(
+            width = 1.dp,
+            color = if (permissionNeeded)
+                MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)
+            else
+                MaterialTheme.colorScheme.outlineVariant
+        )
+    ) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                color = OnSurfaceVariant,
+                letterSpacing = 0.8.sp
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            if (dataValue != null) {
+                Text(
+                    text = dataValue,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            } else {
+                Text(
+                    text = emptyLabel ?: "—",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = if (permissionNeeded)
+                        MaterialTheme.colorScheme.error
+                    else
+                        OnSurfaceVariant
                 )
             }
         }
