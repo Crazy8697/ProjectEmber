@@ -1,0 +1,152 @@
+# Project Ember Desktop Worklist
+
+_Date: 2026-03-16_
+
+## Current source-of-truth paths
+
+- **Live / authoritative repo:** `/home/eira/ProjectEmber`
+- **Dev / backup repo:** `/home/daddy/ProjectEmber_dev`
+- Rule: anything in the live path is authoritative unless explicitly working in dev.
+
+---
+
+## Current desktop/core focus
+
+Project Ember desktop/core work is the backend, local assistant, architecture, persistence, admin tools, and system-level plumbing behind Eira.
+
+This list intentionally excludes Android/mobile-specific implementation except where mobile depends on desktop/backend support.
+
+---
+
+## Highest priority
+
+### 1. Re-evaluate and patch live Eira core
+- Review live `/home/eira/ProjectEmber/eai_core.py`
+- Preserve Eira’s real-name memory behavior where appropriate
+- Reduce repetitive real-name usage
+- Reduce canned assistant filler
+- Keep tone sharp, natural, sarcastic, and conversational
+- Make sure improvements are applied to the actual live path, not the backup copy by accident
+
+### 2. Add autonomous personality system
+Add and formalize:
+- `personality_profile.json`
+- `self_edit_log.md`
+- `EIRA_SELF_EDIT_USAGE.md`
+
+Requirements:
+- stable identity remains separate from adaptive style
+- adaptive style can self-modify
+- minor/moderate style changes do not require user approval
+- every self-edit is persisted and logged
+
+### 3. Wire actual self-edit plumbing
+- Load `personality_profile.json` into prompt construction
+- Let Eira update adaptive style values on her own
+- Append real entries to `self_edit_log.md`
+- Keep stable identity changes separate from adaptive style changes
+- Make self-edits survive restarts
+
+---
+
+## Food / keto desktop system
+
+### 4. Build persistent food log storage
+- Move daily food logs into actual file/DB storage
+- Make logs survive restart cleanly
+- Keep date-based retrieval simple
+- Keep storage structure readable and maintainable
+
+### 5. Build structured recipe storage and retrieval
+Organize saved food data into real structure instead of memory sprawl:
+- recipes
+- sauces
+- drinks
+- template meals
+- daily logs
+
+### 6. Move saved food rules into working logic
+Hard requirements:
+- use exact ingredient weights when provided
+- use midpoint-then-round-up for ranged nutrition values
+- only estimate edible portion when bone/ineligible mass is involved
+- lock established values so they do not drift later
+
+### 7. End-of-day scoring system
+Support trigger phrase:
+- `score my day`
+
+Log fields:
+- Day Score
+- Calories
+- Net Carbs
+- Protein
+- Water
+- Notes
+
+Store entries in a form that supports later graphing/trending.
+
+### 8. Recipe and log retrieval commands
+Examples:
+- `show today`
+- `show my macros`
+- `show saved recipes`
+- `use template day`
+- `score my day`
+- `show week trend`
+
+### 9. Trend/report layer
+- daily nutrition score history
+- calories trend
+- net carbs trend
+- protein trend
+- water trend
+- optional later: weight correlation
+
+### 10. Preserve structured food assets
+Template day:
+- Coffee with half-and-half
+- Big Boy Salad
+- Tangy Beef Bowl
+
+Named recipes/drinks:
+- Pothole Coffee
+- Cheesy Beef & Mushroom Skillet
+- Olive Brine Aioli
+- Egg, Broccoli & Cheddar Skillet
+- Swamp Sauce
+- Backwoods Greens Skillet
+- Lazy Keto Almost-Kimchi Bowl
+- Electrolyte Trilogy Seed Coffee
+- Lazy Hibiscus Electrolyte Tea
+
+Electrolyte support:
+- keep Tajín concentrate recipe in structured form
+- easy calculation of dose, jars, sodium, and potassium
+
+### 11. Keep food interaction sounding like Eira
+- no diet-brochure tone
+- same personality shell as the rest of Eira
+- domain-specific competence underneath
+
+### 12. Let Eira improve food interaction style over time
+Once self-edit exists:
+- improve meal confirmation flow
+- improve missing-data questions
+- improve day summary style
+- log these changes through the self-edit system
+
+---
+
+## Architecture direction
+
+### 13. Formalize Ember as a personal operating system for life logistics
+Project Ember is not just a chatbot.
+
+Eira is the interface and reasoning layer on top of independent systems.
+
+### 14. Architectural rule
+Build in this order:
+
+```text
+systems -> AI interface
