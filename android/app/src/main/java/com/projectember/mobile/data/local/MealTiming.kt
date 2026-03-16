@@ -31,5 +31,5 @@ data class MealTiming(
      * When false, the pacing engine falls back entirely to [DailyRhythm].
      */
     fun isConfigured(): Boolean =
-        breakfastWindow != null || lunchWindow != null || dinnerWindow != null
+        breakfastWindow != null || lunchWindow != null || dinnerWindow != null || snackWindow != null
 }

@@ -105,7 +105,8 @@ object PacingEngine {
             )
             val first = windows.minOf { it.startMinuteOfDay }
             val last  = windows.maxOf { it.endMinuteOfDay }
-            // Sanity: first < last
+            // Sanity: first < last; if not, the configured windows are degenerate —
+            // fall through silently to the Daily Rhythm preset rather than crashing.
             if (first < last) return first to last
         }
 
