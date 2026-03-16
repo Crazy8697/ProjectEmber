@@ -42,7 +42,8 @@ class WeightHistoryViewModel(
         )
 
     /**
-     * Log a new weight entry for the given date (defaults to today).
+     * Log a weight entry for the given date (defaults to today).
+     * Enforces one-entry-per-day: any existing entry for that date is replaced.
      * [weightInSelectedUnit] is the value the user typed — it will be converted
      * to kg before being persisted so that stored values remain stable regardless
      * of unit preference.
@@ -54,7 +55,22 @@ class WeightHistoryViewModel(
     ) {
         val kg = unit.toKg(weightInSelectedUnit)
         viewModelScope.launch(Dispatchers.IO) {
-            weightRepository.insert(WeightEntry(entryDate = date, weightKg = kg))
+            weightRepository.upsertForDate(WeightEntry(entryDate = date, weightKg = kg))
+        }
+    }
+
+    /**
+     * Edit the weight of an existing entry. The date is preserved; only the weight changes.
+     * Uses upsertForDate so the one-entry-per-day rule is maintained.
+     */
+    fun updateEntry(
+        entry: WeightEntry,
+        newWeightInSelectedUnit: Double,
+        unit: WeightUnit = unitsPreferencesStore.getPreferences().weightUnit
+    ) {
+        val kg = unit.toKg(newWeightInSelectedUnit)
+        viewModelScope.launch(Dispatchers.IO) {
+            weightRepository.upsertForDate(WeightEntry(entryDate = entry.entryDate, weightKg = kg))
         }
     }
 

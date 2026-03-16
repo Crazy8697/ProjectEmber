@@ -127,7 +127,8 @@ class KetoViewModel(
     fun logWeight(weightKg: Double) {
         val date = LocalDate.now().format(dateFormatter)
         viewModelScope.launch(Dispatchers.IO) {
-            weightRepository.insert(WeightEntry(entryDate = date, weightKg = weightKg))
+            // Enforce one-entry-per-day: replace any existing entry for today.
+            weightRepository.upsertForDate(WeightEntry(entryDate = date, weightKg = weightKg))
         }
     }
 

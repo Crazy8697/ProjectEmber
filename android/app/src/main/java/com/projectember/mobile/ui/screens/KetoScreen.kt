@@ -153,11 +153,19 @@ fun KetoScreen(
                 }) { Text("Save") }
             },
             dismissButton = {
-                TextButton(onClick = {
-                    showWeightDialog = false
-                    weightInput = ""
-                    weightError = false
-                }) { Text("Cancel") }
+                Row {
+                    TextButton(onClick = {
+                        showWeightDialog = false
+                        weightInput = ""
+                        weightError = false
+                        onNavigateToWeightHistory()
+                    }) { Text("History") }
+                    TextButton(onClick = {
+                        showWeightDialog = false
+                        weightInput = ""
+                        weightError = false
+                    }) { Text("Cancel") }
+                }
             }
         )
     }
@@ -263,17 +271,23 @@ fun KetoScreen(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
+                    // When exercise is burned, show net calories as the primary value so the
+                    // number is always unambiguous. The food intake and burn are shown as a
+                    // clearly-labeled subtitle. When no exercise, food == net, so no change.
+                    val netCalories = todayCalories - todayExerciseBurned
+                    val displayCalories = if (todayExerciseBurned > 0) netCalories else todayCalories
                     MetricBlock(
                         modifier = Modifier.weight(1f),
-                        label = "CALORIES",
-                        value = "%.0f".format(todayCalories),
+                        label = if (todayExerciseBurned > 0) "CALORIES (net)" else "CALORIES",
+                        value = "%.0f".format(displayCalories),
                         unit = " kcal",
                         targetLabel = "target %.0f".format(targets.caloriesKcal),
-                        diff = todayCalories - targets.caloriesKcal,
-                        statusColor = targetRangeStatusColor(todayCalories, targets.caloriesKcal),
+                        diff = displayCalories - targets.caloriesKcal,
+                        statusColor = targetRangeStatusColor(displayCalories, targets.caloriesKcal),
                         onClick = { onNavigateToTrends("calories") },
                         burnedLabel = if (todayExerciseBurned > 0)
-                            "\u2212%.0f burned".format(todayExerciseBurned) else null
+                            "food %.0f \u2212 %.0f burned".format(todayCalories, todayExerciseBurned)
+                        else null
                     )
                     MetricBlock(
                         modifier = Modifier.weight(1f),
@@ -361,7 +375,7 @@ fun KetoScreen(
                         modifier = Modifier.weight(1f),
                         lastEntry = lastWeightEntry,
                         weightUnit = weightUnit,
-                        onClick = { onNavigateToWeightHistory() },
+                        onClick = { onNavigateToTrends("weight") },
                         onLongClick = {
                             weightInput = lastWeightEntry?.weightKg
                                 ?.let { "%.1f".format(weightUnit.fromKg(it)) } ?: ""
@@ -593,8 +607,11 @@ private fun NakRatioBlock(
     when {
         todayPotassium > 0 -> {
             ratio = todaySodium / todayPotassium
-            // position: 0.0 = K-heavy, 0.5 = ideal (1:1), 1.0 = Na-heavy (scale up to 2:1)
-            position = (ratio / 2.0).coerceIn(0.0, 1.0).toFloat()
+            // Slider visual order matches the card name "Na:K":
+            // Na is on the left, K is on the right.
+            // position 0.0 = Na-heavy (dot left), 1.0 = K-heavy (dot right).
+            // Scale: ratio 0→2 maps to position 1.0→0.0 (inverted).
+            position = (1.0 - (ratio / 2.0).coerceIn(0.0, 1.0)).toFloat()
             ratioColor = when {
                 ratio <= 1.0 -> SuccessGreen
                 ratio <= 2.0 -> WarningYellow
@@ -605,14 +622,14 @@ private fun NakRatioBlock(
         todaySodium > 0 -> {
             // Sodium present but no potassium – worst case Na-heavy
             ratio = Double.MAX_VALUE
-            position = 1.0f
+            position = 0.0f   // far left (Na side)
             ratioColor = ErrorRed
             dotColor = ErrorRed
         }
         else -> {
             // No data
             ratio = 0.0
-            position = 0.0f
+            position = 0.5f   // center (no data → neutral)
             ratioColor = OnSurface
             dotColor = KetoMuted
         }
@@ -638,18 +655,30 @@ private fun NakRatioBlock(
                 color = ratioColor
             )
             Spacer(modifier = Modifier.height(2.dp))
-            Text(
-                text = when {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = when {
                         todayPotassium <= 0 && todaySodium > 0 -> "no potassium logged"
                         todayPotassium <= 0                    -> "need data"
                         else                                   -> "Na \u00f7 K"
                     },
-                style = MaterialTheme.typography.labelSmall,
-                color = KetoMuted,
-                fontSize = 10.sp
-            )
+                    style = MaterialTheme.typography.labelSmall,
+                    color = KetoMuted,
+                    fontSize = 10.sp
+                )
+                // Explicit target reference
+                Text(
+                    text = "target \u22641.0",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = KetoMuted,
+                    fontSize = 10.sp
+                )
+            }
             Spacer(modifier = Modifier.height(4.dp))
-            // Balance indicator bar: left = K-heavy, center = balanced, right = Na-heavy
+            // Balance indicator bar: left = Na-heavy, right = K-heavy (matches "Na:K" label order)
             Box(modifier = Modifier.fillMaxWidth()) {
                 Canvas(
                     modifier = Modifier
@@ -673,8 +702,8 @@ private fun NakRatioBlock(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text("K", style = MaterialTheme.typography.labelSmall, color = SuccessGreen, fontSize = 9.sp)
                 Text("Na", style = MaterialTheme.typography.labelSmall, color = ErrorRed, fontSize = 9.sp)
+                Text("K", style = MaterialTheme.typography.labelSmall, color = SuccessGreen, fontSize = 9.sp)
             }
         }
     }
@@ -949,11 +978,19 @@ private fun WeightBlock(
             )
             Spacer(modifier = Modifier.height(2.dp))
             Text(
-                text = if (lastEntry != null) lastEntry.entryDate else "tap to view history",
+                text = if (lastEntry != null) lastEntry.entryDate else "long press to log",
                 style = MaterialTheme.typography.labelSmall,
                 color = KetoMuted,
                 fontSize = 10.sp
             )
+            if (lastEntry != null) {
+                Text(
+                    text = "long press to update",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = KetoMuted,
+                    fontSize = 9.sp
+                )
+            }
         }
     }
 }

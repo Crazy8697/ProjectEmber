@@ -20,6 +20,16 @@ class WeightRepository(private val dao: WeightDao) {
     /** Insert (or replace-by-id) a weight entry. */
     suspend fun insert(entry: WeightEntry) = dao.insert(entry)
 
+    /**
+     * Upsert a weight entry for a specific date — enforces the one-entry-per-day rule.
+     * Any existing entries for [entry.entryDate] are deleted before the new entry is inserted,
+     * so duplicate same-day entries can never accumulate.
+     */
+    suspend fun upsertForDate(entry: WeightEntry) {
+        dao.deleteByDate(entry.entryDate)
+        dao.insert(entry)
+    }
+
     /** All weight entries, newest first — drives the history screen. */
     fun getAllEntries(): Flow<List<WeightEntry>> = dao.getAllEntries()
 

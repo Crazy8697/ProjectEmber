@@ -9,6 +9,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -161,7 +162,8 @@ fun WeightHistoryScreen(
                     WeightEntryRow(
                         entry = entry,
                         weightUnit = weightUnit,
-                        onDelete = { viewModel.deleteEntry(entry) }
+                        onDelete = { viewModel.deleteEntry(entry) },
+                        onEdit = { newValue -> viewModel.updateEntry(entry, newValue, weightUnit) }
                     )
                 }
             }
@@ -235,9 +237,11 @@ private fun WeightHistoryChart(entries: List<WeightEntry>, weightUnit: WeightUni
 private fun WeightEntryRow(
     entry: WeightEntry,
     weightUnit: WeightUnit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    onEdit: (Double) -> Unit
 ) {
     var showDeleteConfirm by remember { mutableStateOf(false) }
+    var showEditDialog by remember { mutableStateOf(false) }
     val displayWeight = weightUnit.fromKg(entry.weightKg)
     val symbol = weightUnit.symbol
 
@@ -256,6 +260,46 @@ private fun WeightEntryRow(
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteConfirm = false }) { Text("Cancel") }
+            }
+        )
+    }
+
+    if (showEditDialog) {
+        var editInput by remember { mutableStateOf("%.1f".format(displayWeight)) }
+        var editError by remember { mutableStateOf(false) }
+        AlertDialog(
+            onDismissRequest = { showEditDialog = false },
+            title = { Text("Edit Weight") },
+            text = {
+                OutlinedTextField(
+                    value = editInput,
+                    onValueChange = {
+                        editInput = it
+                        editError = false
+                    },
+                    label = { Text("Weight ($symbol)") },
+                    isError = editError,
+                    supportingText = if (editError) {
+                        { Text("Enter a valid weight greater than 0") }
+                    } else null,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    val value = editInput.toDoubleOrNull()
+                    if (value != null && value > 0) {
+                        onEdit(value)
+                        showEditDialog = false
+                    } else {
+                        editError = true
+                    }
+                }) { Text("Save") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showEditDialog = false }) { Text("Cancel") }
             }
         )
     }
@@ -282,7 +326,7 @@ private fun WeightEntryRow(
             }
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 Text(
                     text = "%.1f $symbol".format(displayWeight),
@@ -290,6 +334,17 @@ private fun WeightEntryRow(
                     fontWeight = FontWeight.Bold,
                     color = KetoAccent
                 )
+                IconButton(
+                    onClick = { showEditDialog = true },
+                    modifier = Modifier.size(32.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Edit,
+                        contentDescription = "Edit",
+                        tint = OnSurfaceVariant,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
                 IconButton(
                     onClick = { showDeleteConfirm = true },
                     modifier = Modifier.size(32.dp)

@@ -23,7 +23,7 @@ import com.projectember.mobile.data.local.entities.WeightEntry
     entities = [KetoEntry::class, Recipe::class, SyncStatus::class,
                 ExerciseCategory::class, ExerciseEntry::class,
                 WeightEntry::class],
-    version = 10,
+    version = 11,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -138,6 +138,24 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * Deduplicate weight entries: keep only the most-recently inserted entry per day
+         * (highest `id`). This enforces the one-entry-per-day rule retroactively for any
+         * duplicate same-day entries that accumulated before PR29.
+         */
+        private val MIGRATION_10_11 = object : Migration(10, 11) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL(
+                    """DELETE FROM weight_entries
+                       WHERE id NOT IN (
+                           SELECT MAX(id)
+                           FROM weight_entries
+                           GROUP BY entryDate
+                       )"""
+                )
+            }
+        }
+
         fun getInstance(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 INSTANCE ?: Room.databaseBuilder(
@@ -148,7 +166,8 @@ abstract class AppDatabase : RoomDatabase() {
                     .addMigrations(
                         MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4,
                         MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7,
-                        MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10
+                        MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10,
+                        MIGRATION_10_11
                     )
                     .build().also { INSTANCE = it }
             }
