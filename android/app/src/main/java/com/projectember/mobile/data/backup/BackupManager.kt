@@ -273,6 +273,7 @@ private fun WeightEntry.toJson() = JSONObject().apply {
     put("id", id)
     put("entryDate", entryDate)
     put("weightKg", weightKg)
+    if (source != null) put("source", source)
 }
 
 private fun KetoTargets.toJson() = JSONObject().apply {
@@ -370,7 +371,8 @@ private fun parseWeightEntries(arr: JSONArray): List<WeightEntryDto> =
         WeightEntryDto(
             id = o.getInt("id"),
             entryDate = o.getString("entryDate"),
-            weightKg = o.getDouble("weightKg")
+            weightKg = o.getDouble("weightKg"),
+            source = o.optString("source").takeIf { it.isNotEmpty() }
         )
     }
 
@@ -448,7 +450,8 @@ internal fun ExerciseEntryDto.toEntity() = ExerciseEntry(
 internal fun WeightEntryDto.toEntity() = WeightEntry(
     id = id,
     entryDate = entryDate,
-    weightKg = weightKg
+    weightKg = weightKg,
+    source = source
 )
 
 internal fun KetoTargetsDto.toKetoTargets() = KetoTargets(

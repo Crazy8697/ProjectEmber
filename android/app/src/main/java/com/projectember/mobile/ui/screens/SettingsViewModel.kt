@@ -14,7 +14,8 @@ import com.projectember.mobile.data.local.VolumeUnit
 import com.projectember.mobile.data.local.WeightUnit
 import com.projectember.mobile.data.local.entities.SyncStatus
 import com.projectember.mobile.data.repository.SyncRepository
-import com.projectember.mobile.sync.SyncManager
+import com.projectember.mobile.sync.HealthConnectManager
+import com.projectember.mobile.sync.HealthConnectUiState
 import com.projectember.mobile.ui.theme.ThemeOption
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -33,11 +34,75 @@ sealed class BackupOpState {
 
 class SettingsViewModel(
     private val syncRepository: SyncRepository,
-    private val syncManager: SyncManager,
+    private val healthConnectManager: HealthConnectManager,
     private val backupManager: BackupManager,
     private val themePreferencesStore: ThemePreferencesStore,
     private val unitsPreferencesStore: UnitsPreferencesStore
 ) : ViewModel() {
+
+    // ── Health Connect state ──────────────────────────────────────────────────
+
+    /** The permission set required for Health Connect sync — passed to the permission launcher. */
+    val healthConnectPermissions: Set<String> = healthConnectManager.requiredPermissions
+
+    private val _healthConnectState =
+        MutableStateFlow<HealthConnectUiState>(HealthConnectUiState.Checking)
+    val healthConnectState: StateFlow<HealthConnectUiState> = _healthConnectState.asStateFlow()
+
+    /** Called when the Sync section is (re-)entered to refresh HC availability/permission state. */
+    fun checkHealthConnectStatus() {
+        viewModelScope.launch {
+            _healthConnectState.value = HealthConnectUiState.Checking
+            if (!healthConnectManager.isAvailable()) {
+                _healthConnectState.value = HealthConnectUiState.NotInstalled
+                return@launch
+            }
+            val hasPerms = try {
+                healthConnectManager.hasPermissions()
+            } catch (e: Exception) {
+                _healthConnectState.value = HealthConnectUiState.Error(
+                    e.message ?: "Could not check Health Connect permissions"
+                )
+                return@launch
+            }
+            if (!hasPerms) {
+                _healthConnectState.value = HealthConnectUiState.PermissionsRequired()
+                return@launch
+            }
+            // Show last sync result if available, otherwise Ready
+            val last = syncRepository.getLastSyncStatusOnce()
+            if (last != null && last.status == "success" && last.lastSyncTime != null) {
+                _healthConnectState.value = HealthConnectUiState.LastSyncSuccess(
+                    lastSyncTime = last.lastSyncTime,
+                    summary = last.message ?: "Sync complete"
+                )
+            } else if (last != null && last.status == "error") {
+                _healthConnectState.value = HealthConnectUiState.Error(
+                    last.message ?: "Unknown sync error"
+                )
+            } else {
+                _healthConnectState.value = HealthConnectUiState.Ready
+            }
+        }
+    }
+
+    /**
+     * Called by the UI after the permission launcher returns.
+     * Re-checks permission state and updates [healthConnectState] accordingly.
+     */
+    fun onPermissionsResult(granted: Set<String>) {
+        viewModelScope.launch {
+            val hasAll = healthConnectManager.requiredPermissions
+                .all { it in granted }
+            if (hasAll) {
+                _healthConnectState.value = HealthConnectUiState.Ready
+            } else {
+                _healthConnectState.value = HealthConnectUiState.PermissionsRequired(
+                    canRequest = granted.isNotEmpty()  // partial grant — some may be permanently denied
+                )
+            }
+        }
+    }
 
     // ── Sync ──────────────────────────────────────────────────────────────────
 
@@ -56,8 +121,11 @@ class SettingsViewModel(
         if (_isSyncing.value) return
         viewModelScope.launch {
             _isSyncing.value = true
-            syncManager.triggerManualSync()
+            _healthConnectState.value = HealthConnectUiState.Syncing
+            val result = healthConnectManager.syncFromHealthConnect()
             _isSyncing.value = false
+            // Refresh HC state to reflect the new outcome
+            checkHealthConnectStatus()
         }
     }
 
@@ -212,7 +280,7 @@ class SettingsViewModel(
 
 class SettingsViewModelFactory(
     private val syncRepository: SyncRepository,
-    private val syncManager: SyncManager,
+    private val healthConnectManager: HealthConnectManager,
     private val backupManager: BackupManager,
     private val themePreferencesStore: ThemePreferencesStore,
     private val unitsPreferencesStore: UnitsPreferencesStore
@@ -221,7 +289,7 @@ class SettingsViewModelFactory(
     override fun <T : ViewModel> create(modelClass: Class<T>): T =
         SettingsViewModel(
             syncRepository,
-            syncManager,
+            healthConnectManager,
             backupManager,
             themePreferencesStore,
             unitsPreferencesStore

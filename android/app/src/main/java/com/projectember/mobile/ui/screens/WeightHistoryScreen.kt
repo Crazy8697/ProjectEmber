@@ -313,13 +313,27 @@ private fun WeightEntryRow(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
                     text = entry.entryDate,
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
+                if (entry.source == WeightEntry.SOURCE_HEALTH_CONNECT) {
+                    SuggestionChip(
+                        onClick = {},
+                        label = {
+                            Text(
+                                text = "Health Connect",
+                                style = MaterialTheme.typography.labelSmall
+                            )
+                        },
+                        colors = SuggestionChipDefaults.suggestionChipColors(
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer
+                        )
+                    )
+                }
             }
             Row(
                 verticalAlignment = Alignment.CenterVertically,

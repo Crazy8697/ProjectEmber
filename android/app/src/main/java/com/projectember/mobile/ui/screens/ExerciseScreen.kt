@@ -45,6 +45,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.projectember.mobile.data.local.entities.ExerciseCategory
 import com.projectember.mobile.data.local.entities.ExerciseEntry
+import com.projectember.mobile.sync.HealthConnectManager
 import com.projectember.mobile.ui.theme.KetoAccent
 import com.projectember.mobile.ui.theme.OnSurfaceVariant
 import java.time.LocalDate
@@ -229,6 +230,22 @@ private fun ExerciseEntryCard(
                     style = MaterialTheme.typography.bodySmall,
                     color = OnSurfaceVariant
                 )
+
+                // Health Connect import badge
+                if (entry.notes == HealthConnectManager.HC_IMPORT_NOTE) {
+                    SuggestionChip(
+                        onClick = {},
+                        label = {
+                            Text(
+                                text = "Health Connect",
+                                style = MaterialTheme.typography.labelSmall
+                            )
+                        },
+                        colors = SuggestionChipDefaults.suggestionChipColors(
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer
+                        )
+                    )
+                }
             }
 
             Column(

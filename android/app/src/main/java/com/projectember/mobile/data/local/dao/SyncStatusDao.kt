@@ -12,6 +12,9 @@ interface SyncStatusDao {
     @Query("SELECT * FROM sync_status WHERE id = 1")
     fun getSyncStatus(): Flow<SyncStatus?>
 
+    @Query("SELECT * FROM sync_status WHERE id = 1")
+    suspend fun getSyncStatusOnce(): SyncStatus?
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(status: SyncStatus)
 }

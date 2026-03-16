@@ -20,5 +20,9 @@ class ExerciseRepository(private val dao: ExerciseEntryDao) {
         dao.deleteAll()
         dao.insertAll(entries)
     }
+
+    /** Returns the set of entry timestamps imported from Health Connect (for deduplication). */
+    suspend fun getImportedTimestamps(): Set<String> =
+        dao.getImportedTimestamps().toHashSet()
 }
 
