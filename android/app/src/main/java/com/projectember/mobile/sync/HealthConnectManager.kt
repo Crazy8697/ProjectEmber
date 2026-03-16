@@ -102,16 +102,17 @@ class HealthConnectManager(
             val start = end.minus(lookbackDays, ChronoUnit.DAYS)
             val timeRange = TimeRangeFilter.between(start, end)
 
-            var stepsImported = 0
+            var stepsRead = 0          // read but not persisted (informational only)
             var weightsImported = 0
             var exercisesImported = 0
 
             // ── Steps ─────────────────────────────────────────────────────────
+            // Steps are read for completeness but not yet stored in Ember's DB.
+            // They are NOT counted as "imported" since no visible record is created.
             val stepsResponse = client.readRecords(
                 ReadRecordsRequest(StepsRecord::class, timeRange)
             )
-            stepsImported = stepsResponse.records.size
-            // Steps count is informational — included in the summary message only.
+            stepsRead = stepsResponse.records.size
 
             // ── Weight ────────────────────────────────────────────────────────
             val weightResponse = client.readRecords(
@@ -123,7 +124,13 @@ class HealthConnectManager(
                     .toLocalDate()
                     .format(dateFormatter)
                 val kg = record.weight.inKilograms
-                weightRepository.upsertForDate(WeightEntry(entryDate = date, weightKg = kg))
+                weightRepository.upsertForDate(
+                    WeightEntry(
+                        entryDate = date,
+                        weightKg = kg,
+                        source = WeightEntry.SOURCE_HEALTH_CONNECT
+                    )
+                )
                 weightsImported++
             }
 
@@ -164,7 +171,7 @@ class HealthConnectManager(
             }
 
             // ── Update sync status ────────────────────────────────────────────
-            val summary = buildSummary(stepsImported, weightsImported, exercisesImported)
+            val summary = buildSummary(weightsImported, exercisesImported)
             syncRepository.updateSyncStatus(
                 SyncStatus(
                     id = 1,
@@ -177,7 +184,7 @@ class HealthConnectManager(
 
             SyncImportResult.Success(
                 syncedAt = nowDisplay,
-                stepsRecords = stepsImported,
+                stepsRead = stepsRead,
                 weightsImported = weightsImported,
                 exercisesImported = exercisesImported,
                 summary = summary
@@ -209,9 +216,8 @@ class HealthConnectManager(
         ).toInt()
     }
 
-    private fun buildSummary(steps: Int, weights: Int, exercises: Int): String {
+    private fun buildSummary(weights: Int, exercises: Int): String {
         val parts = mutableListOf<String>()
-        if (steps > 0) parts.add("$steps step record${if (steps != 1) "s" else ""}")
         if (weights > 0) parts.add("$weights weight entr${if (weights != 1) "ies" else "y"}")
         if (exercises > 0) parts.add("$exercises exercise session${if (exercises != 1) "s" else ""}")
         return if (parts.isEmpty()) "Nothing new to import" else "Imported: ${parts.joinToString(", ")}"
@@ -244,7 +250,8 @@ class HealthConnectManager(
 sealed class SyncImportResult {
     data class Success(
         val syncedAt: String,
-        val stepsRecords: Int,
+        /** Number of step records read from HC (not persisted). */
+        val stepsRead: Int,
         val weightsImported: Int,
         val exercisesImported: Int,
         val summary: String

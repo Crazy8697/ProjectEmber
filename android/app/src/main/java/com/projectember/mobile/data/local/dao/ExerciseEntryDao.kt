@@ -49,6 +49,9 @@ interface ExerciseEntryDao {
     /**
      * Returns the set of timestamps for entries that were imported from Health Connect.
      * Used to deduplicate re-imported sessions.
+     *
+     * Note: the literal "Imported from Health Connect" must stay in sync with
+     * [com.projectember.mobile.sync.HealthConnectManager.HC_IMPORT_NOTE].
      */
     @Query("SELECT timestamp FROM exercise_entries WHERE notes = 'Imported from Health Connect'")
     suspend fun getImportedTimestamps(): List<String>

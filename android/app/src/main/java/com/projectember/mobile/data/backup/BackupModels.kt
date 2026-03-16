@@ -82,7 +82,9 @@ data class ExerciseCategoryDto(
 data class WeightEntryDto(
     val id: Int = 0,
     val entryDate: String,
-    val weightKg: Double
+    val weightKg: Double,
+    /** Null for manually-entered entries; "health_connect" for HC imports. */
+    val source: String? = null
 )
 
 data class KetoTargetsDto(
