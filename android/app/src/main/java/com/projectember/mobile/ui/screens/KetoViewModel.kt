@@ -3,6 +3,8 @@ package com.projectember.mobile.ui.screens
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.projectember.mobile.data.local.HealthMetric
+import com.projectember.mobile.data.local.HealthMetricPreferencesStore
 import com.projectember.mobile.data.local.KetoTargets
 import com.projectember.mobile.data.local.KetoTargetsStore
 import com.projectember.mobile.data.local.UnitPreferences
@@ -57,7 +59,8 @@ class KetoViewModel(
     private val weightRepository: WeightRepository,
     private val exerciseRepository: ExerciseRepository,
     private val exerciseCategoryRepository: ExerciseCategoryRepository,
-    private val unitsPreferencesStore: UnitsPreferencesStore
+    private val unitsPreferencesStore: UnitsPreferencesStore,
+    private val healthMetricPreferencesStore: HealthMetricPreferencesStore,
 ) : ViewModel() {
 
     private val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
@@ -253,6 +256,16 @@ class KetoViewModel(
             started = SharingStarted.WhileSubscribed(5_000),
             initialValue = unitsPreferencesStore.getPreferences()
         )
+
+    /** Whether the Weight metric toggle is currently enabled. */
+    val weightMetricEnabled: StateFlow<Boolean> =
+        healthMetricPreferencesStore.settingsFlow
+            .map { settings -> settings[HealthMetric.WEIGHT] != false }
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5_000),
+                initialValue = healthMetricPreferencesStore.isMetricEnabled(HealthMetric.WEIGHT)
+            )
 }
 
 class KetoViewModelFactory(
@@ -261,12 +274,14 @@ class KetoViewModelFactory(
     private val weightRepository: WeightRepository,
     private val exerciseRepository: ExerciseRepository,
     private val exerciseCategoryRepository: ExerciseCategoryRepository,
-    private val unitsPreferencesStore: UnitsPreferencesStore
+    private val unitsPreferencesStore: UnitsPreferencesStore,
+    private val healthMetricPreferencesStore: HealthMetricPreferencesStore,
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T =
         KetoViewModel(
             ketoRepository, targetsStore, weightRepository,
-            exerciseRepository, exerciseCategoryRepository, unitsPreferencesStore
+            exerciseRepository, exerciseCategoryRepository, unitsPreferencesStore,
+            healthMetricPreferencesStore,
         ) as T
 }

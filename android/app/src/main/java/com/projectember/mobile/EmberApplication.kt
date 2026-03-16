@@ -4,6 +4,7 @@ import android.app.Application
 import com.projectember.mobile.data.backup.BackupManager
 import com.projectember.mobile.data.local.db.AppDatabase
 import com.projectember.mobile.data.local.db.DatabaseSeeder
+import com.projectember.mobile.data.local.HealthMetricPreferencesStore
 import com.projectember.mobile.data.local.KetoTargetsStore
 import com.projectember.mobile.data.local.ThemePreferencesStore
 import com.projectember.mobile.data.local.UnitsPreferencesStore
@@ -50,6 +51,7 @@ class EmberApplication : Application() {
     val unitsPreferencesStore by lazy { UnitsPreferencesStore(this) }
     val dailyRhythmStore by lazy { DailyRhythmStore(this) }
     val mealTimingStore by lazy { MealTimingStore(this) }
+    val healthMetricPreferencesStore by lazy { HealthMetricPreferencesStore(this) }
 
     val backupManager by lazy {
         BackupManager(

@@ -63,6 +63,7 @@ import androidx.health.connect.client.PermissionController
 import com.projectember.mobile.BuildConfig
 import com.projectember.mobile.data.local.EatingStyle
 import com.projectember.mobile.data.local.FoodWeightUnit
+import com.projectember.mobile.data.local.HealthMetric
 import com.projectember.mobile.data.local.MealWindow
 import com.projectember.mobile.data.local.VolumeUnit
 import com.projectember.mobile.data.local.WeightUnit
@@ -87,6 +88,7 @@ fun SettingsScreen(
     val unitPrefs by viewModel.unitPreferences.collectAsState()
     val dailyRhythm by viewModel.dailyRhythm.collectAsState()
     val mealTiming by viewModel.mealTiming.collectAsState()
+    val enabledMetrics by viewModel.enabledMetrics.collectAsState()
 
     val context = LocalContext.current
 
@@ -600,8 +602,8 @@ fun SettingsScreen(
                         SettingsRow(label = "Status", value = "⚠️ Permissions required")
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "Project Ember needs read access to Steps, Weight, and " +
-                                "Exercise sessions in Health Connect.",
+                            text = "Project Ember needs read access to health and fitness data " +
+                                "in Health Connect to display metrics across your screens.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -643,6 +645,15 @@ fun SettingsScreen(
                                 text = if (isSyncing) "Syncing…" else "Sync from Health Connect",
                                 modifier = Modifier.padding(start = 4.dp)
                             )
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        TextButton(
+                            onClick = {
+                                hcPermissionLauncher.launch(viewModel.healthConnectPermissions)
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Manage Permissions")
                         }
                     }
 
@@ -691,6 +702,15 @@ fun SettingsScreen(
                                 modifier = Modifier.padding(start = 4.dp)
                             )
                         }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        TextButton(
+                            onClick = {
+                                hcPermissionLauncher.launch(viewModel.healthConnectPermissions)
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Manage Permissions")
+                        }
                     }
 
                     is HealthConnectUiState.Error -> {
@@ -708,6 +728,81 @@ fun SettingsScreen(
                         ) {
                             Text("Retry")
                         }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        TextButton(
+                            onClick = {
+                                hcPermissionLauncher.launch(viewModel.healthConnectPermissions)
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Manage Permissions")
+                        }
+                    }
+                }
+            }
+
+            // ── Health Metrics ──────────────────────────────────────────────
+            SettingsSection(title = "Health Metrics") {
+                Text(
+                    text = "Choose which health metrics are shown across the app. " +
+                        "Disabled metrics are hidden from all screens.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+
+                SettingsSubLabel(text = "Keto Screen")
+                HealthMetricToggleRow(
+                    label = HealthMetric.WEIGHT.displayName,
+                    checked = enabledMetrics[HealthMetric.WEIGHT] != false,
+                    onCheckedChange = { viewModel.setMetricEnabled(HealthMetric.WEIGHT, it) }
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+                SettingsSubLabel(text = "Exercise Screen")
+                val exerciseMetrics = listOf(
+                    HealthMetric.STEPS,
+                    HealthMetric.DISTANCE,
+                    HealthMetric.ACTIVE_CALORIES,
+                    HealthMetric.EXERCISE_SESSIONS,
+                )
+                exerciseMetrics.forEachIndexed { index, metric ->
+                    HealthMetricToggleRow(
+                        label = metric.displayName,
+                        checked = enabledMetrics[metric] != false,
+                        onCheckedChange = { viewModel.setMetricEnabled(metric, it) }
+                    )
+                    if (index < exerciseMetrics.lastIndex) {
+                        HorizontalDivider(
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                            thickness = 0.5.dp
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+                SettingsSubLabel(text = "Health Screen")
+                val healthMetrics = listOf(
+                    HealthMetric.HEART_RATE,
+                    HealthMetric.RESTING_HEART_RATE,
+                    HealthMetric.SLEEP,
+                    HealthMetric.BLOOD_PRESSURE,
+                    HealthMetric.BLOOD_GLUCOSE,
+                    HealthMetric.BODY_TEMPERATURE,
+                    HealthMetric.OXYGEN_SATURATION,
+                    HealthMetric.RESPIRATORY_RATE,
+                )
+                healthMetrics.forEachIndexed { index, metric ->
+                    HealthMetricToggleRow(
+                        label = metric.displayName,
+                        checked = enabledMetrics[metric] != false,
+                        onCheckedChange = { viewModel.setMetricEnabled(metric, it) }
+                    )
+                    if (index < healthMetrics.lastIndex) {
+                        HorizontalDivider(
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                            thickness = 0.5.dp
+                        )
                     }
                 }
             }
@@ -1136,6 +1231,35 @@ private fun MealWindowRow(
                 TextButton(onClick = { showEndPicker = false }) { Text("Cancel") }
             },
             text = { TimePicker(state = tpState) }
+        )
+    }
+}
+
+/** A toggle row for a health metric with label on the left and Switch on the right. */
+@Composable
+private fun HealthMetricToggleRow(
+    label: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier
+                .weight(1f)
+                .padding(start = 4.dp)
+        )
+        Switch(
+            checked = checked,
+            onCheckedChange = onCheckedChange
         )
     }
 }

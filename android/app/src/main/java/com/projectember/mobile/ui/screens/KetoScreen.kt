@@ -68,6 +68,7 @@ fun KetoScreen(
     val weightUnit = unitPrefs.weightUnit
     val foodUnit   = unitPrefs.foodWeightUnit
     val volUnit    = unitPrefs.volumeUnit
+    val weightMetricEnabled by viewModel.weightMetricEnabled.collectAsState()
 
     var showHelp by remember { mutableStateOf(false) }
     var showDatePicker by remember { mutableStateOf(false) }
@@ -349,14 +350,14 @@ fun KetoScreen(
                 }
             }
 
-            // ── Metric blocks row 4: Magnesium | Weight ──────────────────────
+            // ── Metric blocks row 4: Magnesium | Weight (if enabled) ─────────
             item {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     MetricBlock(
-                        modifier = Modifier.weight(1f),
+                        modifier = if (weightMetricEnabled) Modifier.weight(1f) else Modifier.fillMaxWidth(),
                         label = "MAGNESIUM",
                         value = "%.0f".format(todayMagnesium),
                         unit = "mg",
@@ -365,17 +366,19 @@ fun KetoScreen(
                         statusColor = goalStatusColor(todayMagnesium, targets.magnesiumMg),
                         onClick = { onNavigateToTrends("magnesium") }
                     )
-                    WeightBlock(
-                        modifier = Modifier.weight(1f),
-                        lastEntry = lastWeightEntry,
-                        weightUnit = weightUnit,
-                        onClick = { onNavigateToTrends("weight") },
-                        onLongClick = {
-                            weightInput = lastWeightEntry?.weightKg
-                                ?.let { "%.1f".format(weightUnit.fromKg(it)) } ?: ""
-                            showWeightDialog = true
-                        }
-                    )
+                    if (weightMetricEnabled) {
+                        WeightBlock(
+                            modifier = Modifier.weight(1f),
+                            lastEntry = lastWeightEntry,
+                            weightUnit = weightUnit,
+                            onClick = { onNavigateToTrends("weight") },
+                            onLongClick = {
+                                weightInput = lastWeightEntry?.weightKg
+                                    ?.let { "%.1f".format(weightUnit.fromKg(it)) } ?: ""
+                                showWeightDialog = true
+                            }
+                        )
+                    }
                 }
             }
 

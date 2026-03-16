@@ -23,6 +23,9 @@ import com.projectember.mobile.ui.screens.EiraScreen
 import com.projectember.mobile.ui.screens.ExerciseScreen
 import com.projectember.mobile.ui.screens.ExerciseViewModel
 import com.projectember.mobile.ui.screens.ExerciseViewModelFactory
+import com.projectember.mobile.ui.screens.HealthScreen
+import com.projectember.mobile.ui.screens.HealthViewModel
+import com.projectember.mobile.ui.screens.HealthViewModelFactory
 import com.projectember.mobile.ui.screens.HomeScreen
 import com.projectember.mobile.ui.screens.HomeViewModel
 import com.projectember.mobile.ui.screens.HomeViewModelFactory
@@ -72,6 +75,7 @@ fun EmberNavGraph(
                 onNavigateToKeto = { navController.navigate(Screen.Keto.route) },
                 onNavigateToRecipes = { navController.navigate(Screen.Recipes.route) },
                 onNavigateToExercise = { navController.navigate(Screen.Exercise.route) },
+                onNavigateToHealth = { navController.navigate(Screen.Health.route) },
                 onNavigateToSettings = { navController.navigate(Screen.Settings.route) },
                 onNavigateToTrends = { navController.navigate(Screen.KetoTrends.createRoute("calories")) }
             )
@@ -82,7 +86,8 @@ fun EmberNavGraph(
                 factory = KetoViewModelFactory(
                     app.ketoRepository, app.ketoTargetsStore,
                     app.weightRepository, app.exerciseRepository,
-                    app.exerciseCategoryRepository, app.unitsPreferencesStore
+                    app.exerciseCategoryRepository, app.unitsPreferencesStore,
+                    app.healthMetricPreferencesStore,
                 )
             )
             KetoScreen(
@@ -221,9 +226,13 @@ fun EmberNavGraph(
             val metric = backStackEntry.arguments?.getString("metric") ?: ""
             val viewModel: KetoViewModel = viewModel(
                 factory = KetoViewModelFactory(
-                    app.ketoRepository, app.ketoTargetsStore,
-                    app.weightRepository, app.exerciseRepository,
-                    app.exerciseCategoryRepository, app.unitsPreferencesStore
+                    app.ketoRepository,
+                    app.ketoTargetsStore,
+                    app.weightRepository,
+                    app.exerciseRepository,
+                    app.exerciseCategoryRepository,
+                    app.unitsPreferencesStore,
+                    app.healthMetricPreferencesStore
                 )
             )
             KetoTrendsScreen(
@@ -242,7 +251,8 @@ fun EmberNavGraph(
                     app.themePreferencesStore,
                     app.unitsPreferencesStore,
                     app.dailyRhythmStore,
-                    app.mealTimingStore
+                    app.mealTimingStore,
+                    app.healthMetricPreferencesStore,
                 )
             )
             SettingsScreen(
@@ -256,7 +266,9 @@ fun EmberNavGraph(
             val viewModel: ExerciseViewModel = viewModel(
                 factory = ExerciseViewModelFactory(
                     app.exerciseRepository,
-                    app.exerciseCategoryRepository
+                    app.exerciseCategoryRepository,
+                    app.healthConnectManager,
+                    app.healthMetricPreferencesStore,
                 )
             )
             ExerciseScreen(
@@ -322,6 +334,20 @@ fun EmberNavGraph(
                 )
             )
             WeightHistoryScreen(
+                viewModel = viewModel,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        // ── Health ────────────────────────────────────────────────────────────
+        composable(Screen.Health.route) {
+            val viewModel: HealthViewModel = viewModel(
+                factory = HealthViewModelFactory(
+                    app.healthConnectManager,
+                    app.healthMetricPreferencesStore,
+                )
+            )
+            HealthScreen(
                 viewModel = viewModel,
                 onNavigateBack = { navController.popBackStack() }
             )
