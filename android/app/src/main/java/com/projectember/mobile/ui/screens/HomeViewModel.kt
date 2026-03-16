@@ -14,6 +14,7 @@ import com.projectember.mobile.data.local.entities.effectiveFat
 import com.projectember.mobile.data.local.entities.effectiveNetCarbs
 import com.projectember.mobile.data.local.entities.effectiveProtein
 import com.projectember.mobile.data.local.entities.effectiveWater
+import com.projectember.mobile.data.repository.ExerciseRepository
 import com.projectember.mobile.data.repository.KetoRepository
 import com.projectember.mobile.data.repository.SyncRepository
 import com.projectember.mobile.data.repository.WeightRepository
@@ -21,7 +22,7 @@ import com.projectember.mobile.sync.SyncManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -32,7 +33,9 @@ data class TodaySummary(
     val proteinG: Double,
     val fatG: Double,
     val netCarbsG: Double,
-    val waterMl: Double = 0.0
+    val waterMl: Double = 0.0,
+    /** Calories burned via exercise today; 0 when no exercise logged. */
+    val exerciseBurnedKcal: Double = 0.0
 )
 
 class HomeViewModel(
@@ -41,7 +44,8 @@ class HomeViewModel(
     ketoRepository: KetoRepository,
     targetsStore: KetoTargetsStore,
     weightRepository: WeightRepository,
-    private val unitsPreferencesStore: UnitsPreferencesStore
+    private val unitsPreferencesStore: UnitsPreferencesStore,
+    exerciseRepository: ExerciseRepository
 ) : ViewModel() {
 
     private val today: String =
@@ -74,22 +78,25 @@ class HomeViewModel(
     val targets: StateFlow<KetoTargets> = targetsStore.targets
 
     /** Aggregate of all keto (food) entries for today — exercise excluded.
-     *  This intentionally matches the CALORIES block on the Keto screen, which also
-     *  uses food-only calories.  Exercise calories burned are shown separately on the
-     *  Keto screen as a subtitle on the CALORIES card. */
-    val todaySummary: StateFlow<TodaySummary> = ketoRepository
-        .getEntriesForDate(today)
-        .map { entries ->
-            // Only food entries count toward the dashboard calorie summary.
-            val food = entries.filter { it.eventType != "exercise" }
-            TodaySummary(
-                calories  = food.sumOf { it.effectiveCalories() }.coerceAtLeast(0.0),
-                proteinG  = food.sumOf { it.effectiveProtein() },
-                fatG      = food.sumOf { it.effectiveFat() },
-                netCarbsG = food.sumOf { it.effectiveNetCarbs() },
-                waterMl   = food.sumOf { it.effectiveWater() }
-            )
-        }
+     *  When exercise is logged, [TodaySummary.exerciseBurnedKcal] is populated so the
+     *  Home screen can display net calories (food − burned), matching the Keto screen's
+     *  PR29 calorie model. */
+    val todaySummary: StateFlow<TodaySummary> = combine(
+        ketoRepository.getEntriesForDate(today),
+        exerciseRepository.getEntriesForDate(today)
+    ) { entries, exerciseEntries ->
+        // Only food entries count toward macro totals.
+        val food = entries.filter { it.eventType != "exercise" }
+        val burned = exerciseEntries.sumOf { it.caloriesBurned ?: 0.0 }
+        TodaySummary(
+            calories          = food.sumOf { it.effectiveCalories() }.coerceAtLeast(0.0),
+            proteinG          = food.sumOf { it.effectiveProtein() },
+            fatG              = food.sumOf { it.effectiveFat() },
+            netCarbsG         = food.sumOf { it.effectiveNetCarbs() },
+            waterMl           = food.sumOf { it.effectiveWater() },
+            exerciseBurnedKcal = burned.coerceAtLeast(0.0)
+        )
+    }
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
@@ -121,12 +128,13 @@ class HomeViewModelFactory(
     private val ketoRepository: KetoRepository,
     private val targetsStore: KetoTargetsStore,
     private val weightRepository: WeightRepository,
-    private val unitsPreferencesStore: UnitsPreferencesStore
+    private val unitsPreferencesStore: UnitsPreferencesStore,
+    private val exerciseRepository: ExerciseRepository
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T =
         HomeViewModel(
             syncRepository, syncManager, ketoRepository, targetsStore,
-            weightRepository, unitsPreferencesStore
+            weightRepository, unitsPreferencesStore, exerciseRepository
         ) as T
 }

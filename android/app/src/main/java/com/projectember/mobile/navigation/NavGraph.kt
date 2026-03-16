@@ -61,7 +61,8 @@ fun EmberNavGraph(
                     app.ketoRepository,
                     app.ketoTargetsStore,
                     app.weightRepository,
-                    app.unitsPreferencesStore
+                    app.unitsPreferencesStore,
+                    app.exerciseRepository
                 )
             )
             HomeScreen(

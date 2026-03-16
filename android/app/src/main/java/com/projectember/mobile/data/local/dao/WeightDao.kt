@@ -33,10 +33,6 @@ interface WeightDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(entry: WeightEntry)
 
-    /** Returns the single entry for [date], or null if none exists. */
-    @Query("SELECT * FROM weight_entries WHERE entryDate = :date LIMIT 1")
-    suspend fun getEntryForDate(date: String): WeightEntry?
-
     /** Deletes all entries for [date] (enforces one-entry-per-day invariant). */
     @Query("DELETE FROM weight_entries WHERE entryDate = :date")
     suspend fun deleteByDate(date: String)

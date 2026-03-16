@@ -147,10 +147,12 @@ private fun TodaySummaryCard(
     weightUnit: WeightUnit,
     onNavigateToTrends: () -> Unit
 ) {
-    val calRatio = if (caloriesTarget > 0) (summary.calories / caloriesTarget).toFloat() else 0f
+    val burned = summary.exerciseBurnedKcal
+    val displayCalories = if (burned > 0) (summary.calories - burned).coerceAtLeast(0.0) else summary.calories
+    val calRatio = if (caloriesTarget > 0) (displayCalories / caloriesTarget).toFloat() else 0f
     val calPct = calRatio.coerceIn(0f, 1f)
     val calColor = if (caloriesTarget > 0)
-        targetRangeStatusColor(summary.calories, caloriesTarget)
+        targetRangeStatusColor(displayCalories, caloriesTarget)
     else SuccessGreen
 
     Card(
@@ -201,18 +203,25 @@ private fun TodaySummaryCard(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(
-                        text = "Calories",
+                        text = if (burned > 0) "Calories (net)" else "Calories",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
                         text = if (caloriesTarget > 0)
-                            "%.0f / %.0f kcal".format(summary.calories, caloriesTarget)
+                            "%.0f / %.0f kcal".format(displayCalories, caloriesTarget)
                         else
-                            "%.0f kcal".format(summary.calories),
+                            "%.0f kcal".format(displayCalories),
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.SemiBold,
                         color = calColor
+                    )
+                }
+                if (burned > 0) {
+                    Text(
+                        text = "food %.0f \u2212 %.0f burned".format(summary.calories, burned),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 if (caloriesTarget > 0) {

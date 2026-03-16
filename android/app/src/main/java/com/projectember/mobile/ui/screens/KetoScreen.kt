@@ -978,19 +978,11 @@ private fun WeightBlock(
             )
             Spacer(modifier = Modifier.height(2.dp))
             Text(
-                text = if (lastEntry != null) lastEntry.entryDate else "long press to log",
+                text = if (lastEntry != null) lastEntry.entryDate else "--",
                 style = MaterialTheme.typography.labelSmall,
                 color = KetoMuted,
                 fontSize = 10.sp
             )
-            if (lastEntry != null) {
-                Text(
-                    text = "long press to update",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = KetoMuted,
-                    fontSize = 9.sp
-                )
-            }
         }
     }
 }
