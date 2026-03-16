@@ -11,7 +11,6 @@ Current app progress already includes:
 - settings screen with theme picker
 - units & measurements settings
 - data export/import
-- sync section in Settings
 - keto entries and edit flow
 - exercise entries and edit flow
 - recipe library with categories
@@ -28,6 +27,13 @@ Current app progress already includes:
   - Email to myself
   - Cancel
 - Android toolchain upgraded for newer Health Connect support
+- Health Connect foundation:
+  - availability detection
+  - permission flow
+  - real sync status UI
+  - manual sync action
+  - last sync time / result state
+  - first usable Health Connect data import path
 
 ---
 
@@ -55,57 +61,16 @@ These are considered done and should not keep clogging the active list:
 - graph cards showing numeric values
 - export-method chooser before backup export
 - Android toolchain upgrade required for Health Connect support
+- Health Connect foundation
+- repurpose Sync section into real Health Sync behavior
 
 ---
 
 ## Highest priority
 
-### 1. Health Connect integration
-This is now the main real sync initiative on mobile.
-
-Goals:
-- add Health Connect as the primary meaningful sync layer on Android
-- build permissions flow
-- read compatible health/activity data into the app
-- keep imported health data clearly separate from manually entered data
-- make the current Sync section reflect real Health Connect state rather than placeholder behavior
-
-Initial target data:
-- steps
-- workouts/activity sessions
-- calories burned
-- heart rate
-- sleep
-- weight, if cleanly supported
-
-Rules:
-- keep this modular
-- do not hard-wire the whole system to one provider
-- Health Connect is mobile plumbing, not the entire health architecture
-
-### 2. Repurpose current Sync section into real health sync
-Current state:
-- sync UI exists in Settings
-- current status/message/manual sync behavior is placeholder-only
-
-Next step:
-- turn Sync into honest **Health Sync** behavior
-
-Planned behavior:
-- connection state
-- last successful sync time
-- sync message/error state
-- button behavior that actually means something:
-  - Connect
-  - Sync now
-  - Manage permissions
-
-Near-term rule:
-- do **not** prioritize mobile ↔ desktop Ember sync yet
-
-### 3. Daily Rhythm pacing foundation
+### 1. Smart Daily Rhythm pacing foundation
 Queue as:
-- **PR39 — Daily Rhythm pacing foundation**
+- **PR36 — Smart daily pacing foundation**
 
 Goal:
 Add time-aware expected-by-now pacing based on the user’s day structure so the app stops acting like they failed nutrition by 10 AM just because clocks exist.
@@ -130,9 +95,9 @@ Rules:
 - keep setup low-friction
 - do not turn it into a giant scheduling system in this PR
 
-### 4. Meal Timing windows foundation
+### 2. Meal Timing windows foundation
 Queue as:
-- **PR40 — Meal Timing windows (advanced / Pro-ready foundation)**
+- **PR36 — bundled into Smart daily pacing foundation**
 
 Goal:
 Add optional custom meal timing for users who want more precise pacing than Daily Rhythm alone.
@@ -145,15 +110,16 @@ Advanced behavior:
 - more exact expected-by-now pacing curves
 
 Rules:
-- this is a later follow-up to Daily Rhythm
-- structure it in a way that can support a Pro/premium feature later
-- do not block Daily Rhythm on this work
+- this is part of the same pacing system as Daily Rhythm
+- bundle it into the same PR rather than split into fake separate foundations
+- structure it so it can support a Pro/premium feature later
+- do not overcomplicate first-run setup
 
 ---
 
 ## Active polish backlog
 
-### 5. Recipe polish
+### 3. Recipe polish
 Core recipe functionality exists, so this is no longer “build recipes.”
 
 Focus now:
@@ -162,7 +128,7 @@ Focus now:
 - improve category/filter behavior only where it feels clunky
 - tighten recipe browsing/index flow if needed
 
-### 6. Exercise polish
+### 4. Exercise polish
 Core exercise functionality exists.
 
 Focus now:
@@ -172,7 +138,7 @@ Focus now:
 - improve quick logging speed/usability
 - clean up any awkward custom-category behavior
 
-### 7. Form UX polish
+### 5. Form UX polish
 Baseline forms exist and are usable, so this is polish, not greenfield work.
 
 Focus now:
@@ -181,16 +147,16 @@ Focus now:
 - verify scroll-to-error behavior is actually good in ugly real-world cases
 - remove any “nothing happened” moments
 
-### 8. Settings and personalization expansion
+### 6. Settings and personalization expansion
 Foundation exists already.
 
 Next work:
 - continue theme/personalization expansion
-- keep settings organized as new health/sync options are added
+- keep settings organized as new pacing/health options are added
 - avoid turning Settings into a junk drawer
 - continue visual cleanup to match intended dashboard style
 
-### 9. Dashboard / graph polish
+### 7. Dashboard / graph polish
 Graph system is already real and broad.
 
 Focus now:
@@ -200,7 +166,7 @@ Focus now:
 - keep visual hierarchy clean
 - refine labels/card consistency where needed
 
-### 10. Re-validate calorie behavior on device
+### 8. Re-validate calorie behavior on device
 Calorie behavior has already been reworked, but this still deserves real-device sanity checking.
 
 Focus:
@@ -212,7 +178,7 @@ Focus:
 
 ## Mobile architecture direction
 
-### 11. Mobile app remains a client, not the whole system
+### 9. Mobile app remains a client, not the whole system
 The Android app should be:
 - a practical front end
 - a fast daily-use control surface
@@ -223,14 +189,14 @@ It should not become:
 - the only way the user interacts with Ember
 - a giant pile of mixed UI/business logic sludge
 
-### 12. Preferred phased approach
+### 10. Preferred phased approach
 Saved longer-term direction:
 - Phase 1: Android client connected to current backend
 - Phase 2: local utility layer for time/reminders/log caching/offline queue
 - Phase 3: optional small offline local model fallback
 - Phase 4: fuller assistant/mobile integrations
 
-### 13. Cross-device Ember sync is later work
+### 11. Cross-device Ember sync is later work
 Keep this out of near-term mobile priorities for now.
 
 Not current priority:
@@ -238,7 +204,7 @@ Not current priority:
 - generalized cross-device Ember sync
 
 Reason:
-- Health Connect is the first meaningful sync target
+- Health Connect is now in place as the first meaningful sync target
 - backup/export handles portability for now
 - don’t build transport plumbing before the data story is mature
 
@@ -246,46 +212,43 @@ Reason:
 
 ## Workflow / process rules for mobile work
 
-### 14. One actionable step at a time
+### 12. One actionable step at a time
 - one step at a time unless no feedback is needed
 
-### 15. Build/version rule
+### 13. Build/version rule
 - app version = shared release line
 - build number = active PR number during pre-v1 work
-- example: PR35 uses version `0.2`, build `35`
+- example: PR36 uses version `0.2`, build `36`
 
-### 16. Real-device testing wins
+### 14. Real-device testing wins
 - device behavior overrides simulator assumptions
 - user testing feedback overrides “the code looks right”
 
-### 17. Keep fixes local when obvious
+### 15. Keep fixes local when obvious
 - for small obvious code fixes, fix directly instead of punting everything to Copilot
 
 ---
 
 ## Suggested build order now
 
-1. Add Health Connect integration groundwork
-2. Turn current Sync section into real Health Sync behavior
-3. Add Daily Rhythm pacing foundation
-4. Add Meal Timing windows foundation
-5. Continue recipe polish only where real use shows friction
-6. Continue exercise polish/category-management cleanup
-7. Continue form UX polish and validation clarity
-8. Continue settings/theme cleanup as health sync gets added
-9. Re-validate calorie behavior on device
-10. Continue graph/dashboard polish
-11. Reassess after real Health Connect work exists
+1. Add Smart Daily Pacing foundation
+2. Bundle optional Meal Timing windows into the same pacing system PR
+3. Continue recipe polish only where real use shows friction
+4. Continue exercise polish/category-management cleanup
+5. Continue form UX polish and validation clarity
+6. Continue settings/theme cleanup as pacing options get added
+7. Re-validate calorie behavior on device
+8. Continue graph/dashboard polish
+9. Reassess after real pacing behavior exists on device
 
 ---
 
 ## Short version
 
-- stop treating fake sync as a real feature
-- make Health Connect the primary real mobile sync target
-- keep cross-device Ember sync for later
-- export choice is already done: save locally or email backup to yourself
-- add Daily Rhythm as the smart default pacing model
-- add Meal Timing later as the advanced/pro-ready timing layer
-- treat recipes, exercise, forms, settings, and graphs as polish work now, not “build from scratch”
+- Health Connect foundation is done
+- real Health Sync behavior is done enough for now
+- next real priority is smart nutrition pacing
+- make Daily Rhythm the smart default pacing model
+- bundle optional Meal Timing into the same pacing-system PR
+- keep recipes, exercise, forms, settings, and graphs as polish work now, not rebuild work
 - keep the app as a client for Ember, not the whole damn system
