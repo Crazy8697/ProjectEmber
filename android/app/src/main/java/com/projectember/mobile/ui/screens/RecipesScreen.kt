@@ -169,21 +169,32 @@ fun RecipesScreen(
                 onLogServingsChange = { logServingsInput = it },
                 unitPrefs = unitPrefs,
                 onLogToKeto = {
-                    val consumed = logServingsInput.toDoubleOrNull()?.coerceAtLeast(0.1) ?: 1.0
-                    viewModel.logRecipeToKeto(
-                        recipe = recipe,
-                        servingsConsumed = consumed,
-                        onDone = {
-                            coroutineScope.launch {
-                                snackbarHostState.showSnackbar("\"${recipe.name}\" logged to Keto")
-                            }
-                        },
-                        onError = {
-                            coroutineScope.launch {
-                                snackbarHostState.showSnackbar("Failed to log recipe. Please try again.")
-                            }
+                    val consumed = logServingsInput.toDoubleOrNull()
+                    if (consumed == null || consumed <= 0.0) {
+                        coroutineScope.launch {
+                            snackbarHostState.showSnackbar("Enter a valid serving amount to log")
                         }
-                    )
+                    } else {
+                        viewModel.logRecipeToKeto(
+                            recipe = recipe,
+                            servingsConsumed = consumed,
+                            onDone = {
+                                coroutineScope.launch {
+                                    val servingLabel = if (consumed == consumed.toLong().toDouble())
+                                        consumed.toLong().toString()
+                                    else "%.1f".format(consumed)
+                                    snackbarHostState.showSnackbar(
+                                        "Logged $servingLabel serving${if (consumed != 1.0) "s" else ""} of \"${recipe.name}\""
+                                    )
+                                }
+                            },
+                            onError = {
+                                coroutineScope.launch {
+                                    snackbarHostState.showSnackbar("Failed to log recipe. Please try again.")
+                                }
+                            }
+                        )
+                    }
                 },
                 modifier = Modifier
                     .fillMaxSize()

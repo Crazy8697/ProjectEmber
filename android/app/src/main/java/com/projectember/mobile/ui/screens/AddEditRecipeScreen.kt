@@ -38,12 +38,14 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.projectember.mobile.ui.theme.KetoAccent
+import kotlinx.coroutines.launch
 
 private val CATEGORIES = AddEditRecipeViewModel.CATEGORIES
 
@@ -57,6 +59,8 @@ fun AddEditRecipeScreen(
     val foodSym = unitPrefs.foodWeightUnit.symbol
     val volSym  = unitPrefs.volumeUnit.symbol
     var showDeleteDialog by remember { mutableStateOf(false) }
+    val scrollState = rememberScrollState()
+    val coroutineScope = rememberCoroutineScope()
 
     if (showDeleteDialog) {
         AlertDialog(
@@ -106,7 +110,7 @@ fun AddEditRecipeScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
                 .padding(horizontal = 16.dp)
-                .verticalScroll(rememberScrollState()),
+                .verticalScroll(scrollState),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Spacer(modifier = Modifier.height(4.dp))
@@ -253,7 +257,7 @@ fun AddEditRecipeScreen(
 
             // ── Extended Nutrition ───────────────────────────────────────────
             Text(
-                text = "Minerals & Hydration (per serving)",
+                text = "Minerals & Hydration (total recipe)",
                 style = MaterialTheme.typography.labelLarge
             )
             Row(
@@ -361,7 +365,14 @@ fun AddEditRecipeScreen(
 
             // ── Save / Delete ────────────────────────────────────────────────
             Button(
-                onClick = { viewModel.save(onSuccess = onNavigateBack) },
+                onClick = {
+                    viewModel.save(
+                        onSuccess = onNavigateBack,
+                        onValidationFailed = {
+                            coroutineScope.launch { scrollState.animateScrollTo(0) }
+                        }
+                    )
+                },
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(if (viewModel.isEditMode) "Save Changes" else "Save Recipe")
