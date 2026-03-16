@@ -12,7 +12,7 @@ android {
         applicationId = "com.projectember.mobile"
         minSdk = 26
         targetSdk = 34
-        versionCode = 32
+        versionCode = 33
         versionName = "0.2"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -69,6 +69,8 @@ dependencies {
     ksp(libs.androidx.room.compiler)
 
     implementation(libs.kotlinx.coroutines.android)
+
+    implementation("androidx.health.connect:connect-client:1.1.0-rc01")
 
     implementation(libs.retrofit)
     implementation(libs.retrofit.moshi)

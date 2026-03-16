@@ -236,6 +236,7 @@ fun EmberNavGraph(
                 factory = SettingsViewModelFactory(
                     app.syncRepository,
                     app.syncManager,
+                    app.healthConnectManager,
                     app.backupManager,
                     app.themePreferencesStore,
                     app.unitsPreferencesStore

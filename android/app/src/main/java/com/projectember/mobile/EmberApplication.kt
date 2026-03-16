@@ -14,6 +14,7 @@ import com.projectember.mobile.data.repository.KetoRepository
 import com.projectember.mobile.data.repository.RecipeRepository
 import com.projectember.mobile.data.repository.SyncRepository
 import com.projectember.mobile.data.repository.WeightRepository
+import com.projectember.mobile.sync.HealthConnectManager
 import com.projectember.mobile.sync.SyncManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -31,11 +32,21 @@ class EmberApplication : Application() {
     val weightRepository by lazy { WeightRepository(database.weightDao()) }
     val recipeRepository by lazy { RecipeRepository(database.recipeDao()) }
     val syncRepository by lazy { SyncRepository(database.syncStatusDao()) }
-    val syncManager by lazy { SyncManager(syncRepository) }
     val exerciseCategoryRepository by lazy { ExerciseCategoryRepository(database.exerciseCategoryDao()) }
     val exerciseRepository by lazy { ExerciseRepository(database.exerciseEntryDao()) }
     val themePreferencesStore by lazy { ThemePreferencesStore(this) }
     val unitsPreferencesStore by lazy { UnitsPreferencesStore(this) }
+
+    val healthConnectManager by lazy {
+        HealthConnectManager(
+            context = applicationContext,
+            weightRepository = weightRepository,
+            exerciseRepository = exerciseRepository,
+            exerciseCategoryRepository = exerciseCategoryRepository,
+        )
+    }
+
+    val syncManager by lazy { SyncManager(syncRepository, healthConnectManager) }
 
     val backupManager by lazy {
         BackupManager(

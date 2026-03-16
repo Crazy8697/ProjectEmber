@@ -6,5 +6,6 @@ import kotlinx.coroutines.flow.Flow
 
 class SyncRepository(private val syncStatusDao: SyncStatusDao) {
     fun getSyncStatus(): Flow<SyncStatus?> = syncStatusDao.getSyncStatus()
+    suspend fun getSyncStatusOnce(): SyncStatus? = syncStatusDao.getSyncStatusOnce()
     suspend fun updateSyncStatus(status: SyncStatus) = syncStatusDao.upsert(status)
 }

@@ -1,6 +1,7 @@
 package com.projectember.mobile.ui.screens
 
 import android.content.Intent
+import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -17,7 +18,11 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.CloudOff
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Sync
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -32,6 +37,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
@@ -56,10 +62,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
+import androidx.health.connect.client.PermissionController
 import com.projectember.mobile.BuildConfig
 import com.projectember.mobile.data.local.FoodWeightUnit
 import com.projectember.mobile.data.local.VolumeUnit
 import com.projectember.mobile.data.local.WeightUnit
+import com.projectember.mobile.sync.HealthConnectAvailability
+import com.projectember.mobile.sync.HealthConnectManager
 import com.projectember.mobile.ui.theme.ThemeOption
 import java.io.File
 
@@ -71,6 +80,7 @@ fun SettingsScreen(
 ) {
     val syncStatus by viewModel.syncStatus.collectAsState()
     val isSyncing by viewModel.isSyncing.collectAsState()
+    val healthConnectState by viewModel.healthConnectState.collectAsState()
     val exportState by viewModel.exportState.collectAsState()
     val importState by viewModel.importState.collectAsState()
     val pendingImport by viewModel.pendingImport.collectAsState()
@@ -89,6 +99,18 @@ fun SettingsScreen(
     var showExportChooser by remember { mutableStateOf(false) }
 
     val snackbarHostState = remember { SnackbarHostState() }
+
+    // ── Health Connect permission launcher ────────────────────────────────────
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = PermissionController.createRequestPermissionResultContract()
+    ) { grantedPermissions ->
+        viewModel.onPermissionsResult(grantedPermissions)
+    }
+
+    // ── Check HC status on screen entry ──────────────────────────────────────
+    LaunchedEffect(Unit) {
+        viewModel.checkHealthConnectStatus()
+    }
 
     // ── Snackbar feedback for export ─────────────────────────────────────────
     LaunchedEffect(exportState) {
@@ -387,50 +409,38 @@ fun SettingsScreen(
                 }
             }
 
-            // ── Sync ────────────────────────────────────────────────────────
-            SettingsSection(title = "Sync") {
-                val statusText = when {
-                    isSyncing -> "Syncing..."
-                    syncStatus?.status == "success" -> "✅ Synced"
-                    syncStatus?.status == "error" -> "❌ Sync error"
-                    else -> "⏳ Never synced"
-                }
-
-                SettingsRow(label = "Sync Status", value = statusText)
-
-                syncStatus?.lastSyncTime?.let { time ->
-                    SettingsRow(label = "Last Sync Time", value = time)
-                } ?: SettingsRow(label = "Last Sync Time", value = "—")
-
-                syncStatus?.message?.let { msg ->
-                    SettingsRow(label = "Message", value = msg)
-                }
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                Button(
-                    onClick = { viewModel.triggerSync() },
-                    enabled = !isSyncing,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    if (isSyncing) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(16.dp),
-                            strokeWidth = 2.dp,
-                            color = MaterialTheme.colorScheme.onPrimary
+            // ── Health Connect Sync ─────────────────────────────────────────
+            SettingsSection(title = "Health Connect Sync") {
+                HealthConnectSyncSection(
+                    hcState = healthConnectState,
+                    syncStatus = syncStatus,
+                    isSyncing = isSyncing,
+                    onGrantPermissions = {
+                        permissionLauncher.launch(HealthConnectManager.REQUIRED_PERMISSIONS)
+                    },
+                    onOpenHealthConnect = {
+                        val settingsIntent = Intent().apply {
+                            action = "androidx.health.ACTION_HEALTH_CONNECT_SETTINGS"
+                        }
+                        runCatching { context.startActivity(settingsIntent) }
+                    },
+                    onInstallHealthConnect = {
+                        val playStoreIntent = Intent(
+                            Intent.ACTION_VIEW,
+                            Uri.parse("market://details?id=com.google.android.apps.healthdata")
                         )
-                    } else {
-                        Icon(
-                            imageVector = Icons.Default.Sync,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
-                    Text(
-                        text = if (isSyncing) "  Syncing..." else "  Manual Sync",
-                        modifier = Modifier.padding(start = 4.dp)
-                    )
-                }
+                        runCatching { context.startActivity(playStoreIntent) }.onFailure {
+                            // Fallback to browser if Play Store not available
+                            context.startActivity(
+                                Intent(
+                                    Intent.ACTION_VIEW,
+                                    Uri.parse("https://play.google.com/store/apps/details?id=com.google.android.apps.healthdata")
+                                )
+                            )
+                        }
+                    },
+                    onSync = { viewModel.triggerSync() },
+                )
             }
 
             // ── Account ─────────────────────────────────────────────────────
@@ -596,6 +606,214 @@ fun SettingsScreen(
                 }
             }
         )
+    }
+}
+
+// ── Health Connect Sync section ───────────────────────────────────────────────
+
+@Composable
+private fun HealthConnectSyncSection(
+    hcState: com.projectember.mobile.sync.HealthConnectUiState,
+    syncStatus: com.projectember.mobile.data.local.entities.SyncStatus?,
+    isSyncing: Boolean,
+    onGrantPermissions: () -> Unit,
+    onOpenHealthConnect: () -> Unit,
+    onInstallHealthConnect: () -> Unit,
+    onSync: () -> Unit,
+) {
+    when (hcState.availability) {
+        HealthConnectAvailability.CHECKING -> {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                Text(
+                    text = "Checking Health Connect…",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+
+        HealthConnectAvailability.NOT_SUPPORTED -> {
+            HcStatusRow(
+                icon = {
+                    Icon(
+                        imageVector = Icons.Default.CloudOff,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(20.dp),
+                    )
+                },
+                label = "Not supported",
+                description = "Health Connect is not supported on this device.",
+            )
+        }
+
+        HealthConnectAvailability.NOT_INSTALLED -> {
+            HcStatusRow(
+                icon = {
+                    Icon(
+                        imageVector = Icons.Default.Warning,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.tertiary,
+                        modifier = Modifier.size(20.dp),
+                    )
+                },
+                label = "Health Connect not installed",
+                description = "Install Health Connect to enable health data sync.",
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            OutlinedButton(
+                onClick = onInstallHealthConnect,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text("Install Health Connect")
+            }
+        }
+
+        HealthConnectAvailability.AVAILABLE -> {
+            if (!hcState.permissionsGranted) {
+                // ── Permissions required ──────────────────────────────────
+                HcStatusRow(
+                    icon = {
+                        Icon(
+                            imageVector = Icons.Default.Lock,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.tertiary,
+                            modifier = Modifier.size(20.dp),
+                        )
+                    },
+                    label = "Permissions required",
+                    description = "Grant Health Connect permissions to enable sync.",
+                )
+                hcState.errorMessage?.let { err ->
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = err,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.padding(start = 4.dp),
+                    )
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                Button(
+                    onClick = onGrantPermissions,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Favorite,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Text("  Grant Permissions", modifier = Modifier.padding(start = 4.dp))
+                }
+            } else {
+                // ── Ready / sync status ───────────────────────────────────
+                val statusText = when {
+                    isSyncing -> "⏳ Syncing…"
+                    syncStatus?.status == "success" -> "✅ Synced"
+                    syncStatus?.status == "error" -> "❌ Sync error"
+                    else -> "⏸ Ready to sync"
+                }
+                HcStatusRow(
+                    icon = {
+                        Icon(
+                            imageVector = Icons.Default.Favorite,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp),
+                        )
+                    },
+                    label = "Health Connect",
+                    description = statusText,
+                )
+
+                syncStatus?.lastSyncTime?.let { time ->
+                    SettingsRow(label = "Last sync", value = time)
+                }
+
+                syncStatus?.message?.takeIf { it.isNotBlank() }?.let { msg ->
+                    SettingsRow(label = "Result", value = msg)
+                }
+
+                if (syncStatus?.status == "error") {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = syncStatus.message ?: "An error occurred during sync.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.padding(start = 4.dp),
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Button(
+                    onClick = onSync,
+                    enabled = !isSyncing,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    if (isSyncing) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.onPrimary,
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Icons.Default.Sync,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                        )
+                    }
+                    Text(
+                        text = if (isSyncing) "  Syncing…" else "  Sync Now",
+                        modifier = Modifier.padding(start = 4.dp),
+                    )
+                }
+                OutlinedButton(
+                    onClick = onOpenHealthConnect,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text("Open Health Connect")
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun HcStatusRow(
+    icon: @Composable () -> Unit,
+    label: String,
+    description: String,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        icon()
+        Column {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                text = description,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 }
 

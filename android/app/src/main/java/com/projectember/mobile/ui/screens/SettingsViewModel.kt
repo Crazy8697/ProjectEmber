@@ -14,7 +14,11 @@ import com.projectember.mobile.data.local.VolumeUnit
 import com.projectember.mobile.data.local.WeightUnit
 import com.projectember.mobile.data.local.entities.SyncStatus
 import com.projectember.mobile.data.repository.SyncRepository
+import com.projectember.mobile.sync.HealthConnectAvailability
+import com.projectember.mobile.sync.HealthConnectManager
+import com.projectember.mobile.sync.HealthConnectUiState
 import com.projectember.mobile.sync.SyncManager
+import androidx.health.connect.client.HealthConnectClient as HCClient
 import com.projectember.mobile.ui.theme.ThemeOption
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -34,10 +38,49 @@ sealed class BackupOpState {
 class SettingsViewModel(
     private val syncRepository: SyncRepository,
     private val syncManager: SyncManager,
+    private val healthConnectManager: HealthConnectManager,
     private val backupManager: BackupManager,
     private val themePreferencesStore: ThemePreferencesStore,
     private val unitsPreferencesStore: UnitsPreferencesStore
 ) : ViewModel() {
+
+    // ── Health Connect state ──────────────────────────────────────────────────
+
+    private val _healthConnectState = MutableStateFlow(
+        HealthConnectUiState(requiredPermissions = HealthConnectManager.REQUIRED_PERMISSIONS)
+    )
+    val healthConnectState: StateFlow<HealthConnectUiState> = _healthConnectState.asStateFlow()
+
+    /** Call when the Settings screen becomes visible to refresh HC availability/permission state. */
+    fun checkHealthConnectStatus() {
+        viewModelScope.launch {
+            val sdkStatus = healthConnectManager.getSdkStatus()
+            val availability = when (sdkStatus) {
+                HCClient.SDK_AVAILABLE -> HealthConnectAvailability.AVAILABLE
+                HCClient.SDK_UNAVAILABLE_PROVIDER_UPDATE_REQUIRED ->
+                    HealthConnectAvailability.NOT_INSTALLED
+                else -> HealthConnectAvailability.NOT_SUPPORTED
+            }
+            val permissionsGranted = if (availability == HealthConnectAvailability.AVAILABLE) {
+                runCatching { healthConnectManager.hasAllPermissions() }.getOrElse { false }
+            } else {
+                false
+            }
+            _healthConnectState.value = _healthConnectState.value.copy(
+                availability = availability,
+                permissionsGranted = permissionsGranted,
+            )
+        }
+    }
+
+    /** Called by the screen after the system permission dialog closes. */
+    fun onPermissionsResult(grantedPermissions: Set<String>) {
+        val allGranted = grantedPermissions.containsAll(HealthConnectManager.REQUIRED_PERMISSIONS)
+        _healthConnectState.value = _healthConnectState.value.copy(
+            permissionsGranted = allGranted,
+            errorMessage = if (!allGranted) "Some permissions were not granted." else null,
+        )
+    }
 
     // ── Sync ──────────────────────────────────────────────────────────────────
 
@@ -56,8 +99,18 @@ class SettingsViewModel(
         if (_isSyncing.value) return
         viewModelScope.launch {
             _isSyncing.value = true
-            syncManager.triggerManualSync()
-            _isSyncing.value = false
+            _healthConnectState.value = _healthConnectState.value.copy(
+                syncing = true,
+                errorMessage = null,
+            )
+            try {
+                syncManager.triggerManualSync()
+            } finally {
+                _isSyncing.value = false
+                _healthConnectState.value = _healthConnectState.value.copy(syncing = false)
+            }
+            // Refresh permissions/availability after sync attempt
+            checkHealthConnectStatus()
         }
     }
 
@@ -213,6 +266,7 @@ class SettingsViewModel(
 class SettingsViewModelFactory(
     private val syncRepository: SyncRepository,
     private val syncManager: SyncManager,
+    private val healthConnectManager: HealthConnectManager,
     private val backupManager: BackupManager,
     private val themePreferencesStore: ThemePreferencesStore,
     private val unitsPreferencesStore: UnitsPreferencesStore
@@ -222,6 +276,7 @@ class SettingsViewModelFactory(
         SettingsViewModel(
             syncRepository,
             syncManager,
+            healthConnectManager,
             backupManager,
             themePreferencesStore,
             unitsPreferencesStore
