@@ -16,6 +16,9 @@ class ExerciseRepository(private val dao: ExerciseEntryDao) {
 
     suspend fun getAllOnce(): List<ExerciseEntry> = dao.getAllOnce()
 
+    /** Returns set of timestamps for entries previously imported from Health Connect. */
+    suspend fun getImportedTimestamps(): Set<String> = dao.getImportedTimestamps().toSet()
+
     suspend fun replaceAll(entries: List<ExerciseEntry>) {
         dao.deleteAll()
         dao.insertAll(entries)

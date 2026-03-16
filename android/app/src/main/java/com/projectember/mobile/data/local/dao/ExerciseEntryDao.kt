@@ -43,6 +43,10 @@ interface ExerciseEntryDao {
     @Query("SELECT * FROM exercise_entries ORDER BY timestamp DESC")
     suspend fun getAllOnce(): List<ExerciseEntry>
 
+    /** Returns all timestamps for entries imported from Health Connect (notes = 'Imported from Health Connect'). */
+    @Query("SELECT timestamp FROM exercise_entries WHERE notes = 'Imported from Health Connect'")
+    suspend fun getImportedTimestamps(): List<String>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(entries: List<ExerciseEntry>)
 }

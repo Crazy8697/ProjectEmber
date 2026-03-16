@@ -13,6 +13,7 @@ import com.projectember.mobile.data.local.entities.WeightEntry
 import com.projectember.mobile.data.repository.ExerciseCategoryRepository
 import com.projectember.mobile.data.repository.ExerciseRepository
 import com.projectember.mobile.data.repository.WeightRepository
+import java.time.Duration
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId
@@ -89,7 +90,7 @@ class HealthConnectManager(
         val startTime = resolveStartTime(sinceTime, endTime)
 
         var stepsTotal = 0L
-        var weightImported = 0
+        var weightRecordsProcessed = 0
         var exerciseImported = 0
         val errors = mutableListOf<String>()
 
@@ -120,7 +121,7 @@ class HealthConnectManager(
                 weightRepository.upsertForDate(
                     WeightEntry(entryDate = date, weightKg = record.weight.inKilograms)
                 )
-                weightImported++
+                weightRecordsProcessed++
             }
         } catch (e: Exception) {
             errors.add("Weight: ${e.message ?: "read failed"}")
@@ -129,6 +130,7 @@ class HealthConnectManager(
         // ── Exercise sessions → Room exercise_entries ─────────────────────────
         try {
             val categories = exerciseCategoryRepository.getAllCategoriesOnce()
+            val existingTimestamps = exerciseRepository.getImportedTimestamps()
             val exerciseResp = client.readRecords(
                 ReadRecordsRequest(
                     recordType = ExerciseSessionRecord::class,
@@ -138,7 +140,14 @@ class HealthConnectManager(
             val zone = ZoneId.systemDefault()
             for (record in exerciseResp.records) {
                 val localStart = record.startTime.atZone(zone).toLocalDateTime()
-                val durationMin = ((record.endTime.epochSecond - record.startTime.epochSecond) / 60).toInt()
+                val timestamp = localStart.format(DATETIME_FMT)
+                // Skip sessions that were already imported in a previous sync
+                if (existingTimestamps.contains(timestamp)) continue
+
+                val durationMin = Duration.between(record.startTime, record.endTime)
+                    .toMinutes()
+                    .coerceAtLeast(0L)
+                    .toInt()
                 val typeName = exerciseTypeName(record.exerciseType)
                 val categoryName = exerciseTypeCategory(record.exerciseType)
                 val categoryId = categories.firstOrNull {
@@ -151,7 +160,7 @@ class HealthConnectManager(
                     ExerciseEntry(
                         entryDate = localStart.toLocalDate().format(DATE_FMT),
                         entryTime = localStart.format(TIME_FMT),
-                        timestamp = localStart.format(DATETIME_FMT),
+                        timestamp = timestamp,
                         type = typeName,
                         subtype = null,
                         categoryId = categoryId,
@@ -168,7 +177,7 @@ class HealthConnectManager(
 
         return HealthSyncImportResult(
             stepsLast30Days = stepsTotal,
-            weightEntriesImported = weightImported,
+            weightEntriesImported = weightRecordsProcessed,
             exerciseSessionsImported = exerciseImported,
             errors = errors,
         )

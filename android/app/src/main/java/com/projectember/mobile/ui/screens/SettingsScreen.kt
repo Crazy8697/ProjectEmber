@@ -737,10 +737,6 @@ private fun HealthConnectSyncSection(
                     SettingsRow(label = "Last sync", value = time)
                 }
 
-                syncStatus?.message?.takeIf { it.isNotBlank() }?.let { msg ->
-                    SettingsRow(label = "Result", value = msg)
-                }
-
                 if (syncStatus?.status == "error") {
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
@@ -749,6 +745,10 @@ private fun HealthConnectSyncSection(
                         color = MaterialTheme.colorScheme.error,
                         modifier = Modifier.padding(start = 4.dp),
                     )
+                } else {
+                    syncStatus?.message?.takeIf { it.isNotBlank() }?.let { msg ->
+                        SettingsRow(label = "Result", value = msg)
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(12.dp))
