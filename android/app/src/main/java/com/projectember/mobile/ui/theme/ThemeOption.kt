@@ -4,5 +4,10 @@ package com.projectember.mobile.ui.theme
 enum class ThemeOption(val displayName: String) {
     EMBER_DARK("Ember Dark"),
     MIDNIGHT("Midnight Blue"),
-    FOREST("Forest Dark")
+    FOREST("Forest Dark"),
+    SLATE("Slate"),
+    CRIMSON("Crimson"),
+    DUSK("Dusk"),
+    ARCTIC("Arctic"),
+    ABYSS("Abyss")
 }
