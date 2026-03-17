@@ -1,6 +1,6 @@
 # Project Ember Mobile Worklist
 
-_Date: 2026-03-16_
+_Date: 2026-03-17_
 
 ## Mobile scope
 
@@ -46,29 +46,18 @@ Current app progress already includes:
   - manual health metric entry/edit behavior
   - health metric trends/history
   - imported Health Connect history for supported health metrics
+- trend-system unification and metric-detail improvements:
+  - Keto metrics now use dedicated per-metric trend screens
+  - graph → history → edit flow is unified more consistently across supported metric families
+  - metric history `+` flow now uses the correct metric-specific manual-entry path
+  - semantic graph colors applied by metric family
+  - Health imported history behavior remains intact after trend-system cleanup
 
 ---
 
 ## Highest priority
 
-### 1. Trend-system unification and metric-detail polish
-The app now has a mix of older and newer trend/history flows. This needs to become one clean system.
-
-Focus now:
-- bring Keto metrics fully onto the newer dedicated per-metric trend screen model
-- standardize graph → history → edit behavior across Keto, Health, and Exercise where supported
-- keep manual Ember values taking display priority over imported values where applicable
-- clean up the metric-history `+` flow so all supported metrics use the correct metric-specific manual-entry popup/sheet
-- preserve working history screens without redesigning them unnecessarily
-- apply semantic graph colors by metric family
-- improve trend/date UX without introducing yet another trend architecture
-
-Current follow-up notes:
-- Weight history `+` popup was fixed, but the generalized metric-history add flow still needs to be made consistent
-- do not let follow-up fixes rewrite or destabilize existing history screen behavior
-- future PR note: in-app Settings version/build display may be stale or reading the wrong source and needs verification
-
-### 2. Recipe polish and real-device flow cleanup
+### 1. Recipe polish and real-device flow cleanup
 Core recipe functionality exists, so this is no longer “build recipes.”
 
 Focus now:
@@ -78,7 +67,7 @@ Focus now:
 - tighten recipe browsing/index flow if needed
 - identify any friction in servings-based recipe logging
 
-### 3. Exercise polish
+### 2. Exercise polish
 Core exercise functionality exists.
 
 Focus now:
@@ -88,7 +77,7 @@ Focus now:
 - improve quick logging speed/usability
 - clean up any awkward custom-category behavior
 
-### 4. Form UX polish
+### 3. Form UX polish
 Baseline forms exist and are usable, so this is polish, not greenfield work.
 
 Focus now:
@@ -97,7 +86,7 @@ Focus now:
 - verify scroll-to-error behavior is actually good in ugly real-world cases
 - remove any “nothing happened” moments
 
-### 5. Settings and personalization expansion
+### 4. Settings and personalization expansion
 Foundation exists already.
 
 Next work:
@@ -105,8 +94,9 @@ Next work:
 - keep settings organized as new pacing/health options are added
 - avoid turning Settings into a junk drawer
 - continue visual cleanup to match intended dashboard style
+- verify the Settings version/build display reads live app metadata rather than stale constants or outdated values
 
-### 6. Dashboard / graph polish
+### 5. Dashboard / graph polish
 Graph system is already real and broad.
 
 Focus now:
@@ -116,7 +106,7 @@ Focus now:
 - keep visual hierarchy clean
 - refine labels/card consistency where needed
 
-### 7. Re-validate calorie behavior on device
+### 6. Re-validate calorie behavior on device
 Calorie behavior has been reworked across the app, but still deserves real-device sanity checking.
 
 Focus:
@@ -129,7 +119,7 @@ Focus:
 
 ## Mobile architecture direction
 
-### 8. Mobile app remains a client, not the whole system
+### 7. Mobile app remains a client, not the whole system
 The Android app should be:
 - a practical front end
 - a fast daily-use control surface
@@ -140,14 +130,14 @@ It should not become:
 - the only way the user interacts with Ember
 - a giant pile of mixed UI/business logic sludge
 
-### 9. Preferred phased approach
+### 8. Preferred phased approach
 Saved longer-term direction:
 - Phase 1: Android client connected to current backend
 - Phase 2: local utility layer for time/reminders/log caching/offline queue
 - Phase 3: optional small offline local model fallback
 - Phase 4: fuller assistant/mobile integrations
 
-### 10. Cross-device Ember sync is later work
+### 9. Cross-device Ember sync is later work
 Keep this out of near-term mobile priorities for now.
 
 Not current priority:
@@ -163,32 +153,32 @@ Reason:
 
 ## Workflow / process rules for mobile work
 
-### 11. One actionable step at a time
+### 10. One actionable step at a time
 - one step at a time unless no feedback is needed
 
-### 12. Build/version rule
+### 11. Build/version rule
 - app version = shared release line
 - build number = active PR number during pre-v1 work
 - example: PR40 should use version `0.3`, build `40`
 
-### 13. Real-device testing wins
+### 12. Real-device testing wins
 - device behavior overrides simulator assumptions
 - user testing feedback overrides “the code looks right”
 
-### 14. Keep fixes local when obvious
+### 13. Keep fixes local when obvious
 - for small obvious code fixes, fix directly instead of punting everything to Copilot
 
 ---
 
 ## Suggested build order now
 
-1. Trend-system unification and metric-detail polish
-2. Recipe polish and real-device recipe flow cleanup
-3. Exercise polish/category-management cleanup
-4. Continue form UX polish and validation clarity
-5. Continue settings/theme cleanup as pacing and health options expand
-6. Re-validate calorie behavior on device
-7. Continue graph/dashboard polish
+1. Recipe polish and real-device recipe flow cleanup
+2. Exercise polish/category-management cleanup
+3. Continue form UX polish and validation clarity
+4. Continue settings/theme cleanup as pacing and health options expand
+5. Re-validate calorie behavior on device
+6. Continue graph/dashboard polish
+7. Verify/fix Settings version-build display
 8. Reassess after more real-device usage
 
 ---
@@ -228,6 +218,11 @@ These are considered done enough and should stay out of the active priority list
 - Daily Rhythm settings
 - optional Meal Timing settings
 - pacing-aware Home status feedback
+- trend-system unification and metric-detail polish
+- dedicated Keto metric trend screens
+- consistent graph/history/edit flow across supported metric screens
+- metric-specific history `+` add flow
+- semantic graph color polish by metric family
 
 ---
 
@@ -236,8 +231,10 @@ These are considered done enough and should stay out of the active priority list
 - Health Connect foundation is done
 - Smart Daily Pacing foundation is done
 - Health metric import/history foundation is done
+- trend-system unification is done enough for merge
 - Home now shows pacing truth
 - Keto now shows full-day target truth
-- next work is trend-system unification plus polish and real-device cleanup across recipes, exercise, forms, settings, and graphs
+- next work is polish and real-device cleanup across recipes, exercise, forms, settings, and graphs
+- Settings version/build display needs follow-up verification
 - keep cross-device Ember sync for later
 - keep the app as a client for Ember, not the whole damn system
