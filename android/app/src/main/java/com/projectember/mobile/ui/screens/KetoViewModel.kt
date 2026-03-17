@@ -135,6 +135,13 @@ class KetoViewModel(
         }
     }
 
+    fun logWeightForDate(weightKg: Double, date: String) {
+        if (weightKg <= 0 || date.isBlank()) return
+        viewModelScope.launch(Dispatchers.IO) {
+            weightRepository.upsertForDate(WeightEntry(entryDate = date, weightKg = weightKg))
+        }
+    }
+
     // ── Trends controls ──────────────────────────────────────────────────────
     private val _trendsMetric = MutableStateFlow("calories")
     val trendsMetric: StateFlow<String> = _trendsMetric.asStateFlow()

@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -15,6 +16,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -96,6 +98,9 @@ fun KetoTrendsScreen(
 
     var showFromPicker by remember { mutableStateOf(false) }
     var showToPicker   by remember { mutableStateOf(false) }
+
+    // Weight entry dialog state (used when trendsMetric == "weight" and showHistory == true)
+    var showAddWeightDialog by remember { mutableStateOf(false) }
 
     val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
 
@@ -191,6 +196,89 @@ fun KetoTrendsScreen(
 
     val metricLabel = METRIC_OPTIONS.firstOrNull { it.first == trendsMetric }?.third ?: trendsMetric
 
+    // Weight entry dialog — only shown when trendsMetric == "weight"
+    if (showAddWeightDialog) {
+        var weightInput by remember { mutableStateOf("") }
+        var weightError by remember { mutableStateOf(false) }
+        var entryDate by remember { mutableStateOf(LocalDate.now().format(dateFormatter)) }
+        var showEntryDatePicker by remember { mutableStateOf(false) }
+
+        if (showEntryDatePicker) {
+            val initMillis = try {
+                LocalDate.parse(entryDate, dateFormatter).toEpochDay() * 86_400_000L
+            } catch (_: Exception) { System.currentTimeMillis() }
+            val datePickerState = rememberDatePickerState(initialSelectedDateMillis = initMillis)
+            DatePickerDialog(
+                onDismissRequest = { showEntryDatePicker = false },
+                confirmButton = {
+                    TextButton(onClick = {
+                        showEntryDatePicker = false
+                        datePickerState.selectedDateMillis?.let { millis ->
+                            entryDate = LocalDate.ofEpochDay(millis / 86_400_000L).format(dateFormatter)
+                        }
+                    }) { Text("OK") }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showEntryDatePicker = false }) { Text("Cancel") }
+                }
+            ) { DatePicker(state = datePickerState) }
+        }
+
+        AlertDialog(
+            onDismissRequest = {
+                showAddWeightDialog = false
+                weightInput = ""
+                weightError = false
+            },
+            title = { Text("Log Weight") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedButton(
+                        onClick = { showEntryDatePicker = true },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Date: $entryDate")
+                    }
+                    OutlinedTextField(
+                        value = weightInput,
+                        onValueChange = {
+                            weightInput = it
+                            weightError = false
+                        },
+                        label = { Text("Weight (${weightUnit.symbol})") },
+                        isError = weightError,
+                        supportingText = if (weightError) {
+                            { Text("Enter a valid weight greater than 0") }
+                        } else null,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    val value = weightInput.toDoubleOrNull()
+                    if (value != null && value > 0) {
+                        viewModel.logWeightForDate(weightUnit.toKg(value), entryDate)
+                        showAddWeightDialog = false
+                        weightInput = ""
+                        weightError = false
+                    } else {
+                        weightError = true
+                    }
+                }) { Text("Save") }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    showAddWeightDialog = false
+                    weightInput = ""
+                    weightError = false
+                }) { Text("Cancel") }
+            }
+        )
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -227,7 +315,12 @@ fun KetoTrendsScreen(
         },
         floatingActionButton = {
             if (showHistory) {
-                FloatingActionButton(onClick = onNavigateToAddEntry) {
+                FloatingActionButton(
+                    onClick = {
+                        if (trendsMetric == "weight") showAddWeightDialog = true
+                        else onNavigateToAddEntry()
+                    }
+                ) {
                     Icon(Icons.Default.Add, contentDescription = "Add entry")
                 }
             }
