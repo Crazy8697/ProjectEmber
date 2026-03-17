@@ -232,6 +232,16 @@ private fun HealthMetricGraphContent(
     onShowFromPicker: () -> Unit,
     onShowToPicker: () -> Unit,
 ) {
+    // displayEntries is the actual list plotted by MetricTrendChart (last 30 entries).
+    // selectedChartIndex keys on displayEntries so it resets whenever the plotted set changes,
+    // preventing a stale index from pointing to the wrong data point.
+    val displayEntries = remember(graphEntries) { graphEntries.takeLast(30) }
+    var selectedChartIndex by remember(displayEntries) { mutableStateOf<Int?>(null) }
+    val selectedEntry: ManualHealthEntry? = selectedChartIndex?.let { displayEntries.getOrNull(it) }
+    // The entry shown in the LATEST card: selected point when active, latest otherwise
+    val displayedEntry: ManualHealthEntry? = selectedEntry ?: latestEntry
+    val cardLabel = if (selectedEntry != null) "SELECTED" else "LATEST"
+
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -252,26 +262,26 @@ private fun HealthMetricGraphContent(
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
-                        text = "LATEST",
+                        text = cardLabel,
                         style = MaterialTheme.typography.labelSmall,
                         color = OnSurfaceVariant,
                         letterSpacing = 0.8.sp
                     )
                     Spacer(modifier = Modifier.height(6.dp))
-                    if (latestEntry != null) {
+                    if (displayedEntry != null) {
                         Text(
-                            text = formatEntryValue(metric, latestEntry),
+                            text = formatEntryValue(metric, displayedEntry),
                             style = MaterialTheme.typography.headlineSmall,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary
                         )
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
-                            text = "${latestEntry.entryDate}  ${latestEntry.entryTime}",
+                            text = "${displayedEntry.entryDate}  ${displayedEntry.entryTime}",
                             style = MaterialTheme.typography.bodySmall,
                             color = OnSurfaceVariant
                         )
-                        val sourceLabel = if (latestEntry.source == ManualHealthEntry.SOURCE_MANUAL)
+                        val sourceLabel = if (displayedEntry.source == ManualHealthEntry.SOURCE_MANUAL)
                             "Manual · Ember only" else "Health Connect"
                         Text(
                             text = sourceLabel,
@@ -368,7 +378,14 @@ private fun HealthMetricGraphContent(
             MetricTrendChart(
                 metric = metric,
                 graphEntries = graphEntries,
-                hcLoadState = hcLoadState
+                hcLoadState = hcLoadState,
+                selectedIndex = selectedChartIndex,
+                onIndexSelected = { tappedIdx ->
+                    // Toggle: tapping the already-selected point deselects it
+                    selectedChartIndex =
+                        if (tappedIdx != null && tappedIdx == selectedChartIndex) null
+                        else tappedIdx
+                },
             )
         }
 
@@ -381,6 +398,8 @@ private fun MetricTrendChart(
     metric: HealthMetric,
     graphEntries: List<ManualHealthEntry>,
     hcLoadState: HcLoadState = HcLoadState.Done,
+    selectedIndex: Int? = null,
+    onIndexSelected: ((Int?) -> Unit)? = null,
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -433,6 +452,8 @@ private fun MetricTrendChart(
                     showArea = false,
                     showYAxis = true,
                     showXLabels = true,
+                    selectedIndex = selectedIndex,
+                    onIndexSelected = onIndexSelected,
                 )
 
                 Spacer(modifier = Modifier.height(4.dp))

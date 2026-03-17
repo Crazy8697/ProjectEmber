@@ -1,6 +1,7 @@
 package com.projectember.mobile.ui.screens
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -14,12 +15,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlin.math.roundToInt
 
 /** Format a Y-axis tick value compactly. */
 private fun yLabel(value: Float): String = when {
@@ -36,11 +40,11 @@ private fun yTicks(maxVal: Float, count: Int = 4): List<Float> {
 }
 
 /**
- * Bar chart with Y-axis labels and horizontal reference grid lines.
+ * Bar chart with Y-axis labels, horizontal reference grid lines, and tap-to-select.
  *
- * When [showYAxis] is true a ~38 dp left gutter is reserved for tick labels.
- * Four equally-spaced horizontal grid lines (0 %, 33 %, 67 %, 100 % of max) are
- * always drawn so the chart is interpretable at a glance.
+ * When a bar is tapped, [onIndexSelected] is called with the tapped index (or null when
+ * tapping outside the bar area). The caller owns the [selectedIndex] state and implements
+ * any toggle logic it needs.
  */
 @Composable
 fun TrendBarChart(
@@ -50,6 +54,8 @@ fun TrendBarChart(
     targetLine: Float? = null,
     targetLineColor: Color = Color(0xFFFFAA00),
     showYAxis: Boolean = true,
+    selectedIndex: Int? = null,
+    onIndexSelected: ((Int?) -> Unit)? = null,
 ) {
     if (data.isEmpty()) return
     val maxValue = maxOf(data.maxOf { it.second }, targetLine ?: 0f, 1f)
@@ -60,8 +66,28 @@ fun TrendBarChart(
     )
     val textMeasurer = rememberTextMeasurer()
     val ticks = yTicks(maxValue, 4)
+    val density = LocalDensity.current.density
 
-    Canvas(modifier = modifier) {
+    Canvas(
+        modifier = modifier.then(
+            if (onIndexSelected != null)
+                Modifier.pointerInput(data.size) {
+                    detectTapGestures { tapOffset ->
+                        val yAxisPx = if (showYAxis) 38f * density else 0f
+                        val chartLeft = yAxisPx
+                        val chartWidth = size.width.toFloat() - chartLeft
+                        val spacing = 4f * density
+                        val barCount = data.size
+                        val barWidth = ((chartWidth - spacing * (barCount + 1)) / barCount)
+                            .coerceAtLeast(2f)
+                        val relX = tapOffset.x - chartLeft
+                        val idx = ((relX - spacing) / (barWidth + spacing)).toInt()
+                        onIndexSelected(if (idx in data.indices) idx else null)
+                    }
+                }
+            else Modifier
+        )
+    ) {
         val yAxisPx = if (showYAxis) 38.dp.toPx() else 0f
         val chartLeft = yAxisPx
         val chartRight = size.width
@@ -87,18 +113,25 @@ fun TrendBarChart(
             }
         }
 
-        // Bars
+        // Bars — dim unselected bars when a selection is active
         val barCount = data.size
         val spacing = 4.dp.toPx()
         val totalSpacing = spacing * (barCount + 1)
         val barWidth = ((chartWidth - totalSpacing) / barCount).coerceAtLeast(2f)
+        val hasSelection = selectedIndex != null
 
         data.forEachIndexed { index, (_, value) ->
+            val isSelected = selectedIndex == index
+            val alpha = when {
+                isSelected    -> 1f
+                hasSelection  -> 0.35f
+                else          -> 1f
+            }
             val barHeight = (value / maxValue) * chartHeight
             val left = chartLeft + spacing + index * (barWidth + spacing)
             val top = chartHeight - barHeight
             drawRoundRect(
-                color = barColor,
+                color = barColor.copy(alpha = alpha),
                 topLeft = Offset(left, top),
                 size = Size(barWidth, barHeight),
                 cornerRadius = CornerRadius(3.dp.toPx())
@@ -121,13 +154,8 @@ fun TrendBarChart(
 /**
  * Smoothed area/line chart for trend-first metrics (weight, health vitals).
  *
- * Features:
- *  - Y-axis labels on the left (auto-scaled to data range)
- *  - Horizontal grid reference lines
- *  - Cubic-bezier smoothed line
- *  - Optional gradient area fill under the line
- *  - Hollow circle dots at each data point
- *  - X-axis date labels drawn inside the canvas (first, middle(s), last)
+ * Supports tap-to-select: when a point is tapped the nearest point index is reported
+ * via [onIndexSelected]. The selected point is rendered with a larger dot.
  */
 @Composable
 fun TrendLineChart(
@@ -139,9 +167,9 @@ fun TrendLineChart(
     targetLineColor: Color = Color(0xFFFFAA00),
     showYAxis: Boolean = true,
     showXLabels: Boolean = true,
+    selectedIndex: Int? = null,
+    onIndexSelected: ((Int?) -> Unit)? = null,
 ) {
-    // Guard: line chart requires at least 2 points to draw a connecting line.
-    // With only 1 point we fall through to a single-dot rendering below.
     if (data.isEmpty()) return
 
     val values = data.map { it.second }
@@ -157,6 +185,7 @@ fun TrendLineChart(
     val textMeasurer = rememberTextMeasurer()
     // Capture surface color here (MaterialTheme is not available inside Canvas)
     val surfaceColor = MaterialTheme.colorScheme.surface
+    val density = LocalDensity.current.density
 
     // 4 evenly-spaced ticks across the actual value range
     val ticks = (0..3).map { i -> minVal + (maxVal - minVal) * i / 3f }
@@ -164,7 +193,33 @@ fun TrendLineChart(
     val yAxisPx = if (showYAxis) 38.dp else 0.dp
     val xLabelHeight = if (showXLabels) 18.dp else 0.dp
 
-    Canvas(modifier = modifier) {
+    Canvas(
+        modifier = modifier.then(
+            if (onIndexSelected != null)
+                Modifier.pointerInput(data.size) {
+                    detectTapGestures { tapOffset ->
+                        val yAxisW = if (showYAxis) 38f * density else 0f
+                        val xLabH = if (showXLabels) 18f * density else 0f
+                        val chartLeft = yAxisW
+                        val chartRight = size.width.toFloat()
+                        val chartTop = 4f * density
+                        val chartBottom = size.height.toFloat() - xLabH
+                        val chartWidth = chartRight - chartLeft
+                        val chartHeight = chartBottom - chartTop
+                        val relX = tapOffset.x - chartLeft
+                        if (relX < 0f || relX > chartWidth || chartWidth <= 0f) {
+                            onIndexSelected(null)
+                        } else {
+                            val n = data.size
+                            val idx = ((relX / chartWidth) * (n - 1))
+                                .roundToInt().coerceIn(0, n - 1)
+                            onIndexSelected(idx)
+                        }
+                    }
+                }
+            else Modifier
+        )
+    ) {
         val yAxisW = yAxisPx.toPx()
         val xLabH = xLabelHeight.toPx()
 
@@ -248,12 +303,15 @@ fun TrendLineChart(
                 style = Stroke(width = 2.5.dp.toPx(), cap = StrokeCap.Round))
         }
 
-        // Hollow dots at each data point (use surface color so they work on dark/light themes)
+        // Dots at each data point — selected point gets a larger ring
         for (i in data.indices) {
             val x = indexToX(i)
             val y = valueToY(data[i].second)
-            drawCircle(color = surfaceColor, radius = 5.dp.toPx(), center = Offset(x, y))
-            drawCircle(color = lineColor, radius = 3.dp.toPx(), center = Offset(x, y))
+            val isSelected = selectedIndex == i
+            val outerR = if (isSelected) 7.dp.toPx() else 5.dp.toPx()
+            val innerR = if (isSelected) 4.dp.toPx() else 3.dp.toPx()
+            drawCircle(color = surfaceColor, radius = outerR, center = Offset(x, y))
+            drawCircle(color = lineColor,   radius = innerR, center = Offset(x, y))
         }
 
         // X-axis labels: first, middle(s), last — avoiding crowding
@@ -284,6 +342,8 @@ fun WeeklyTrendCard(
     targetValue: Float? = null,
     modifier: Modifier = Modifier,
     useLineChart: Boolean = false,
+    selectedIndex: Int? = null,
+    onIndexSelected: ((Int?) -> Unit)? = null,
 ) {
     Column(modifier = modifier) {
         if (title.isNotEmpty()) {
@@ -307,6 +367,8 @@ fun WeeklyTrendCard(
                 targetLine = targetValue,
                 showYAxis = true,
                 showXLabels = true,
+                selectedIndex = selectedIndex,
+                onIndexSelected = onIndexSelected,
             )
         } else {
             // Bar chart — X-axis labels in a separate Row below the canvas
@@ -318,6 +380,8 @@ fun WeeklyTrendCard(
                 barColor = barColor,
                 targetLine = targetValue,
                 showYAxis = true,
+                selectedIndex = selectedIndex,
+                onIndexSelected = onIndexSelected,
             )
             if (data.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(4.dp))
@@ -325,12 +389,15 @@ fun WeeklyTrendCard(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    data.forEach { (label, _) ->
+                    data.forEachIndexed { index, (label, _) ->
                         Text(
                             text = label,
                             style = MaterialTheme.typography.labelSmall,
                             fontSize = 9.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = if (selectedIndex == index)
+                                MaterialTheme.colorScheme.onSurface
+                            else
+                                MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center,
                             modifier = Modifier.weight(1f)
                         )

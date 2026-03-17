@@ -71,11 +71,28 @@ private fun metricUnit(metric: String): String = when (metric) {
 
 private fun metricBarColor(metric: String) = ketoMetricGraphColor(metric)
 
-private fun List<DayTotals>.rollingAvg(n: Int, selector: (DayTotals) -> Float): List<Pair<String, Float>> =
+/**
+ * Rolling average.
+ *
+ * When [skipZero] is `true` values equal to 0 are excluded from both the sum and the
+ * denominator, so days with no recorded entry (e.g. no weight logged) do not pull the
+ * average toward zero.  Days where the computed average is 0 (all-zero window) still
+ * emit 0 so that the caller's post-filter step can drop them as "no data".
+ */
+private fun List<DayTotals>.rollingAvg(
+    n: Int,
+    selector: (DayTotals) -> Float,
+    skipZero: Boolean = false,
+): List<Pair<String, Float>> =
     mapIndexed { index, day ->
         val start = maxOf(0, index - n + 1)
         val window = subList(start, index + 1)
-        val avg = window.map(selector).average().toFloat()
+        val values = window.map(selector).let { vs ->
+            // skipZero: physical measurements (weight, etc.) treat 0 as "no data", not a valid
+            // reading.  Negative values are also invalid in this domain, so > 0f is intentional.
+            if (skipZero) vs.filter { it > 0f } else vs
+        }
+        val avg = if (values.isEmpty()) 0f else values.average().toFloat()
         day.label to avg
     }
 
@@ -137,7 +154,13 @@ fun KetoTrendsScreen(
     val rawData = trendsData.map { it.label to selector(it) }
     val chartData: List<Pair<String, Float>> = when {
         mode == "rolling" && trendsData.isNotEmpty() ->
-            trendsData.rollingAvg(rollingDays, selector)
+            // For weight, exclude null/zero days from the rolling window so they don't
+            // dilute the average (a day with no weight entry should be invisible, not 0).
+            trendsData.rollingAvg(
+                rollingDays,
+                selector,
+                skipZero = (trendsMetric == "weight"),
+            )
         else -> rawData
     }
     // For weight, strip days with no recorded entry so the trend line never drops to zero.
@@ -159,6 +182,19 @@ fun KetoTrendsScreen(
 
     // Current displayed value: last meaningful data point in the chart
     val currentDisplayValue: Float? = displayChartData.lastOrNull { it.second > 0 }?.second
+
+    // ── Chart-point selection state ───────────────────────────────────────────
+    // Automatically resets to null whenever the metric, date range, or mode changes so
+    // a stale selection from a previous view is never shown on the new data.
+    var selectedChartIndex by remember(trendsMetric, fromDate, toDate, mode, rollingDays) {
+        mutableStateOf<Int?>(null)
+    }
+    // The data point to display in the numeric summary: use the selected point when one is
+    // active; fall back to the latest (last non-zero) value otherwise.
+    val selectedData: Pair<String, Float>? =
+        selectedChartIndex?.let { displayChartData.getOrNull(it) }
+    val summaryValue: Float? = selectedData?.second?.takeIf { it > 0 } ?: currentDisplayValue
+    val summaryLabel: String? = selectedData?.first  // date/label of selected point, or null
 
     // From date picker
     if (showFromPicker) {
@@ -669,19 +705,29 @@ fun KetoTrendsScreen(
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         // ── Numeric summary ──────────────────────────────────
-                        if (currentDisplayValue != null) {
+                        if (summaryValue != null) {
                             Spacer(modifier = Modifier.height(6.dp))
+                            // When a point is selected, show its date label inline
+                            if (summaryLabel != null) {
+                                Text(
+                                    text = summaryLabel,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    fontSize = 10.sp
+                                )
+                                Spacer(modifier = Modifier.height(2.dp))
+                            }
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.Bottom
                             ) {
-                                // Current value
+                                // Selected (or latest) value
                                 val valueText = when (trendsMetric) {
-                                    "nak_ratio" -> "%.2f:1".format(currentDisplayValue)
-                                    "weight"    -> "%.1f $unit".format(currentDisplayValue)
-                                    "calories"  -> "%.0f $unit".format(currentDisplayValue)
-                                    else        -> "%.1f $unit".format(currentDisplayValue)
+                                    "nak_ratio" -> "%.2f:1".format(summaryValue)
+                                    "weight"    -> "%.1f $unit".format(summaryValue)
+                                    "calories"  -> "%.0f $unit".format(summaryValue)
+                                    else        -> "%.1f $unit".format(summaryValue)
                                 }
                                 Text(
                                     text = valueText,
@@ -691,7 +737,7 @@ fun KetoTrendsScreen(
                                 )
                                 // Target + diff (where meaningful)
                                 if (targetValue != null && targetValue > 0) {
-                                    val diff = currentDisplayValue - targetValue
+                                    val diff = summaryValue - targetValue
                                     val diffText = if (diff >= 0)
                                         "+%.1f".format(diff) else "%.1f".format(diff)
                                     // Normalize deviation by target for tolerance-band comparisons.
@@ -711,9 +757,9 @@ fun KetoTrendsScreen(
                                         }
                                         // Na:K ratio: target 1.0; >2.0 = red, 1.0–2.0 = yellow
                                         "nak_ratio" -> when {
-                                            currentDisplayValue > 2.0f -> ErrorRed
-                                            currentDisplayValue > 1.0f -> WarningYellow
-                                            else                        -> SuccessGreen
+                                            summaryValue > 2.0f -> ErrorRed
+                                            summaryValue > 1.0f -> WarningYellow
+                                            else                 -> SuccessGreen
                                         }
                                         // Goal metrics: -15 % green, -40 % yellow, further red
                                         else -> when {
@@ -748,6 +794,13 @@ fun KetoTrendsScreen(
                             unit = unit,
                             targetValue = targetValue,
                             useLineChart = (trendsMetric == "weight"),
+                            selectedIndex = selectedChartIndex,
+                            onIndexSelected = { tappedIdx ->
+                                // Toggle: tapping the already-selected point deselects it
+                                selectedChartIndex =
+                                    if (tappedIdx != null && tappedIdx == selectedChartIndex) null
+                                    else tappedIdx
+                            },
                         )
                     }
                 }
