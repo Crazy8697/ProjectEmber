@@ -92,6 +92,7 @@ fun EmberNavGraph(
                     app.weightRepository, app.exerciseRepository,
                     app.exerciseCategoryRepository, app.unitsPreferencesStore,
                     app.healthMetricPreferencesStore,
+                    app.manualHealthEntryRepository,
                 )
             )
             KetoScreen(
@@ -236,7 +237,8 @@ fun EmberNavGraph(
                     app.exerciseRepository,
                     app.exerciseCategoryRepository,
                     app.unitsPreferencesStore,
-                    app.healthMetricPreferencesStore
+                    app.healthMetricPreferencesStore,
+                    app.manualHealthEntryRepository,
                 )
             )
             KetoTrendsScreen(

@@ -10,6 +10,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -22,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.projectember.mobile.data.local.UnitPreferences
 import com.projectember.mobile.data.local.WeightUnit
+import com.projectember.mobile.data.local.entities.ManualHealthEntry
 import com.projectember.mobile.ui.theme.KetoAccent
 import com.projectember.mobile.ui.theme.ErrorRed
 import com.projectember.mobile.ui.theme.OnSurfaceVariant
@@ -91,6 +93,7 @@ fun KetoTrendsScreen(
     val rollingDays  by viewModel.trendsRollingDays.collectAsState()
     val targets      by viewModel.targets.collectAsState()
     val unitPrefs    by viewModel.unitPreferences.collectAsState()
+    val ketoManualEntries by viewModel.ketoManualEntriesForTrends.collectAsState()
 
     // false = Graph/Trends view (default); true = History/Edit view
     var showHistory by remember { mutableStateOf(false) }
@@ -100,6 +103,10 @@ fun KetoTrendsScreen(
 
     // Weight entry dialog state (used when trendsMetric == "weight" and showHistory == true)
     var showAddWeightDialog by remember { mutableStateOf(false) }
+
+    // Keto metric manual entry dialog state (non-weight measurable metrics)
+    var showAddKetoMetricDialog by remember { mutableStateOf(false) }
+    var ketoManualEntryToDelete by remember { mutableStateOf<ManualHealthEntry?>(null) }
 
     val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
 
@@ -278,6 +285,39 @@ fun KetoTrendsScreen(
         )
     }
 
+    // ── Keto metric manual entry dialog ──────────────────────────────────────
+    if (showAddKetoMetricDialog) {
+        KetoMetricManualEntryDialog(
+            metric = trendsMetric,
+            metricLabel = metricLabel,
+            unitPrefs = unitPrefs,
+            dateFormatter = dateFormatter,
+            onDismiss = { showAddKetoMetricDialog = false },
+            onSave = { value, date, time ->
+                viewModel.saveKetoManualEntry(trendsMetric, value, date, time)
+                showAddKetoMetricDialog = false
+            }
+        )
+    }
+
+    // ── Delete confirmation for keto manual entries ───────────────────────────
+    ketoManualEntryToDelete?.let { entry ->
+        AlertDialog(
+            onDismissRequest = { ketoManualEntryToDelete = null },
+            title = { Text("Delete entry?") },
+            text = { Text("Remove this $metricLabel reading from ${entry.entryDate}?") },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.deleteKetoManualEntry(entry)
+                    ketoManualEntryToDelete = null
+                }) { Text("Delete", color = MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = {
+                TextButton(onClick = { ketoManualEntryToDelete = null }) { Text("Cancel") }
+            }
+        )
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -313,12 +353,17 @@ fun KetoTrendsScreen(
             )
         },
         floatingActionButton = {
-            // FAB is only meaningful for the weight metric — other keto metrics
-            // (calories, protein, fat, etc.) are aggregated from food diary entries
-            // and have no standalone manual-entry flow.
-            if (showHistory && trendsMetric == "weight") {
-                FloatingActionButton(onClick = { showAddWeightDialog = true }) {
-                    Icon(Icons.Default.Add, contentDescription = "Add weight entry")
+            if (showHistory) {
+                when {
+                    trendsMetric == "weight" ->
+                        FloatingActionButton(onClick = { showAddWeightDialog = true }) {
+                            Icon(Icons.Default.Add, contentDescription = "Add weight entry")
+                        }
+                    viewModel.ketoMetricManualType(trendsMetric) != null ->
+                        FloatingActionButton(onClick = { showAddKetoMetricDialog = true }) {
+                            Icon(Icons.Default.Add, contentDescription = "Add $metricLabel entry")
+                        }
+                    // nak_ratio is a computed ratio — no standalone manual entry
                 }
             }
         }
@@ -330,6 +375,8 @@ fun KetoTrendsScreen(
                 trendsData = trendsData,
                 unitPrefs = unitPrefs,
                 paddingValues = paddingValues,
+                manualEntries = ketoManualEntries,
+                onDeleteManualEntry = { ketoManualEntryToDelete = it },
             )
         } else {
             Column(
@@ -701,6 +748,8 @@ private fun KetoMetricHistoryContent(
     trendsData: List<DayTotals>,
     unitPrefs: UnitPreferences,
     paddingValues: PaddingValues,
+    manualEntries: List<ManualHealthEntry> = emptyList(),
+    onDeleteManualEntry: ((ManualHealthEntry) -> Unit)? = null,
 ) {
     val weightUnit = unitPrefs.weightUnit
     val volUnit = unitPrefs.volumeUnit
@@ -724,6 +773,17 @@ private fun KetoMetricHistoryContent(
         else        -> metricUnit(trendsMetric)
     }
 
+    // Format a ManualHealthEntry value for display
+    fun formatManualValue(entry: ManualHealthEntry): String = when (trendsMetric) {
+        "weight"    -> "%.1f %s".format(weightUnit.fromKg(entry.value1), weightUnit.symbol)
+        "hydration" -> "%.0f %s".format(volUnit.fromMl(entry.value1), volUnit.symbol)
+        "protein", "fat", "net_carbs" ->
+            "%.1f %s".format(foodUnit.fromG(entry.value1), foodUnit.symbol)
+        "calories"  -> "%.0f kcal".format(entry.value1)
+        "sodium", "potassium", "magnesium" -> "%.0f mg".format(entry.value1)
+        else        -> "%.1f".format(entry.value1)
+    }
+
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -733,7 +793,67 @@ private fun KetoMetricHistoryContent(
     ) {
         item { Spacer(modifier = Modifier.height(4.dp)) }
 
-        if (historyRows.isEmpty()) {
+        // ── Manual entries section (non-weight keto metrics) ─────────────────
+        if (manualEntries.isNotEmpty()) {
+            item {
+                Text(
+                    text = "MANUAL ENTRIES  ($unit)",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = OnSurfaceVariant,
+                    letterSpacing = 0.8.sp,
+                    modifier = Modifier.padding(top = 4.dp, bottom = 4.dp)
+                )
+            }
+            items(manualEntries, key = { "manual_${it.id}" }) { entry ->
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface
+                    ),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = formatManualValue(entry),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = ketoMetricGraphColor(trendsMetric)
+                            )
+                            Text(
+                                text = "${entry.entryDate}  ${entry.entryTime}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = OnSurfaceVariant
+                            )
+                            Text(
+                                text = "Manual · Ember only",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = OnSurfaceVariant.copy(alpha = 0.6f),
+                                fontSize = 10.sp
+                            )
+                        }
+                        if (onDeleteManualEntry != null) {
+                            IconButton(onClick = { onDeleteManualEntry(entry) }) {
+                                Icon(
+                                    Icons.Default.Delete,
+                                    contentDescription = "Delete",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // ── Food-diary aggregate section ──────────────────────────────────────
+        if (historyRows.isEmpty() && manualEntries.isEmpty()) {
             item {
                 Column(
                     modifier = Modifier
@@ -749,20 +869,23 @@ private fun KetoMetricHistoryContent(
                         textAlign = TextAlign.Center
                     )
                     Text(
-                        text = if (trendsMetric == "weight")
-                            "Tap + to log a weight entry."
-                        else
-                            "Log food or drink entries in the Keto diary to see data here.",
+                        text = when {
+                            trendsMetric == "weight" -> "Tap + to log a weight entry."
+                            trendsMetric == "nak_ratio" ->
+                                "Log food entries with sodium and potassium in the Keto diary to see data here."
+                            else ->
+                                "Tap + to add a manual reading, or log food entries in the Keto diary."
+                        },
                         style = MaterialTheme.typography.bodyMedium,
                         color = OnSurfaceVariant,
                         textAlign = TextAlign.Center
                     )
                 }
             }
-        } else {
+        } else if (historyRows.isNotEmpty()) {
             item {
                 Text(
-                    text = "$metricLabel HISTORY  ($unit)",
+                    text = "$metricLabel FOOD DIARY  ($unit)",
                     style = MaterialTheme.typography.labelSmall,
                     color = OnSurfaceVariant,
                     letterSpacing = 0.8.sp,
@@ -770,7 +893,7 @@ private fun KetoMetricHistoryContent(
                 )
             }
 
-            items(historyRows, key = { it.date }) { day ->
+            items(historyRows, key = { "diary_${it.date}" }) { day ->
                 val displayValue: String = when (trendsMetric) {
                     "weight"    -> "%.1f %s".format(weightUnit.fromKg(day.weightKg ?: 0.0), weightUnit.symbol)
                     "hydration" -> "%.0f %s".format(volUnit.fromMl(day.waterMl), volUnit.symbol)
@@ -823,4 +946,111 @@ private fun KetoMetricHistoryContent(
 
         item { Spacer(modifier = Modifier.height(80.dp)) }
     }
+}
+
+// ── Keto metric manual entry dialog ──────────────────────────────────────────
+
+/**
+ * A metric-specific manual entry dialog for keto non-weight metrics.
+ * Shows a date picker and a numeric value field labelled with the correct unit.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun KetoMetricManualEntryDialog(
+    metric: String,
+    metricLabel: String,
+    unitPrefs: UnitPreferences,
+    dateFormatter: DateTimeFormatter,
+    onDismiss: () -> Unit,
+    onSave: (value: Double, date: String, time: String) -> Unit,
+) {
+    val unit = when (metric) {
+        "weight"    -> unitPrefs.weightUnit.symbol
+        "hydration" -> unitPrefs.volumeUnit.symbol
+        "protein", "fat", "net_carbs" -> unitPrefs.foodWeightUnit.symbol
+        "calories"  -> "kcal"
+        "sodium", "potassium", "magnesium" -> "mg"
+        else        -> metricUnit(metric)
+    }
+
+    var valueInput by remember { mutableStateOf("") }
+    var valueError by remember { mutableStateOf(false) }
+    var entryDate by remember { mutableStateOf(LocalDate.now().format(dateFormatter)) }
+    var entryTime by remember {
+        mutableStateOf(
+            java.time.LocalTime.now().format(java.time.format.DateTimeFormatter.ofPattern("HH:mm"))
+        )
+    }
+    var showDatePicker by remember { mutableStateOf(false) }
+
+    if (showDatePicker) {
+        val initMillis = try {
+            LocalDate.parse(entryDate, dateFormatter).toEpochDay() * 86_400_000L
+        } catch (_: Exception) { System.currentTimeMillis() }
+        val dpState = rememberDatePickerState(initialSelectedDateMillis = initMillis)
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    showDatePicker = false
+                    dpState.selectedDateMillis?.let { millis ->
+                        entryDate = LocalDate.ofEpochDay(millis / 86_400_000L).format(dateFormatter)
+                    }
+                }) { Text("OK") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) { Text("Cancel") }
+            }
+        ) { DatePicker(state = dpState) }
+    }
+
+    AlertDialog(
+        onDismissRequest = { onDismiss() },
+        title = { Text("Log $metricLabel") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(
+                    onClick = { showDatePicker = true },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Date: $entryDate")
+                }
+                OutlinedTextField(
+                    value = valueInput,
+                    onValueChange = {
+                        valueInput = it
+                        valueError = false
+                    },
+                    label = { Text("$metricLabel ($unit)") },
+                    isError = valueError,
+                    supportingText = if (valueError) {
+                        { Text("Enter a valid value greater than 0") }
+                    } else null,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = {
+                val v = valueInput.toDoubleOrNull()
+                if (v != null && v > 0) {
+                    // Convert to canonical storage units
+                    val stored = when (metric) {
+                        "weight"    -> unitPrefs.weightUnit.toKg(v)
+                        "hydration" -> unitPrefs.volumeUnit.toMl(v)
+                        "protein", "fat", "net_carbs" -> unitPrefs.foodWeightUnit.toG(v)
+                        else        -> v  // calories, sodium, potassium, magnesium stored as-is
+                    }
+                    onSave(stored, entryDate, entryTime)
+                } else {
+                    valueError = true
+                }
+            }) { Text("Save") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        }
+    )
 }

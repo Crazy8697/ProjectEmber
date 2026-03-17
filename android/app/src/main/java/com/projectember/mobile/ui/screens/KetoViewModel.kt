@@ -10,6 +10,7 @@ import com.projectember.mobile.data.local.KetoTargetsStore
 import com.projectember.mobile.data.local.UnitPreferences
 import com.projectember.mobile.data.local.UnitsPreferencesStore
 import com.projectember.mobile.data.local.entities.KetoEntry
+import com.projectember.mobile.data.local.entities.ManualHealthEntry
 import com.projectember.mobile.data.local.entities.WeightEntry
 import com.projectember.mobile.data.local.entities.effectiveCalories
 import com.projectember.mobile.data.local.entities.effectiveFat
@@ -22,6 +23,7 @@ import com.projectember.mobile.data.local.entities.effectiveWater
 import com.projectember.mobile.data.repository.ExerciseCategoryRepository
 import com.projectember.mobile.data.repository.ExerciseRepository
 import com.projectember.mobile.data.repository.KetoRepository
+import com.projectember.mobile.data.repository.ManualHealthEntryRepository
 import com.projectember.mobile.data.repository.WeightRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -30,6 +32,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -61,6 +64,7 @@ class KetoViewModel(
     private val exerciseCategoryRepository: ExerciseCategoryRepository,
     private val unitsPreferencesStore: UnitsPreferencesStore,
     private val healthMetricPreferencesStore: HealthMetricPreferencesStore,
+    private val manualHealthEntryRepository: ManualHealthEntryRepository,
 ) : ViewModel() {
 
     private val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
@@ -274,6 +278,65 @@ class KetoViewModel(
                 started = SharingStarted.WhileSubscribed(5_000),
                 initialValue = healthMetricPreferencesStore.isMetricEnabled(HealthMetric.WEIGHT)
             )
+
+    // ── Keto manual metric entries (non-weight, non-ratio) ───────────────────
+
+    /**
+     * Maps a keto trends metric key to the [ManualHealthEntry.metricType] string used
+     * when storing standalone manual measurements. Returns null for computed metrics
+     * (nak_ratio) and for weight which has its own [WeightRepository] path.
+     */
+    fun ketoMetricManualType(metric: String): String? = when (metric) {
+        "calories"  -> "keto_calories"
+        "protein"   -> "keto_protein"
+        "fat"       -> "keto_fat"
+        "net_carbs" -> "keto_net_carbs"
+        "hydration" -> "keto_hydration"
+        "sodium"    -> "keto_sodium"
+        "potassium" -> "keto_potassium"
+        "magnesium" -> "keto_magnesium"
+        else        -> null // "weight" uses WeightRepository; "nak_ratio" is computed
+    }
+
+    /**
+     * Manual entries for the currently selected trends metric in the current date range.
+     * Empty when the metric is weight or nak_ratio.
+     */
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    val ketoManualEntriesForTrends: StateFlow<List<ManualHealthEntry>> =
+        combine(_trendsFromDate, _trendsToDate, _trendsMetric) { from, to, metric ->
+            Triple(from, to, metric)
+        }
+            .flatMapLatest { (from, to, metric) ->
+                val manualType = ketoMetricManualType(metric) ?: return@flatMapLatest flowOf(emptyList())
+                manualHealthEntryRepository.getForMetricFromDate(manualType, from)
+                    .map { entries -> entries.filter { it.entryDate <= to }.reversed() }
+            }
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5_000),
+                initialValue = emptyList()
+            )
+
+    /** Save a standalone manual measurement for a keto trends metric. */
+    fun saveKetoManualEntry(metric: String, value: Double, date: String, time: String) {
+        val manualType = ketoMetricManualType(metric) ?: return
+        viewModelScope.launch(Dispatchers.IO) {
+            manualHealthEntryRepository.insert(
+                ManualHealthEntry(
+                    metricType = manualType,
+                    value1 = value,
+                    entryDate = date,
+                    entryTime = time,
+                )
+            )
+        }
+    }
+
+    /** Delete a standalone keto manual entry. */
+    fun deleteKetoManualEntry(entry: ManualHealthEntry) {
+        viewModelScope.launch(Dispatchers.IO) { manualHealthEntryRepository.delete(entry) }
+    }
 }
 
 class KetoViewModelFactory(
@@ -284,12 +347,13 @@ class KetoViewModelFactory(
     private val exerciseCategoryRepository: ExerciseCategoryRepository,
     private val unitsPreferencesStore: UnitsPreferencesStore,
     private val healthMetricPreferencesStore: HealthMetricPreferencesStore,
+    private val manualHealthEntryRepository: ManualHealthEntryRepository,
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T =
         KetoViewModel(
             ketoRepository, targetsStore, weightRepository,
             exerciseRepository, exerciseCategoryRepository, unitsPreferencesStore,
-            healthMetricPreferencesStore,
+            healthMetricPreferencesStore, manualHealthEntryRepository,
         ) as T
 }
