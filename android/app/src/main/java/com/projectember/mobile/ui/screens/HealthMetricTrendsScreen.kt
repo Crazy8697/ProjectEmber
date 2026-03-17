@@ -426,7 +426,7 @@ private fun MetricTrendChart(
                 val minVal = values.min()
                 val maxVal = values.max()
                 val range = if (maxVal > minVal) maxVal - minVal else 1f
-                val lineColor = MaterialTheme.colorScheme.primary
+                val lineColor = healthMetricGraphColor(metric)
 
                 Canvas(
                     modifier = Modifier
