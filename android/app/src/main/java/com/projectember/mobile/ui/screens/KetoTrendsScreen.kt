@@ -18,7 +18,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.graphics.Color
 import com.projectember.mobile.data.local.UnitPreferences
 import com.projectember.mobile.data.local.WeightUnit
 import com.projectember.mobile.ui.theme.KetoAccent
