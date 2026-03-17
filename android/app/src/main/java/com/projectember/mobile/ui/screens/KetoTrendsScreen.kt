@@ -82,7 +82,6 @@ fun KetoTrendsScreen(
     viewModel: KetoViewModel,
     initialMetric: String = "",
     onNavigateBack: () -> Unit,
-    onNavigateToAddEntry: () -> Unit = {}
 ) {
     val trendsData   by viewModel.trendsData.collectAsState()
     val trendsMetric by viewModel.trendsMetric.collectAsState()
@@ -314,14 +313,12 @@ fun KetoTrendsScreen(
             )
         },
         floatingActionButton = {
-            if (showHistory) {
-                FloatingActionButton(
-                    onClick = {
-                        if (trendsMetric == "weight") showAddWeightDialog = true
-                        else onNavigateToAddEntry()
-                    }
-                ) {
-                    Icon(Icons.Default.Add, contentDescription = "Add entry")
+            // FAB is only meaningful for the weight metric — other keto metrics
+            // (calories, protein, fat, etc.) are aggregated from food diary entries
+            // and have no standalone manual-entry flow.
+            if (showHistory && trendsMetric == "weight") {
+                FloatingActionButton(onClick = { showAddWeightDialog = true }) {
+                    Icon(Icons.Default.Add, contentDescription = "Add weight entry")
                 }
             }
         }
@@ -752,7 +749,10 @@ private fun KetoMetricHistoryContent(
                         textAlign = TextAlign.Center
                     )
                     Text(
-                        text = "Tap + to add a new entry for this date range.",
+                        text = if (trendsMetric == "weight")
+                            "Tap + to log a weight entry."
+                        else
+                            "Log food or drink entries in the Keto diary to see data here.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = OnSurfaceVariant,
                         textAlign = TextAlign.Center

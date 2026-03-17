@@ -243,7 +243,6 @@ fun EmberNavGraph(
                 viewModel = viewModel,
                 initialMetric = metric,
                 onNavigateBack = { navController.popBackStack() },
-                onNavigateToAddEntry = { navController.navigate(Screen.KetoAddEntry.route) }
             )
         }
 
