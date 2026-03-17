@@ -29,4 +29,8 @@ class ManualHealthEntryRepository(private val dao: ManualHealthEntryDao) {
         dao.deleteAll()
         dao.insertAll(entries)
     }
+
+    /** Latest entry per metric type — drives per-metric card priority display. */
+    fun getLatestForAllMetrics(): Flow<List<ManualHealthEntry>> =
+        dao.getLatestForAllMetrics()
 }

@@ -754,26 +754,63 @@ fun SettingsScreen(
                     modifier = Modifier.padding(bottom = 8.dp)
                 )
 
+                // ── Toggle All row ──────────────────────────────────────────
+                val allEnabled = HealthMetric.entries.all { enabledMetrics[it] != false }
+                val allGraphEnabled = HealthMetric.entries.all { graphEnabledMetrics[it] == true }
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Toggle all",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.weight(1f).padding(start = 4.dp)
+                    )
+                    Switch(
+                        checked = allEnabled,
+                        onCheckedChange = { viewModel.setAllMetricsEnabled(it) },
+                        modifier = Modifier.width(56.dp)
+                    )
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Switch(
+                        checked = allGraphEnabled,
+                        onCheckedChange = { viewModel.setAllGraphEnabled(it) },
+                        modifier = Modifier.width(56.dp)
+                    )
+                }
+
+                HorizontalDivider(
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                    thickness = 0.5.dp,
+                    modifier = Modifier.padding(vertical = 4.dp)
+                )
+
                 // Column header row
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(bottom = 4.dp, end = 4.dp),
-                    horizontalArrangement = Arrangement.End
+                        .padding(bottom = 4.dp),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
                         text = "Show",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.width(48.dp),
-                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        modifier = Modifier.width(56.dp),
+                        textAlign = TextAlign.Center
                     )
+                    Spacer(modifier = Modifier.width(16.dp))
                     Text(
                         text = "Graph",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.width(48.dp),
-                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        modifier = Modifier.width(56.dp),
+                        textAlign = TextAlign.Center
                     )
                 }
 
@@ -1305,6 +1342,7 @@ private fun HealthMetricToggleRow(
  * - **Graph**: whether the trend/graph section is shown for this metric.
  *
  * The graph switch is dimmed and forced-off when the metric is disabled.
+ * Column widths (56 dp) and inter-column gap (16 dp) align with the header row.
  */
 @Composable
 private fun HealthMetricRowWithGraph(
@@ -1333,14 +1371,14 @@ private fun HealthMetricRowWithGraph(
         Switch(
             checked = checked,
             onCheckedChange = onCheckedChange,
-            modifier = Modifier.width(48.dp)
+            modifier = Modifier.width(56.dp)
         )
-        Spacer(modifier = Modifier.width(4.dp))
+        Spacer(modifier = Modifier.width(16.dp))
         Switch(
             checked = graphChecked && graphEnabled,
             onCheckedChange = { if (graphEnabled) onGraphCheckedChange(it) },
             enabled = graphEnabled,
-            modifier = Modifier.width(48.dp)
+            modifier = Modifier.width(56.dp)
         )
     }
 }

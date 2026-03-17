@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -84,6 +85,20 @@ class HealthViewModel(
     val activityData: StateFlow<ActivityDataState> = _activityData.asStateFlow()
 
     // ── Manual health entries ─────────────────────────────────────────────────
+
+    /**
+     * Latest manual entry per metric type, keyed by [HealthMetric.name].
+     * Used by Health/Exercise card display to give manual Ember entries priority
+     * over Health Connect imported values.
+     */
+    val latestManualEntriesMap: StateFlow<Map<String, ManualHealthEntry>> =
+        manualHealthEntryRepository.getLatestForAllMetrics()
+            .map { list -> list.associateBy { it.metricType } }
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5_000),
+                initialValue = emptyMap()
+            )
 
     /** Returns a flow of all manual entries for the given metric, newest first. */
     fun getManualEntriesForMetric(metric: HealthMetric): Flow<List<ManualHealthEntry>> =

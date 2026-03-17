@@ -53,6 +53,7 @@ fun HealthScreen(
 ) {
     val enabledMetrics by viewModel.enabledMetrics.collectAsState()
     val healthData by viewModel.healthData.collectAsState()
+    val latestManualEntries by viewModel.latestManualEntriesMap.collectAsState()
 
     // Metric being edited via long-press
     var editingMetric by remember { mutableStateOf<HealthMetric?>(null) }
@@ -188,16 +189,21 @@ fun HealthScreen(
 
                         if (enabledMetrics[HealthMetric.HEART_RATE] != false) {
                             item {
+                                val manual = latestManualEntries[HealthMetric.HEART_RATE.name]
                                 HealthMetricCard(
                                     label = "HEART RATE",
                                     value = when {
+                                        manual != null ->
+                                            "${manual.value1.toInt()} bpm" to
+                                                "${manual.entryDate}  (manual)"
                                         HealthConnectManager.PERM_HEART_RATE !in granted ->
                                             null to "Permission needed"
                                         snapshot.heartRateBpm != null ->
                                             "${snapshot.heartRateBpm} bpm" to snapshot.heartRateTimestamp
                                         else -> null to "No data yet"
                                     },
-                                    permissionNeeded = HealthConnectManager.PERM_HEART_RATE !in granted,
+                                    permissionNeeded = manual == null &&
+                                        HealthConnectManager.PERM_HEART_RATE !in granted,
                                     onClick = { onNavigateToTrends(HealthMetric.HEART_RATE) },
                                     onLongClick = { editingMetric = HealthMetric.HEART_RATE }
                                 )
@@ -206,16 +212,22 @@ fun HealthScreen(
 
                         if (enabledMetrics[HealthMetric.RESTING_HEART_RATE] != false) {
                             item {
+                                val manual = latestManualEntries[HealthMetric.RESTING_HEART_RATE.name]
                                 HealthMetricCard(
                                     label = "RESTING HEART RATE",
                                     value = when {
+                                        manual != null ->
+                                            "${manual.value1.toInt()} bpm" to
+                                                "${manual.entryDate}  (manual)"
                                         HealthConnectManager.PERM_RESTING_HEART_RATE !in granted ->
                                             null to "Permission needed"
                                         snapshot.restingHeartRateBpm != null ->
-                                            "${snapshot.restingHeartRateBpm} bpm" to snapshot.restingHeartRateTimestamp
+                                            "${snapshot.restingHeartRateBpm} bpm" to
+                                                snapshot.restingHeartRateTimestamp
                                         else -> null to "No data yet"
                                     },
-                                    permissionNeeded = HealthConnectManager.PERM_RESTING_HEART_RATE !in granted,
+                                    permissionNeeded = manual == null &&
+                                        HealthConnectManager.PERM_RESTING_HEART_RATE !in granted,
                                     onClick = { onNavigateToTrends(HealthMetric.RESTING_HEART_RATE) },
                                     onLongClick = { editingMetric = HealthMetric.RESTING_HEART_RATE }
                                 )
@@ -224,9 +236,13 @@ fun HealthScreen(
 
                         if (enabledMetrics[HealthMetric.SLEEP] != false) {
                             item {
+                                val manual = latestManualEntries[HealthMetric.SLEEP.name]
                                 HealthSleepCard(
-                                    permissionNeeded = HealthConnectManager.PERM_SLEEP !in granted,
-                                    session = snapshot.latestSleepSession,
+                                    permissionNeeded = manual == null &&
+                                        HealthConnectManager.PERM_SLEEP !in granted,
+                                    session = if (manual == null) snapshot.latestSleepSession else null,
+                                    manualDurationHours = manual?.value1,
+                                    manualDate = manual?.entryDate,
                                     onClick = { onNavigateToTrends(HealthMetric.SLEEP) },
                                     onLongClick = { editingMetric = HealthMetric.SLEEP }
                                 )
@@ -235,9 +251,15 @@ fun HealthScreen(
 
                         if (enabledMetrics[HealthMetric.BLOOD_PRESSURE] != false) {
                             item {
+                                val manual = latestManualEntries[HealthMetric.BLOOD_PRESSURE.name]
                                 HealthMetricCard(
                                     label = "BLOOD PRESSURE",
                                     value = when {
+                                        manual != null ->
+                                            "%.0f / %.0f mmHg".format(
+                                                manual.value1,
+                                                manual.value2 ?: 0.0
+                                            ) to "${manual.entryDate}  (manual)"
                                         HealthConnectManager.PERM_BLOOD_PRESSURE !in granted ->
                                             null to "Permission needed"
                                         snapshot.bloodPressureSystolicMmHg != null ->
@@ -247,7 +269,8 @@ fun HealthScreen(
                                             ) to snapshot.bloodPressureTimestamp
                                         else -> null to "No data yet"
                                     },
-                                    permissionNeeded = HealthConnectManager.PERM_BLOOD_PRESSURE !in granted,
+                                    permissionNeeded = manual == null &&
+                                        HealthConnectManager.PERM_BLOOD_PRESSURE !in granted,
                                     onClick = { onNavigateToTrends(HealthMetric.BLOOD_PRESSURE) },
                                     onLongClick = { editingMetric = HealthMetric.BLOOD_PRESSURE }
                                 )
@@ -256,16 +279,22 @@ fun HealthScreen(
 
                         if (enabledMetrics[HealthMetric.BLOOD_GLUCOSE] != false) {
                             item {
+                                val manual = latestManualEntries[HealthMetric.BLOOD_GLUCOSE.name]
                                 HealthMetricCard(
                                     label = "BLOOD GLUCOSE",
                                     value = when {
+                                        manual != null ->
+                                            "%.1f mmol/L".format(manual.value1) to
+                                                "${manual.entryDate}  (manual)"
                                         HealthConnectManager.PERM_BLOOD_GLUCOSE !in granted ->
                                             null to "Permission needed"
                                         snapshot.bloodGlucoseMmol != null ->
-                                            "%.1f mmol/L".format(snapshot.bloodGlucoseMmol) to snapshot.bloodGlucoseTimestamp
+                                            "%.1f mmol/L".format(snapshot.bloodGlucoseMmol) to
+                                                snapshot.bloodGlucoseTimestamp
                                         else -> null to "No data yet"
                                     },
-                                    permissionNeeded = HealthConnectManager.PERM_BLOOD_GLUCOSE !in granted,
+                                    permissionNeeded = manual == null &&
+                                        HealthConnectManager.PERM_BLOOD_GLUCOSE !in granted,
                                     onClick = { onNavigateToTrends(HealthMetric.BLOOD_GLUCOSE) },
                                     onLongClick = { editingMetric = HealthMetric.BLOOD_GLUCOSE }
                                 )
@@ -274,16 +303,22 @@ fun HealthScreen(
 
                         if (enabledMetrics[HealthMetric.BODY_TEMPERATURE] != false) {
                             item {
+                                val manual = latestManualEntries[HealthMetric.BODY_TEMPERATURE.name]
                                 HealthMetricCard(
                                     label = "BODY TEMPERATURE",
                                     value = when {
+                                        manual != null ->
+                                            "%.1f °C".format(manual.value1) to
+                                                "${manual.entryDate}  (manual)"
                                         HealthConnectManager.PERM_BODY_TEMPERATURE !in granted ->
                                             null to "Permission needed"
                                         snapshot.bodyTemperatureCelsius != null ->
-                                            "%.1f °C".format(snapshot.bodyTemperatureCelsius) to snapshot.bodyTemperatureTimestamp
+                                            "%.1f °C".format(snapshot.bodyTemperatureCelsius) to
+                                                snapshot.bodyTemperatureTimestamp
                                         else -> null to "No data yet"
                                     },
-                                    permissionNeeded = HealthConnectManager.PERM_BODY_TEMPERATURE !in granted,
+                                    permissionNeeded = manual == null &&
+                                        HealthConnectManager.PERM_BODY_TEMPERATURE !in granted,
                                     onClick = { onNavigateToTrends(HealthMetric.BODY_TEMPERATURE) },
                                     onLongClick = { editingMetric = HealthMetric.BODY_TEMPERATURE }
                                 )
@@ -292,16 +327,22 @@ fun HealthScreen(
 
                         if (enabledMetrics[HealthMetric.OXYGEN_SATURATION] != false) {
                             item {
+                                val manual = latestManualEntries[HealthMetric.OXYGEN_SATURATION.name]
                                 HealthMetricCard(
                                     label = "OXYGEN SATURATION",
                                     value = when {
+                                        manual != null ->
+                                            "%.0f%%".format(manual.value1) to
+                                                "${manual.entryDate}  (manual)"
                                         HealthConnectManager.PERM_OXYGEN_SATURATION !in granted ->
                                             null to "Permission needed"
                                         snapshot.oxygenSaturationPct != null ->
-                                            "%.0f%%".format(snapshot.oxygenSaturationPct) to snapshot.oxygenSaturationTimestamp
+                                            "%.0f%%".format(snapshot.oxygenSaturationPct) to
+                                                snapshot.oxygenSaturationTimestamp
                                         else -> null to "No data yet"
                                     },
-                                    permissionNeeded = HealthConnectManager.PERM_OXYGEN_SATURATION !in granted,
+                                    permissionNeeded = manual == null &&
+                                        HealthConnectManager.PERM_OXYGEN_SATURATION !in granted,
                                     onClick = { onNavigateToTrends(HealthMetric.OXYGEN_SATURATION) },
                                     onLongClick = { editingMetric = HealthMetric.OXYGEN_SATURATION }
                                 )
@@ -310,16 +351,22 @@ fun HealthScreen(
 
                         if (enabledMetrics[HealthMetric.RESPIRATORY_RATE] != false) {
                             item {
+                                val manual = latestManualEntries[HealthMetric.RESPIRATORY_RATE.name]
                                 HealthMetricCard(
                                     label = "RESPIRATORY RATE",
                                     value = when {
+                                        manual != null ->
+                                            "%.0f breaths/min".format(manual.value1) to
+                                                "${manual.entryDate}  (manual)"
                                         HealthConnectManager.PERM_RESPIRATORY_RATE !in granted ->
                                             null to "Permission needed"
                                         snapshot.respiratoryRateBreath != null ->
-                                            "%.0f breaths/min".format(snapshot.respiratoryRateBreath) to snapshot.respiratoryRateTimestamp
+                                            "%.0f breaths/min".format(snapshot.respiratoryRateBreath) to
+                                                snapshot.respiratoryRateTimestamp
                                         else -> null to "No data yet"
                                     },
-                                    permissionNeeded = HealthConnectManager.PERM_RESPIRATORY_RATE !in granted,
+                                    permissionNeeded = manual == null &&
+                                        HealthConnectManager.PERM_RESPIRATORY_RATE !in granted,
                                     onClick = { onNavigateToTrends(HealthMetric.RESPIRATORY_RATE) },
                                     onLongClick = { editingMetric = HealthMetric.RESPIRATORY_RATE }
                                 )
@@ -401,12 +448,14 @@ private fun HealthMetricCard(
     }
 }
 
-/** Card specifically for the sleep session metric. */
+/** Card specifically for the sleep session metric. Accepts optional manual entry data. */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun HealthSleepCard(
     permissionNeeded: Boolean,
     session: SleepSessionSummary?,
+    manualDurationHours: Double? = null,
+    manualDate: String? = null,
     onClick: () -> Unit = {},
     onLongClick: () -> Unit = {},
 ) {
@@ -437,6 +486,25 @@ private fun HealthSleepCard(
             )
             Spacer(modifier = Modifier.height(4.dp))
             when {
+                manualDurationHours != null -> {
+                    val totalMinutes = (manualDurationHours * 60).toInt()
+                    val h = totalMinutes / 60
+                    val m = totalMinutes % 60
+                    val display = if (h > 0) "${h}h ${m}m" else "${m}m"
+                    Text(
+                        text = display,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = "${manualDate ?: ""}  (manual)",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = OnSurfaceVariant,
+                        fontSize = 10.sp
+                    )
+                }
                 permissionNeeded -> {
                     Text(
                         text = "Permission needed",

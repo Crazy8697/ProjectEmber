@@ -49,6 +49,22 @@ class HealthMetricPreferencesStore(context: Context) {
 
     fun getAllGraphSettings(): Map<HealthMetric, Boolean> = _graphSettingsFlow.value
 
+    /** Enable or disable ALL metrics at once. */
+    fun setAllMetricsEnabled(enabled: Boolean) {
+        val editor = prefs.edit()
+        HealthMetric.entries.forEach { editor.putBoolean(it.prefKey, enabled) }
+        editor.apply()
+        _settingsFlow.value = HealthMetric.entries.associateWith { enabled }
+    }
+
+    /** Enable or disable the graph toggle for ALL metrics at once. */
+    fun setAllGraphEnabled(enabled: Boolean) {
+        val editor = prefs.edit()
+        HealthMetric.entries.forEach { editor.putBoolean(it.graphPrefKey, enabled) }
+        editor.apply()
+        _graphSettingsFlow.value = HealthMetric.entries.associateWith { enabled }
+    }
+
     private fun loadAll(): Map<HealthMetric, Boolean> =
         HealthMetric.entries.associateWith { prefs.getBoolean(it.prefKey, true) }
 

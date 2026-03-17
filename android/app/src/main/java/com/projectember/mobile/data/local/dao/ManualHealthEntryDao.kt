@@ -47,4 +47,14 @@ interface ManualHealthEntryDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(entries: List<ManualHealthEntry>)
+
+    /**
+     * Latest entry per metric type — used to drive per-metric card priority display.
+     * Returns at most one row per distinct [metricType] value.
+     */
+    @Query(
+        "SELECT * FROM manual_health_entries WHERE id IN " +
+            "(SELECT MAX(id) FROM manual_health_entries GROUP BY metricType)"
+    )
+    fun getLatestForAllMetrics(): Flow<List<ManualHealthEntry>>
 }

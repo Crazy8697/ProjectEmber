@@ -15,7 +15,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -25,15 +24,28 @@ import androidx.compose.ui.unit.sp
 import com.projectember.mobile.data.local.HealthMetric
 import com.projectember.mobile.data.local.entities.ManualHealthEntry
 import com.projectember.mobile.ui.theme.OnSurfaceVariant
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 
 /**
- * Trends / history screen for a single health metric.
+ * Unified Trends + History screen for a single health metric.
  *
- * Shows:
- * - The metric label as the title.
- * - A simple trend graph (when graphEnabled and enough data points).
- * - A chronological list of all manual entries for this metric.
- * - FAB to add a new manual entry.
+ * Two sub-views toggled via the top-bar action button:
+ *
+ * **Graph/Trends view** (default — opened when tapping a metric card):
+ * - Latest value summary card.
+ * - FROM / TO date range pickers.
+ * - Line chart of manual entries in the selected date range.
+ * - "History" action button in the top bar.
+ *
+ * **History/Edit view** (opened via "History" button):
+ * - Chronological list of manual Ember entries.
+ * - FAB to add a new entry — this is the edit surface for the metric.
+ * - "Return to graph" action button in the top bar.
+ * - Back arrow also returns to the graph view (not exit).
+ *
+ * Manual Ember entries are the canonical source of truth for trend display.
+ * They are never written back to Health Connect.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -43,12 +55,71 @@ fun HealthMetricTrendsScreen(
     onNavigateBack: () -> Unit,
 ) {
     val entries by viewModel.entries.collectAsState()
-    val graphEnabled by viewModel.graphEnabled.collectAsState()
+    val fromDate by viewModel.fromDate.collectAsState()
+    val toDate by viewModel.toDate.collectAsState()
 
+    // false = Graph/Trends view (default); true = History/Edit view
+    var showHistory by remember { mutableStateOf(false) }
     var showAddDialog by remember { mutableStateOf(false) }
     var entryToDelete by remember { mutableStateOf<ManualHealthEntry?>(null) }
+    var showFromPicker by remember { mutableStateOf(false) }
+    var showToPicker by remember { mutableStateOf(false) }
 
-    // Add / edit dialog
+    val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+
+    // Filter entries to the selected date range, oldest-first, for the chart.
+    val graphEntries = remember(entries, fromDate, toDate) {
+        entries
+            .filter { it.entryDate >= fromDate && it.entryDate <= toDate }
+            .reversed()
+    }
+
+    // ── Date pickers ──────────────────────────────────────────────────────────
+    if (showFromPicker) {
+        val initMillis = runCatching {
+            LocalDate.parse(fromDate, dateFormatter).toEpochDay() * 86_400_000L
+        }.getOrDefault(System.currentTimeMillis())
+        val dpState = rememberDatePickerState(initialSelectedDateMillis = initMillis)
+        DatePickerDialog(
+            onDismissRequest = { showFromPicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    showFromPicker = false
+                    dpState.selectedDateMillis?.let { millis ->
+                        val d = LocalDate.ofEpochDay(millis / 86_400_000L)
+                        viewModel.setFromDate(d.format(dateFormatter))
+                    }
+                }) { Text("OK") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showFromPicker = false }) { Text("Cancel") }
+            }
+        ) { DatePicker(state = dpState) }
+    }
+
+    if (showToPicker) {
+        val initMillis = runCatching {
+            LocalDate.parse(toDate, dateFormatter).toEpochDay() * 86_400_000L
+        }.getOrDefault(System.currentTimeMillis())
+        val dpState = rememberDatePickerState(initialSelectedDateMillis = initMillis)
+        DatePickerDialog(
+            onDismissRequest = { showToPicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    showToPicker = false
+                    dpState.selectedDateMillis?.let { millis ->
+                        val d = LocalDate.ofEpochDay(millis / 86_400_000L)
+                        viewModel.setToDate(d.format(dateFormatter))
+                    }
+                }) { Text("OK") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showToPicker = false }) { Text("Cancel") }
+            }
+        ) { DatePicker(state = dpState) }
+    }
+
+    // ── Add entry dialog ──────────────────────────────────────────────────────
     if (showAddDialog) {
         HealthMetricEntryDialog(
             metric = metric,
@@ -60,7 +131,7 @@ fun HealthMetricTrendsScreen(
         )
     }
 
-    // Delete confirmation
+    // ── Delete confirmation ───────────────────────────────────────────────────
     entryToDelete?.let { entry ->
         AlertDialog(
             onDismissRequest = { entryToDelete = null },
@@ -78,13 +149,37 @@ fun HealthMetricTrendsScreen(
         )
     }
 
+    // ── Scaffold ──────────────────────────────────────────────────────────────
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(metric.displayName + " History") },
+                title = {
+                    Text(
+                        if (showHistory) "${metric.displayName} History"
+                        else "${metric.displayName} Trends"
+                    )
+                },
                 navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
+                    // In history view the back arrow returns to graph; in graph view it exits.
+                    IconButton(
+                        onClick = if (showHistory) ({ showHistory = false }) else onNavigateBack
+                    ) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    if (showHistory) {
+                        OutlinedButton(
+                            onClick = { showHistory = false },
+                            modifier = Modifier.padding(end = 8.dp),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+                        ) { Text("Return to graph") }
+                    } else {
+                        OutlinedButton(
+                            onClick = { showHistory = true },
+                            modifier = Modifier.padding(end = 8.dp),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+                        ) { Text("History") }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -93,73 +188,350 @@ fun HealthMetricTrendsScreen(
             )
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = { showAddDialog = true }) {
-                Icon(Icons.Default.Add, contentDescription = "Add entry")
+            if (showHistory) {
+                FloatingActionButton(onClick = { showAddDialog = true }) {
+                    Icon(Icons.Default.Add, contentDescription = "Add entry")
+                }
             }
         }
     ) { paddingValues ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            item { Spacer(modifier = Modifier.height(4.dp)) }
+        if (showHistory) {
+            HealthMetricHistoryContent(
+                metric = metric,
+                entries = entries,
+                paddingValues = paddingValues,
+                onDeleteRequest = { entryToDelete = it }
+            )
+        } else {
+            HealthMetricGraphContent(
+                metric = metric,
+                latestEntry = entries.firstOrNull(),
+                graphEntries = graphEntries,
+                fromDate = fromDate,
+                toDate = toDate,
+                paddingValues = paddingValues,
+                onShowFromPicker = { showFromPicker = true },
+                onShowToPicker = { showToPicker = true },
+            )
+        }
+    }
+}
 
-            // ── Trend graph (only when graphEnabled and ≥ 2 data points) ──────
-            if (graphEnabled && entries.size >= 2) {
-                item {
-                    HealthMetricTrendGraph(
-                        metric = metric,
-                        entries = entries,
+// ── Graph / Trends content ────────────────────────────────────────────────────
+
+@Composable
+private fun HealthMetricGraphContent(
+    metric: HealthMetric,
+    latestEntry: ManualHealthEntry?,
+    graphEntries: List<ManualHealthEntry>,
+    fromDate: String,
+    toDate: String,
+    paddingValues: PaddingValues,
+    onShowFromPicker: () -> Unit,
+    onShowToPicker: () -> Unit,
+) {
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(paddingValues)
+            .padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        item { Spacer(modifier = Modifier.height(4.dp)) }
+
+        // ── Latest value card ─────────────────────────────────────────────────
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                ),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = "LATEST",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = OnSurfaceVariant,
+                        letterSpacing = 0.8.sp
                     )
-                }
-            }
-
-            // ── Entry list ────────────────────────────────────────────────────
-            if (entries.isEmpty()) {
-                item {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 48.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
+                    Spacer(modifier = Modifier.height(6.dp))
+                    if (latestEntry != null) {
                         Text(
-                            text = "No entries yet",
-                            style = MaterialTheme.typography.titleMedium,
+                            text = formatEntryValue(metric, latestEntry),
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = "${latestEntry.entryDate}  ${latestEntry.entryTime}",
+                            style = MaterialTheme.typography.bodySmall,
                             color = OnSurfaceVariant
                         )
                         Text(
-                            text = "Tap + to add a manual reading.",
+                            text = "Manual · Ember only",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = OnSurfaceVariant.copy(alpha = 0.6f),
+                            fontSize = 10.sp
+                        )
+                    } else {
+                        Text(
+                            text = "No manual entries yet",
                             style = MaterialTheme.typography.bodyMedium,
                             color = OnSurfaceVariant
                         )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = "Tap  History → +  to add a reading",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = OnSurfaceVariant.copy(alpha = 0.7f)
+                        )
                     }
                 }
-            } else {
-                item {
+            }
+        }
+
+        // ── Date range selector ───────────────────────────────────────────────
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                ),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(horizontalAlignment = Alignment.Start) {
+                        Text(
+                            text = "FROM",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = OnSurfaceVariant,
+                            letterSpacing = 0.8.sp
+                        )
+                        TextButton(
+                            onClick = onShowFromPicker,
+                            contentPadding = PaddingValues(0.dp)
+                        ) {
+                            Text(
+                                text = fromDate,
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
                     Text(
-                        text = "Manual entries",
-                        style = MaterialTheme.typography.labelSmall,
+                        text = "—",
                         color = OnSurfaceVariant,
-                        letterSpacing = 0.8.sp,
-                        modifier = Modifier.padding(top = 4.dp, bottom = 4.dp)
+                        modifier = Modifier.padding(horizontal = 8.dp)
+                    )
+                    Column(horizontalAlignment = Alignment.End) {
+                        Text(
+                            text = "TO",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = OnSurfaceVariant,
+                            letterSpacing = 0.8.sp
+                        )
+                        TextButton(
+                            onClick = onShowToPicker,
+                            contentPadding = PaddingValues(0.dp)
+                        ) {
+                            Text(
+                                text = toDate,
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // ── Trend chart ───────────────────────────────────────────────────────
+        item {
+            MetricTrendChart(metric = metric, graphEntries = graphEntries)
+        }
+
+        item { Spacer(modifier = Modifier.height(24.dp)) }
+    }
+}
+
+@Composable
+private fun MetricTrendChart(
+    metric: HealthMetric,
+    graphEntries: List<ManualHealthEntry>,
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = "TREND",
+                style = MaterialTheme.typography.labelSmall,
+                color = OnSurfaceVariant,
+                letterSpacing = 0.8.sp
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+
+            if (graphEntries.size < 2) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(120.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = if (graphEntries.isEmpty())
+                            "No data in selected range"
+                        else
+                            "Add at least 2 entries to see a trend",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = OnSurfaceVariant,
+                        textAlign = TextAlign.Center
                     )
                 }
-                items(entries, key = { it.id }) { entry ->
-                    HealthMetricEntryRow(
-                        metric = metric,
-                        entry = entry,
-                        onDelete = { entryToDelete = entry }
+            } else {
+                val displayEntries = graphEntries.takeLast(30)
+                val values = displayEntries.map { it.value1.toFloat() }
+                val minVal = values.min()
+                val maxVal = values.max()
+                val range = if (maxVal > minVal) maxVal - minVal else 1f
+                val lineColor = MaterialTheme.colorScheme.primary
+
+                Canvas(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(120.dp)
+                ) {
+                    val w = size.width
+                    val h = size.height
+                    val n = values.size
+                    val padH = 8.dp.toPx()
+                    val padV = 8.dp.toPx()
+                    val drawW = w - 2 * padH
+                    val drawH = h - 2 * padV
+
+                    for (i in 0 until n - 1) {
+                        val x1 = padH + drawW * i / (n - 1)
+                        val y1 = padV + drawH * (1f - (values[i] - minVal) / range)
+                        val x2 = padH + drawW * (i + 1) / (n - 1)
+                        val y2 = padV + drawH * (1f - (values[i + 1] - minVal) / range)
+                        drawLine(
+                            color = lineColor,
+                            start = Offset(x1, y1),
+                            end = Offset(x2, y2),
+                            strokeWidth = 2.5f.dp.toPx(),
+                            cap = StrokeCap.Round
+                        )
+                    }
+                    for (i in 0 until n) {
+                        val x = padH + drawW * i / (n - 1)
+                        val y = padV + drawH * (1f - (values[i] - minVal) / range)
+                        drawCircle(
+                            color = lineColor,
+                            radius = 4.dp.toPx(),
+                            center = Offset(x, y)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(6.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = displayEntries.firstOrNull()?.entryDate?.takeLast(5) ?: "",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = OnSurfaceVariant,
+                        fontSize = 10.sp
+                    )
+                    Text(
+                        text = "${displayEntries.size} readings",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = OnSurfaceVariant,
+                        fontSize = 10.sp
+                    )
+                    Text(
+                        text = displayEntries.lastOrNull()?.entryDate?.takeLast(5) ?: "",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = OnSurfaceVariant,
+                        fontSize = 10.sp,
+                        textAlign = TextAlign.End
                     )
                 }
             }
-
-            item { Spacer(modifier = Modifier.height(80.dp)) }
         }
+    }
+}
+
+// ── History / Edit content ────────────────────────────────────────────────────
+
+@Composable
+private fun HealthMetricHistoryContent(
+    metric: HealthMetric,
+    entries: List<ManualHealthEntry>,
+    paddingValues: PaddingValues,
+    onDeleteRequest: (ManualHealthEntry) -> Unit,
+) {
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(paddingValues)
+            .padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        item { Spacer(modifier = Modifier.height(4.dp)) }
+
+        if (entries.isEmpty()) {
+            item {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 56.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = "No entries yet",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = OnSurfaceVariant
+                    )
+                    Text(
+                        text = "Tap + to add a manual reading.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = OnSurfaceVariant
+                    )
+                }
+            }
+        } else {
+            item {
+                Text(
+                    text = "MANUAL ENTRIES",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = OnSurfaceVariant,
+                    letterSpacing = 0.8.sp,
+                    modifier = Modifier.padding(top = 4.dp, bottom = 4.dp)
+                )
+            }
+            items(entries, key = { it.id }) { entry ->
+                HealthMetricEntryRow(
+                    metric = metric,
+                    entry = entry,
+                    onDelete = { onDeleteRequest(entry) }
+                )
+            }
+        }
+
+        item { Spacer(modifier = Modifier.height(80.dp)) }
     }
 }
 
@@ -194,9 +566,9 @@ private fun HealthMetricEntryRow(
                     color = OnSurfaceVariant
                 )
                 Text(
-                    text = "Manual",
+                    text = "Manual · Ember only",
                     style = MaterialTheme.typography.labelSmall,
-                    color = OnSurfaceVariant.copy(alpha = 0.7f),
+                    color = OnSurfaceVariant.copy(alpha = 0.6f),
                     fontSize = 10.sp
                 )
             }
@@ -212,95 +584,7 @@ private fun HealthMetricEntryRow(
     }
 }
 
-// ── Trend graph ────────────────────────────────────────────────────────────────
-
-@Composable
-private fun HealthMetricTrendGraph(
-    metric: HealthMetric,
-    entries: List<ManualHealthEntry>,
-) {
-    // Only use the last 30 entries for graph readability; list is newest-first so reverse.
-    val graphEntries = entries.reversed().takeLast(30)
-    val values = graphEntries.map { it.value1.toFloat() }
-    if (values.isEmpty()) return
-
-    val minVal = values.min()
-    val maxVal = values.max()
-    val range = if (maxVal > minVal) maxVal - minVal else 1f
-
-    val lineColor = MaterialTheme.colorScheme.primary
-
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
-    ) {
-        Column(modifier = Modifier.padding(12.dp)) {
-            Text(
-                text = "TREND",
-                style = MaterialTheme.typography.labelSmall,
-                color = OnSurfaceVariant,
-                letterSpacing = 0.8.sp
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Canvas(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(100.dp)
-            ) {
-                val w = size.width
-                val h = size.height
-                val n = values.size
-                if (n < 2) return@Canvas
-
-                for (i in 0 until n - 1) {
-                    val x1 = w * i / (n - 1)
-                    val y1 = h - h * ((values[i] - minVal) / range)
-                    val x2 = w * (i + 1) / (n - 1)
-                    val y2 = h - h * ((values[i + 1] - minVal) / range)
-                    drawLine(
-                        color = lineColor,
-                        start = Offset(x1, y1),
-                        end = Offset(x2, y2),
-                        strokeWidth = 2.dp.toPx(),
-                        cap = StrokeCap.Round
-                    )
-                }
-                // Draw dots
-                for (i in 0 until n) {
-                    val x = w * i / (n - 1)
-                    val y = h - h * ((values[i] - minVal) / range)
-                    drawCircle(color = lineColor, radius = 3.dp.toPx(), center = Offset(x, y))
-                }
-            }
-            Spacer(modifier = Modifier.height(4.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(
-                    text = graphEntries.firstOrNull()?.let {
-                        "${it.entryDate.takeLast(5)}"
-                    } ?: "",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = OnSurfaceVariant,
-                    fontSize = 10.sp
-                )
-                Text(
-                    text = graphEntries.lastOrNull()?.let {
-                        "${it.entryDate.takeLast(5)}"
-                    } ?: "",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = OnSurfaceVariant,
-                    fontSize = 10.sp,
-                    textAlign = TextAlign.End
-                )
-            }
-        }
-    }
-}
-
-// ── Add entry dialog ──────────────────────────────────────────────────────────
+// ── Add / edit entry dialog ───────────────────────────────────────────────────
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -365,12 +649,10 @@ fun HealthMetricEntryDialog(
             TextButton(onClick = {
                 val v1 = value1Input.toDoubleOrNull()
                 val v2 = if (needsValue2) value2Input.toDoubleOrNull() else null
-
                 val v1Valid = v1 != null && v1 > 0
                 val v2Valid = !needsValue2 || (v2 != null && v2 > 0)
                 value1Error = !v1Valid
                 value2Error = needsValue2 && !v2Valid
-
                 if (v1Valid && v2Valid) {
                     val time = java.time.LocalTime.now()
                         .format(java.time.format.DateTimeFormatter.ofPattern("HH:mm"))
@@ -386,7 +668,6 @@ fun HealthMetricEntryDialog(
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-/** Returns (label1, label2, unit1, unit2) for each metric type. */
 private data class MetricInputSpec(
     val label1: String,
     val label2: String,
@@ -410,7 +691,7 @@ private fun metricInputSpec(metric: HealthMetric): MetricInputSpec = when (metri
     HealthMetric.EXERCISE_SESSIONS -> MetricInputSpec("Duration", "", "minutes", "")
 }
 
-/** Format a ManualHealthEntry value for display in the entry list. */
+/** Format a [ManualHealthEntry] value for display in the entry list and graph cards. */
 fun formatEntryValue(metric: HealthMetric, entry: ManualHealthEntry): String = when (metric) {
     HealthMetric.HEART_RATE, HealthMetric.RESTING_HEART_RATE ->
         "%.0f bpm".format(entry.value1)

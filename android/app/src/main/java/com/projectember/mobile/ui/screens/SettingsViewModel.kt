@@ -425,6 +425,14 @@ class SettingsViewModel(
         healthMetricPreferencesStore.setMetricGraphEnabled(metric, enabled)
     }
 
+    fun setAllMetricsEnabled(enabled: Boolean) {
+        healthMetricPreferencesStore.setAllMetricsEnabled(enabled)
+    }
+
+    fun setAllGraphEnabled(enabled: Boolean) {
+        healthMetricPreferencesStore.setAllGraphEnabled(enabled)
+    }
+
     fun isMetricEnabled(metric: HealthMetric): Boolean =
         healthMetricPreferencesStore.isMetricEnabled(metric)
 }
