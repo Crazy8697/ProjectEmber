@@ -33,19 +33,20 @@ import java.time.format.DateTimeFormatter
  * Two sub-views toggled via the top-bar action button:
  *
  * **Graph/Trends view** (default — opened when tapping a metric card):
- * - Latest value summary card.
- * - FROM / TO date range pickers.
- * - Line chart of manual entries in the selected date range.
+ * - Latest value summary card (manual priority, then HC).
+ * - FROM / TO date range pickers (default: last 30 days).
+ * - Line chart of all entries (manual + HC) in the selected date range.
  * - "History" action button in the top bar.
  *
  * **History/Edit view** (opened via "History" button):
- * - Chronological list of manual Ember entries.
- * - FAB to add a new entry — this is the edit surface for the metric.
+ * - Chronological list of both manual Ember entries and HC imported entries.
+ * - FAB to add a new manual entry — this is the edit surface for the metric.
  * - "Return to graph" action button in the top bar.
  * - Back arrow also returns to the graph view (not exit).
+ * - Delete button shown only on manual entries (HC entries are read-only).
  *
- * Manual Ember entries are the canonical source of truth for trend display.
- * They are never written back to Health Connect.
+ * Manual Ember entries take display priority.
+ * HC historical data enriches the view but is never written back.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -57,6 +58,7 @@ fun HealthMetricTrendsScreen(
     val entries by viewModel.entries.collectAsState()
     val fromDate by viewModel.fromDate.collectAsState()
     val toDate by viewModel.toDate.collectAsState()
+    val hcLoadState by viewModel.hcLoadState.collectAsState()
 
     // false = Graph/Trends view (default); true = History/Edit view
     var showHistory by remember { mutableStateOf(false) }
@@ -199,6 +201,7 @@ fun HealthMetricTrendsScreen(
             HealthMetricHistoryContent(
                 metric = metric,
                 entries = entries,
+                hcLoadState = hcLoadState,
                 paddingValues = paddingValues,
                 onDeleteRequest = { entryToDelete = it }
             )
@@ -209,6 +212,7 @@ fun HealthMetricTrendsScreen(
                 graphEntries = graphEntries,
                 fromDate = fromDate,
                 toDate = toDate,
+                hcLoadState = hcLoadState,
                 paddingValues = paddingValues,
                 onShowFromPicker = { showFromPicker = true },
                 onShowToPicker = { showToPicker = true },
@@ -226,6 +230,7 @@ private fun HealthMetricGraphContent(
     graphEntries: List<ManualHealthEntry>,
     fromDate: String,
     toDate: String,
+    hcLoadState: HcLoadState,
     paddingValues: PaddingValues,
     onShowFromPicker: () -> Unit,
     onShowToPicker: () -> Unit,
@@ -269,21 +274,29 @@ private fun HealthMetricGraphContent(
                             style = MaterialTheme.typography.bodySmall,
                             color = OnSurfaceVariant
                         )
+                        val sourceLabel = if (latestEntry.source == ManualHealthEntry.SOURCE_MANUAL)
+                            "Manual · Ember only" else "Health Connect"
                         Text(
-                            text = "Manual · Ember only",
+                            text = sourceLabel,
                             style = MaterialTheme.typography.labelSmall,
                             color = OnSurfaceVariant.copy(alpha = 0.6f),
                             fontSize = 10.sp
                         )
+                    } else if (hcLoadState == HcLoadState.Loading) {
+                        Text(
+                            text = "Loading…",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = OnSurfaceVariant
+                        )
                     } else {
                         Text(
-                            text = "No manual entries yet",
+                            text = "No data yet",
                             style = MaterialTheme.typography.bodyMedium,
                             color = OnSurfaceVariant
                         )
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
-                            text = "Tap  History → +  to add a reading",
+                            text = "Tap  History → +  to add a manual reading",
                             style = MaterialTheme.typography.bodySmall,
                             color = OnSurfaceVariant.copy(alpha = 0.7f)
                         )
@@ -355,7 +368,11 @@ private fun HealthMetricGraphContent(
 
         // ── Trend chart ───────────────────────────────────────────────────────
         item {
-            MetricTrendChart(metric = metric, graphEntries = graphEntries)
+            MetricTrendChart(
+                metric = metric,
+                graphEntries = graphEntries,
+                hcLoadState = hcLoadState
+            )
         }
 
         item { Spacer(modifier = Modifier.height(24.dp)) }
@@ -366,6 +383,7 @@ private fun HealthMetricGraphContent(
 private fun MetricTrendChart(
     metric: HealthMetric,
     graphEntries: List<ManualHealthEntry>,
+    hcLoadState: HcLoadState = HcLoadState.Done,
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -388,15 +406,19 @@ private fun MetricTrendChart(
                         .height(120.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = if (graphEntries.isEmpty())
-                            "No data in selected range"
-                        else
-                            "Add at least 2 entries to see a trend",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = OnSurfaceVariant,
-                        textAlign = TextAlign.Center
-                    )
+                    if (hcLoadState == HcLoadState.Loading) {
+                        CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                    } else {
+                        Text(
+                            text = when {
+                                graphEntries.isEmpty() -> "No data in selected range"
+                                else -> "Need at least 2 data points to draw a trend"
+                            },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = OnSurfaceVariant,
+                            textAlign = TextAlign.Center
+                        )
+                    }
                 }
             } else {
                 val displayEntries = graphEntries.takeLast(30)
@@ -479,9 +501,13 @@ private fun MetricTrendChart(
 private fun HealthMetricHistoryContent(
     metric: HealthMetric,
     entries: List<ManualHealthEntry>,
+    hcLoadState: HcLoadState,
     paddingValues: PaddingValues,
     onDeleteRequest: (ManualHealthEntry) -> Unit,
 ) {
+    val hasManual = entries.any { it.source == ManualHealthEntry.SOURCE_MANUAL }
+    val hasHc = entries.any { it.source == ManualHealthEntry.SOURCE_HEALTH_CONNECT }
+
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -500,33 +526,55 @@ private fun HealthMetricHistoryContent(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Text(
-                        text = "No entries yet",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = OnSurfaceVariant
-                    )
-                    Text(
-                        text = "Tap + to add a manual reading.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = OnSurfaceVariant
-                    )
+                    if (hcLoadState == HcLoadState.Loading) {
+                        CircularProgressIndicator()
+                        Text(
+                            text = "Loading Health Connect history…",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = OnSurfaceVariant
+                        )
+                    } else {
+                        Text(
+                            text = "No entries in selected range",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = OnSurfaceVariant
+                        )
+                        Text(
+                            text = "Tap + to add a manual reading.\n" +
+                                "Health Connect history will appear here when available.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = OnSurfaceVariant,
+                            textAlign = TextAlign.Center
+                        )
+                    }
                 }
             }
         } else {
             item {
+                val label = when {
+                    hasManual && hasHc -> "ALL ENTRIES  (manual + Health Connect)"
+                    hasHc -> "HEALTH CONNECT ENTRIES"
+                    else -> "MANUAL ENTRIES"
+                }
                 Text(
-                    text = "MANUAL ENTRIES",
+                    text = label,
                     style = MaterialTheme.typography.labelSmall,
                     color = OnSurfaceVariant,
                     letterSpacing = 0.8.sp,
                     modifier = Modifier.padding(top = 4.dp, bottom = 4.dp)
                 )
             }
-            items(entries, key = { it.id }) { entry ->
+            // Use composite key to support both manual (positive id) and HC (id = 0) entries
+            items(
+                items = entries,
+                key = { "${it.source}_${it.entryDate}_${it.entryTime}_${it.value1}" }
+            ) { entry ->
                 HealthMetricEntryRow(
                     metric = metric,
                     entry = entry,
-                    onDelete = { onDeleteRequest(entry) }
+                    onDelete = if (entry.source == ManualHealthEntry.SOURCE_MANUAL) {
+                        { onDeleteRequest(entry) }
+                    } else null
                 )
             }
         }
@@ -541,7 +589,8 @@ private fun HealthMetricHistoryContent(
 private fun HealthMetricEntryRow(
     metric: HealthMetric,
     entry: ManualHealthEntry,
-    onDelete: () -> Unit,
+    /** Non-null only for manual entries; null = read-only HC entry (no delete button). */
+    onDelete: (() -> Unit)?,
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -565,20 +614,27 @@ private fun HealthMetricEntryRow(
                     style = MaterialTheme.typography.bodySmall,
                     color = OnSurfaceVariant
                 )
+                val sourceLabel = if (entry.source == ManualHealthEntry.SOURCE_MANUAL)
+                    "Manual · Ember only" else "Health Connect"
                 Text(
-                    text = "Manual · Ember only",
+                    text = sourceLabel,
                     style = MaterialTheme.typography.labelSmall,
                     color = OnSurfaceVariant.copy(alpha = 0.6f),
                     fontSize = 10.sp
                 )
             }
-            IconButton(onClick = onDelete) {
-                Icon(
-                    Icons.Default.Delete,
-                    contentDescription = "Delete",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(20.dp)
-                )
+            if (onDelete != null) {
+                IconButton(onClick = onDelete) {
+                    Icon(
+                        Icons.Default.Delete,
+                        contentDescription = "Delete",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            } else {
+                // Spacer to keep card height consistent
+                Spacer(modifier = Modifier.size(48.dp))
             }
         }
     }

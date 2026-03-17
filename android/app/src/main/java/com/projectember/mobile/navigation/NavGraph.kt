@@ -379,6 +379,7 @@ fun EmberNavGraph(
                     metric,
                     app.manualHealthEntryRepository,
                     app.healthMetricPreferencesStore,
+                    app.healthConnectManager,
                 )
             )
             HealthMetricTrendsScreen(

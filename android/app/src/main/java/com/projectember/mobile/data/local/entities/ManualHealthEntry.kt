@@ -36,5 +36,7 @@ data class ManualHealthEntry(
 ) {
     companion object {
         const val SOURCE_MANUAL = "manual"
+        /** Entry originated from a Health Connect historical read (never persisted to Room). */
+        const val SOURCE_HEALTH_CONNECT = "health_connect"
     }
 }

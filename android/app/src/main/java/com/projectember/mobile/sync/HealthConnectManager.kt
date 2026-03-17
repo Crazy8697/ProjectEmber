@@ -19,8 +19,10 @@ import androidx.health.connect.client.records.TotalCaloriesBurnedRecord
 import androidx.health.connect.client.records.WeightRecord
 import androidx.health.connect.client.request.ReadRecordsRequest
 import androidx.health.connect.client.time.TimeRangeFilter
+import com.projectember.mobile.data.local.HealthMetric
 import com.projectember.mobile.data.local.entities.ExerciseCategory
 import com.projectember.mobile.data.local.entities.ExerciseEntry
+import com.projectember.mobile.data.local.entities.ManualHealthEntry
 import com.projectember.mobile.data.local.entities.SyncStatus
 import com.projectember.mobile.data.local.entities.WeightEntry
 import com.projectember.mobile.data.repository.ExerciseCategoryRepository
@@ -115,6 +117,246 @@ class HealthConnectManager(
     }
 
     // ── Sync ──────────────────────────────────────────────────────────────────
+
+    /**
+     * Reads Health Connect historical records for the given [metric] that fall within
+     * [fromDate]..[toDate] (inclusive, "yyyy-MM-dd" format) and returns them as a list of
+     * [ManualHealthEntry] objects with [ManualHealthEntry.SOURCE_HEALTH_CONNECT] set as the
+     * source.  The returned entries are **never** persisted to Room; they are in-memory only
+     * and are used exclusively by the trends/history screen to supplement manual Ember entries.
+     *
+     * Returns an empty list if Health Connect is unavailable, the required permission has not
+     * been granted, or no records exist in the requested range.
+     */
+    suspend fun readHistoricalMetrics(
+        metric: HealthMetric,
+        fromDate: String,
+        toDate: String,
+    ): List<ManualHealthEntry> {
+        if (!isAvailable()) return emptyList()
+        val client = HealthConnectClient.getOrCreate(context)
+        val granted = client.permissionController.getGrantedPermissions()
+
+        val zoneId = ZoneId.systemDefault()
+        val dateParser = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+        val from = LocalDate.parse(fromDate, dateParser).atStartOfDay(zoneId).toInstant()
+        val to   = LocalDate.parse(toDate,   dateParser).plusDays(1).atStartOfDay(zoneId).toInstant()
+        val timeRange = TimeRangeFilter.between(from, to)
+
+        return when (metric) {
+
+            HealthMetric.HEART_RATE -> {
+                if (PERM_HEART_RATE !in granted) return emptyList()
+                val records = client.readRecords(
+                    ReadRecordsRequest(HeartRateRecord::class, timeRange)
+                ).records
+                records.flatMap { r ->
+                    r.samples.map { sample ->
+                        val ldt = sample.time.atZone(zoneId).toLocalDateTime()
+                        ManualHealthEntry(
+                            metricType = metric.name,
+                            value1 = sample.beatsPerMinute.toDouble(),
+                            entryDate = ldt.toLocalDate().format(dateFormatter),
+                            entryTime = ldt.format(DateTimeFormatter.ofPattern("HH:mm")),
+                            source = ManualHealthEntry.SOURCE_HEALTH_CONNECT
+                        )
+                    }
+                }
+            }
+
+            HealthMetric.RESTING_HEART_RATE -> {
+                if (PERM_RESTING_HEART_RATE !in granted) return emptyList()
+                client.readRecords(
+                    ReadRecordsRequest(RestingHeartRateRecord::class, timeRange)
+                ).records.map { r ->
+                    val ldt = r.time.atZone(zoneId).toLocalDateTime()
+                    ManualHealthEntry(
+                        metricType = metric.name,
+                        value1 = r.beatsPerMinute.toDouble(),
+                        entryDate = ldt.toLocalDate().format(dateFormatter),
+                        entryTime = ldt.format(DateTimeFormatter.ofPattern("HH:mm")),
+                        source = ManualHealthEntry.SOURCE_HEALTH_CONNECT
+                    )
+                }
+            }
+
+            HealthMetric.BLOOD_PRESSURE -> {
+                if (PERM_BLOOD_PRESSURE !in granted) return emptyList()
+                client.readRecords(
+                    ReadRecordsRequest(BloodPressureRecord::class, timeRange)
+                ).records.map { r ->
+                    val ldt = r.time.atZone(zoneId).toLocalDateTime()
+                    ManualHealthEntry(
+                        metricType = metric.name,
+                        value1 = r.systolic.inMillimetersOfMercury,
+                        value2 = r.diastolic.inMillimetersOfMercury,
+                        entryDate = ldt.toLocalDate().format(dateFormatter),
+                        entryTime = ldt.format(DateTimeFormatter.ofPattern("HH:mm")),
+                        source = ManualHealthEntry.SOURCE_HEALTH_CONNECT
+                    )
+                }
+            }
+
+            HealthMetric.BLOOD_GLUCOSE -> {
+                if (PERM_BLOOD_GLUCOSE !in granted) return emptyList()
+                client.readRecords(
+                    ReadRecordsRequest(BloodGlucoseRecord::class, timeRange)
+                ).records.map { r ->
+                    val ldt = r.time.atZone(zoneId).toLocalDateTime()
+                    ManualHealthEntry(
+                        metricType = metric.name,
+                        value1 = r.level.inMillimolesPerLiter,
+                        entryDate = ldt.toLocalDate().format(dateFormatter),
+                        entryTime = ldt.format(DateTimeFormatter.ofPattern("HH:mm")),
+                        source = ManualHealthEntry.SOURCE_HEALTH_CONNECT
+                    )
+                }
+            }
+
+            HealthMetric.BODY_TEMPERATURE -> {
+                if (PERM_BODY_TEMPERATURE !in granted) return emptyList()
+                client.readRecords(
+                    ReadRecordsRequest(BodyTemperatureRecord::class, timeRange)
+                ).records.map { r ->
+                    val ldt = r.time.atZone(zoneId).toLocalDateTime()
+                    ManualHealthEntry(
+                        metricType = metric.name,
+                        value1 = r.temperature.inCelsius,
+                        entryDate = ldt.toLocalDate().format(dateFormatter),
+                        entryTime = ldt.format(DateTimeFormatter.ofPattern("HH:mm")),
+                        source = ManualHealthEntry.SOURCE_HEALTH_CONNECT
+                    )
+                }
+            }
+
+            HealthMetric.OXYGEN_SATURATION -> {
+                if (PERM_OXYGEN_SATURATION !in granted) return emptyList()
+                client.readRecords(
+                    ReadRecordsRequest(OxygenSaturationRecord::class, timeRange)
+                ).records.map { r ->
+                    val ldt = r.time.atZone(zoneId).toLocalDateTime()
+                    ManualHealthEntry(
+                        metricType = metric.name,
+                        value1 = r.percentage.value,
+                        entryDate = ldt.toLocalDate().format(dateFormatter),
+                        entryTime = ldt.format(DateTimeFormatter.ofPattern("HH:mm")),
+                        source = ManualHealthEntry.SOURCE_HEALTH_CONNECT
+                    )
+                }
+            }
+
+            HealthMetric.RESPIRATORY_RATE -> {
+                if (PERM_RESPIRATORY_RATE !in granted) return emptyList()
+                client.readRecords(
+                    ReadRecordsRequest(RespiratoryRateRecord::class, timeRange)
+                ).records.map { r ->
+                    val ldt = r.time.atZone(zoneId).toLocalDateTime()
+                    ManualHealthEntry(
+                        metricType = metric.name,
+                        value1 = r.rate,
+                        entryDate = ldt.toLocalDate().format(dateFormatter),
+                        entryTime = ldt.format(DateTimeFormatter.ofPattern("HH:mm")),
+                        source = ManualHealthEntry.SOURCE_HEALTH_CONNECT
+                    )
+                }
+            }
+
+            HealthMetric.SLEEP -> {
+                if (PERM_SLEEP !in granted) return emptyList()
+                client.readRecords(
+                    ReadRecordsRequest(SleepSessionRecord::class, timeRange)
+                ).records.map { r ->
+                    val ldt = r.startTime.atZone(zoneId).toLocalDateTime()
+                    val durationMs = ChronoUnit.MILLIS.between(r.startTime, r.endTime)
+                    val durationHours = durationMs / 3_600_000.0
+                    ManualHealthEntry(
+                        metricType = metric.name,
+                        value1 = durationHours,
+                        entryDate = ldt.toLocalDate().format(dateFormatter),
+                        entryTime = ldt.format(DateTimeFormatter.ofPattern("HH:mm")),
+                        source = ManualHealthEntry.SOURCE_HEALTH_CONNECT
+                    )
+                }
+            }
+
+            HealthMetric.STEPS -> {
+                if (PERM_STEPS !in granted) return emptyList()
+                // Aggregate per-day step count
+                client.readRecords(
+                    ReadRecordsRequest(StepsRecord::class, timeRange)
+                ).records.groupBy { r ->
+                    r.startTime.atZone(zoneId).toLocalDate().format(dateFormatter)
+                }.map { (date, records) ->
+                    ManualHealthEntry(
+                        metricType = metric.name,
+                        value1 = records.sumOf { it.count }.toDouble(),
+                        entryDate = date,
+                        entryTime = "00:00",
+                        source = ManualHealthEntry.SOURCE_HEALTH_CONNECT
+                    )
+                }
+            }
+
+            HealthMetric.DISTANCE -> {
+                if (PERM_DISTANCE !in granted) return emptyList()
+                client.readRecords(
+                    ReadRecordsRequest(DistanceRecord::class, timeRange)
+                ).records.groupBy { r ->
+                    r.startTime.atZone(zoneId).toLocalDate().format(dateFormatter)
+                }.map { (date, records) ->
+                    ManualHealthEntry(
+                        metricType = metric.name,
+                        value1 = records.sumOf { it.distance.inKilometers },
+                        entryDate = date,
+                        entryTime = "00:00",
+                        source = ManualHealthEntry.SOURCE_HEALTH_CONNECT
+                    )
+                }
+            }
+
+            HealthMetric.ACTIVE_CALORIES -> {
+                if (PERM_ACTIVE_CALORIES !in granted) return emptyList()
+                client.readRecords(
+                    ReadRecordsRequest(ActiveCaloriesBurnedRecord::class, timeRange)
+                ).records.groupBy { r ->
+                    r.startTime.atZone(zoneId).toLocalDate().format(dateFormatter)
+                }.map { (date, records) ->
+                    ManualHealthEntry(
+                        metricType = metric.name,
+                        value1 = records.sumOf { it.energy.inKilocalories },
+                        entryDate = date,
+                        entryTime = "00:00",
+                        source = ManualHealthEntry.SOURCE_HEALTH_CONNECT
+                    )
+                }
+            }
+
+            HealthMetric.EXERCISE_SESSIONS -> {
+                // Represent each session as a duration-in-minutes entry
+                val exercisePerm = HealthPermission.getReadPermission(ExerciseSessionRecord::class)
+                if (exercisePerm !in granted) return emptyList()
+                client.readRecords(
+                    ReadRecordsRequest(ExerciseSessionRecord::class, timeRange)
+                ).records.map { r ->
+                    val ldt = r.startTime.atZone(zoneId).toLocalDateTime()
+                    val durationMs = ChronoUnit.MILLIS.between(r.startTime, r.endTime)
+                    val durationMinutes = (durationMs / MILLIS_PER_MINUTE).toDouble()
+                    ManualHealthEntry(
+                        metricType = metric.name,
+                        value1 = durationMinutes,
+                        entryDate = ldt.toLocalDate().format(dateFormatter),
+                        entryTime = ldt.format(DateTimeFormatter.ofPattern("HH:mm")),
+                        source = ManualHealthEntry.SOURCE_HEALTH_CONNECT
+                    )
+                }
+            }
+
+            HealthMetric.WEIGHT -> {
+                // Weight is already imported into Room — no additional HC historical read needed here
+                emptyList()
+            }
+        }
+    }
 
     /**
      * Reads Health Connect data for the last [lookbackDays] days and imports it into Room.
