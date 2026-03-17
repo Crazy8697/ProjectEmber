@@ -318,6 +318,36 @@ class KetoViewModel(
                 initialValue = emptyList()
             )
 
+    /**
+     * Raw weight entries for the current trends date range, newest first.
+     * Same-day deduplication is applied: manual entries (source == null) take
+     * priority over Health Connect imports; among ties, the highest id wins.
+     * Used by the Weight History section in KetoTrendsScreen.
+     */
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    val weightEntriesForTrends: StateFlow<List<WeightEntry>> =
+        combine(_trendsFromDate, _trendsToDate) { from, to -> from to to }
+            .flatMapLatest { (from, to) ->
+                weightRepository.getEntriesInRange(from, to)
+                    .map { entries ->
+                        entries
+                            .groupBy { it.entryDate }
+                            .mapValues { (_, dayEntries) ->
+                                val manual = dayEntries.filter {
+                                    it.source != WeightEntry.SOURCE_HEALTH_CONNECT
+                                }
+                                (manual.ifEmpty { dayEntries }).maxBy { it.id }
+                            }
+                            .values
+                            .sortedByDescending { it.entryDate }
+                    }
+            }
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5_000),
+                initialValue = emptyList()
+            )
+
     /** Save a standalone manual measurement for a keto trends metric. */
     fun saveKetoManualEntry(metric: String, value: Double, date: String, time: String) {
         val manualType = ketoMetricManualType(metric) ?: return
