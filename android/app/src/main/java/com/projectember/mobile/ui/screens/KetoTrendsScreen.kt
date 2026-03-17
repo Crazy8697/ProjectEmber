@@ -109,6 +109,7 @@ fun KetoTrendsScreen(
     // Keto metric manual entry dialog state (non-weight measurable metrics)
     var showAddKetoMetricDialog by remember { mutableStateOf(false) }
     var ketoManualEntryToDelete by remember { mutableStateOf<ManualHealthEntry?>(null) }
+    var weightEntryToDelete by remember { mutableStateOf<WeightEntry?>(null) }
 
     val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
 
@@ -139,6 +140,9 @@ fun KetoTrendsScreen(
             trendsData.rollingAvg(rollingDays, selector)
         else -> rawData
     }
+    // For weight, strip days with no recorded entry so the trend line never drops to zero.
+    val displayChartData: List<Pair<String, Float>> =
+        if (trendsMetric == "weight") chartData.filter { it.second > 0f } else chartData
     val targetValue: Float? = when (trendsMetric) {
         "calories"  -> targets.caloriesKcal.toFloat()
         "protein"   -> foodUnit.fromG(targets.proteinG).toFloat()
@@ -154,7 +158,7 @@ fun KetoTrendsScreen(
     }
 
     // Current displayed value: last meaningful data point in the chart
-    val currentDisplayValue: Float? = chartData.lastOrNull { it.second > 0 }?.second
+    val currentDisplayValue: Float? = displayChartData.lastOrNull { it.second > 0 }?.second
 
     // From date picker
     if (showFromPicker) {
@@ -320,6 +324,24 @@ fun KetoTrendsScreen(
         )
     }
 
+    // ── Delete confirmation for weight entries ────────────────────────────────
+    weightEntryToDelete?.let { entry ->
+        AlertDialog(
+            onDismissRequest = { weightEntryToDelete = null },
+            title = { Text("Delete entry?") },
+            text = { Text("Remove weight entry from ${entry.entryDate}?") },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.deleteWeightEntry(entry)
+                    weightEntryToDelete = null
+                }) { Text("Delete", color = MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = {
+                TextButton(onClick = { weightEntryToDelete = null }) { Text("Cancel") }
+            }
+        )
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -380,6 +402,7 @@ fun KetoTrendsScreen(
                 manualEntries = ketoManualEntries,
                 weightEntries = weightEntriesForTrends,
                 onDeleteManualEntry = { ketoManualEntryToDelete = it },
+                onDeleteWeightEntry = { weightEntryToDelete = it },
             )
         } else {
             Column(
@@ -619,7 +642,7 @@ fun KetoTrendsScreen(
             // date slots.  We check the source trendsData rather than the converted float values
             // so that a hypothetical 0.0 kg entry (not physically meaningful but technically
             // possible) would still render rather than triggering the empty state.
-            val hasData = chartData.isNotEmpty() &&
+            val hasData = displayChartData.isNotEmpty() &&
                 (trendsMetric != "weight" || trendsData.any { it.weightKg != null }) &&
                 (trendsMetric != "nak_ratio" || trendsData.any { it.nakRatio != null })
             if (hasData) {
@@ -720,10 +743,11 @@ fun KetoTrendsScreen(
                         Spacer(modifier = Modifier.height(12.dp))
                         WeeklyTrendCard(
                             title = "",
-                            data = chartData,
+                            data = displayChartData,
                             barColor = barColor,
                             unit = unit,
-                            targetValue = targetValue
+                            targetValue = targetValue,
+                            useLineChart = (trendsMetric == "weight"),
                         )
                     }
                 }
@@ -754,6 +778,7 @@ private fun KetoMetricHistoryContent(
     manualEntries: List<ManualHealthEntry> = emptyList(),
     weightEntries: List<WeightEntry> = emptyList(),
     onDeleteManualEntry: ((ManualHealthEntry) -> Unit)? = null,
+    onDeleteWeightEntry: ((WeightEntry) -> Unit)? = null,
 ) {
     val weightUnit = unitPrefs.weightUnit
     val volUnit = unitPrefs.volumeUnit
@@ -930,6 +955,17 @@ private fun KetoMetricHistoryContent(
                                         style = MaterialTheme.typography.labelSmall,
                                         color = OnSurfaceVariant.copy(alpha = 0.6f),
                                         fontSize = 10.sp
+                                    )
+                                }
+                            }
+                            // Only manual entries (source == null) can be deleted
+                            if (onDeleteWeightEntry != null && entry.source == null) {
+                                IconButton(onClick = { onDeleteWeightEntry(entry) }) {
+                                    Icon(
+                                        Icons.Default.Delete,
+                                        contentDescription = "Delete",
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(20.dp)
                                     )
                                 }
                             }
