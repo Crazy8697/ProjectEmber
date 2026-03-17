@@ -619,7 +619,7 @@ private fun KetoMetricHistoryContent(
     val historyRows = trendsData
         .filter { day ->
             when (trendsMetric) {
-                "weight"    -> day.weightKg != null && (day.weightKg ?: 0.0) > 0
+                "weight"    -> (day.weightKg ?: 0.0) > 0
                 "nak_ratio" -> day.nakRatio != null
                 else        -> day.selectMetric(trendsMetric) > 0f
             }

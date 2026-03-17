@@ -83,7 +83,7 @@ fun ketoMetricGraphColor(metric: String): Color = when (metric) {
     "magnesium" -> MagnesiumBlue
     "nak_ratio" -> NakRatioOrange
     "weight"    -> BodyPurple
-    else        -> CaloriesBlue
+    else        -> Color(0xFF78909C) // neutral blue-grey for unknown/future metrics
 }
 
 /**
