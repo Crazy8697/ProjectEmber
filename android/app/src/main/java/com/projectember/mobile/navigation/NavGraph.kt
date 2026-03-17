@@ -242,7 +242,8 @@ fun EmberNavGraph(
             KetoTrendsScreen(
                 viewModel = viewModel,
                 initialMetric = metric,
-                onNavigateBack = { navController.popBackStack() }
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToAddEntry = { navController.navigate(Screen.KetoAddEntry.route) }
             )
         }
 

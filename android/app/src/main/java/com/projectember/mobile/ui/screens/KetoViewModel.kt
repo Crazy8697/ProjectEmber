@@ -178,13 +178,14 @@ class KetoViewModel(
                     val numDays = ((to.toEpochDay() - from.toEpochDay() + 1)
                         .toInt()).coerceIn(1, 90)
                     val dayShortFmt = DateTimeFormatter.ofPattern("EEE")
-                    // Build a map from date → latest weight for that day (by highest id).
+                    // Build a map from date → authoritative weight for that day.
+                    // Manual Ember entries take priority over Health Connect imports.
                     val weightByDate: Map<String, Double> = weightEntries
                         .groupBy { it.entryDate }
                         .mapValues { (_, entries) ->
-                            // groupBy guarantees each value list is non-empty, but use
-                            // ?: 0.0 instead of !! to avoid a crash on future refactoring.
-                            entries.maxByOrNull { it.id }?.weightKg ?: 0.0
+                            // Prefer manual entries (source == null) over HC imports
+                            val manual = entries.filter { it.source != WeightEntry.SOURCE_HEALTH_CONNECT }
+                            (manual.ifEmpty { entries }).maxByOrNull { it.id }?.weightKg ?: 0.0
                         }
                     (0 until numDays).map { offset ->
                         val date = from.plusDays(offset.toLong())

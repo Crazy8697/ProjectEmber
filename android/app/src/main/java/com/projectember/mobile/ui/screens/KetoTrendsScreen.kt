@@ -2,23 +2,26 @@ package com.projectember.mobile.ui.screens
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.projectember.mobile.data.local.FoodWeightUnit
-import com.projectember.mobile.data.local.VolumeUnit
+import com.projectember.mobile.data.local.UnitPreferences
 import com.projectember.mobile.data.local.WeightUnit
 import com.projectember.mobile.ui.theme.KetoAccent
 import com.projectember.mobile.ui.theme.ErrorRed
+import com.projectember.mobile.ui.theme.OnSurfaceVariant
 import com.projectember.mobile.ui.theme.SuccessGreen
 import com.projectember.mobile.ui.theme.WarningYellow
 import java.time.LocalDate
@@ -60,19 +63,7 @@ private fun metricUnit(metric: String): String = when (metric) {
     else        -> "g"
 }
 
-private fun metricBarColor(metric: String): Color = when (metric) {
-    "calories"  -> KetoAccent
-    "protein"   -> SuccessGreen
-    "fat"       -> WarningYellow
-    "net_carbs" -> Color(0xFFFF4D4D)
-    "hydration" -> KetoAccent
-    "sodium"    -> WarningYellow
-    "potassium" -> SuccessGreen
-    "magnesium" -> Color(0xFF4A8FE8)
-    "nak_ratio" -> Color(0xFFFF8C42)
-    "weight"    -> Color(0xFF9C69E2)
-    else        -> KetoAccent
-}
+private fun metricBarColor(metric: String) = ketoMetricGraphColor(metric)
 
 private fun List<DayTotals>.rollingAvg(n: Int, selector: (DayTotals) -> Float): List<Pair<String, Float>> =
     mapIndexed { index, day ->
@@ -87,7 +78,8 @@ private fun List<DayTotals>.rollingAvg(n: Int, selector: (DayTotals) -> Float): 
 fun KetoTrendsScreen(
     viewModel: KetoViewModel,
     initialMetric: String = "",
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    onNavigateToAddEntry: () -> Unit = {}
 ) {
     val trendsData   by viewModel.trendsData.collectAsState()
     val trendsMetric by viewModel.trendsMetric.collectAsState()
@@ -97,6 +89,9 @@ fun KetoTrendsScreen(
     val rollingDays  by viewModel.trendsRollingDays.collectAsState()
     val targets      by viewModel.targets.collectAsState()
     val unitPrefs    by viewModel.unitPreferences.collectAsState()
+
+    // false = Graph/Trends view (default); true = History/Edit view
+    var showHistory by remember { mutableStateOf(false) }
 
     var showFromPicker by remember { mutableStateOf(false) }
     var showToPicker   by remember { mutableStateOf(false) }
@@ -193,29 +188,67 @@ fun KetoTrendsScreen(
         ) { DatePicker(state = state) }
     }
 
+    val metricLabel = METRIC_OPTIONS.firstOrNull { it.first == trendsMetric }?.third ?: trendsMetric
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Trends") },
+                title = {
+                    Text(if (showHistory) "$metricLabel History" else "Trends")
+                },
                 navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
+                    // In history view the back arrow returns to graph; in graph view it exits.
+                    IconButton(
+                        onClick = if (showHistory) ({ showHistory = false }) else onNavigateBack
+                    ) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    if (showHistory) {
+                        OutlinedButton(
+                            onClick = { showHistory = false },
+                            modifier = Modifier.padding(end = 8.dp),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+                        ) { Text("Return to graph") }
+                    } else {
+                        OutlinedButton(
+                            onClick = { showHistory = true },
+                            modifier = Modifier.padding(end = 8.dp),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+                        ) { Text("History") }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surface
                 )
             )
+        },
+        floatingActionButton = {
+            if (showHistory) {
+                FloatingActionButton(onClick = onNavigateToAddEntry) {
+                    Icon(Icons.Default.Add, contentDescription = "Add entry")
+                }
+            }
         }
     ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .padding(horizontal = 16.dp)
-                .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
+        if (showHistory) {
+            KetoMetricHistoryContent(
+                trendsMetric = trendsMetric,
+                metricLabel = metricLabel,
+                trendsData = trendsData,
+                unitPrefs = unitPrefs,
+                paddingValues = paddingValues,
+            )
+        } else {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+                    .padding(horizontal = 16.dp)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
             Spacer(modifier = Modifier.height(4.dp))
 
             // ── Metric selector ──────────────────────────────────────────────
@@ -564,5 +597,136 @@ fun KetoTrendsScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
         }
+        } // end else (graph view)
+    }
+}
+
+// ── History / Edit content for Keto metrics ───────────────────────────────────
+
+@Composable
+private fun KetoMetricHistoryContent(
+    trendsMetric: String,
+    metricLabel: String,
+    trendsData: List<DayTotals>,
+    unitPrefs: UnitPreferences,
+    paddingValues: PaddingValues,
+) {
+    val weightUnit = unitPrefs.weightUnit
+    val volUnit = unitPrefs.volumeUnit
+    val foodUnit = unitPrefs.foodWeightUnit
+
+    // Build a list of days that have a non-zero value for this metric, newest first.
+    val historyRows = trendsData
+        .filter { day ->
+            when (trendsMetric) {
+                "weight"    -> day.weightKg != null && (day.weightKg ?: 0.0) > 0
+                "nak_ratio" -> day.nakRatio != null
+                else        -> day.selectMetric(trendsMetric) > 0f
+            }
+        }
+        .sortedByDescending { it.date }
+
+    val unit = when (trendsMetric) {
+        "weight"    -> weightUnit.symbol
+        "hydration" -> volUnit.symbol
+        "protein", "fat", "net_carbs" -> foodUnit.symbol
+        else        -> metricUnit(trendsMetric)
+    }
+
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(paddingValues)
+            .padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        item { Spacer(modifier = Modifier.height(4.dp)) }
+
+        if (historyRows.isEmpty()) {
+            item {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 56.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = "No $metricLabel entries in selected range",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = OnSurfaceVariant,
+                        textAlign = TextAlign.Center
+                    )
+                    Text(
+                        text = "Tap + to add a new entry for this date range.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = OnSurfaceVariant,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
+        } else {
+            item {
+                Text(
+                    text = "$metricLabel HISTORY  ($unit)",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = OnSurfaceVariant,
+                    letterSpacing = 0.8.sp,
+                    modifier = Modifier.padding(top = 4.dp, bottom = 4.dp)
+                )
+            }
+
+            items(historyRows, key = { it.date }) { day ->
+                val displayValue: String = when (trendsMetric) {
+                    "weight"    -> "%.1f %s".format(weightUnit.fromKg(day.weightKg ?: 0.0), weightUnit.symbol)
+                    "hydration" -> "%.0f %s".format(volUnit.fromMl(day.waterMl), volUnit.symbol)
+                    "protein"   -> "%.1f %s".format(foodUnit.fromG(day.proteinG), foodUnit.symbol)
+                    "fat"       -> "%.1f %s".format(foodUnit.fromG(day.fatG), foodUnit.symbol)
+                    "net_carbs" -> "%.1f %s".format(foodUnit.fromG(day.netCarbsG), foodUnit.symbol)
+                    "calories"  -> "%.0f kcal".format(day.calories)
+                    "sodium"    -> "%.0f mg".format(day.sodiumMg)
+                    "potassium" -> "%.0f mg".format(day.potassiumMg)
+                    "magnesium" -> "%.0f mg".format(day.magnesiumMg)
+                    "nak_ratio" -> "%.2f:1".format(day.nakRatio ?: 0.0)
+                    else        -> "%.1f".format(day.selectMetric(trendsMetric))
+                }
+
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface
+                    ),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = displayValue,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = ketoMetricGraphColor(trendsMetric)
+                            )
+                            Text(
+                                text = day.date,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = OnSurfaceVariant
+                            )
+                        }
+                        Text(
+                            text = day.label,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = OnSurfaceVariant
+                        )
+                    }
+                }
+            }
+        }
+
+        item { Spacer(modifier = Modifier.height(80.dp)) }
     }
 }
