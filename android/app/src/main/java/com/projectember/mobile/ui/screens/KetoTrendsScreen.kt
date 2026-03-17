@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.sp
 import com.projectember.mobile.data.local.UnitPreferences
 import com.projectember.mobile.data.local.WeightUnit
 import com.projectember.mobile.data.local.entities.ManualHealthEntry
+import com.projectember.mobile.data.local.entities.WeightEntry
 import com.projectember.mobile.ui.theme.KetoAccent
 import com.projectember.mobile.ui.theme.ErrorRed
 import com.projectember.mobile.ui.theme.OnSurfaceVariant
@@ -94,6 +95,7 @@ fun KetoTrendsScreen(
     val targets      by viewModel.targets.collectAsState()
     val unitPrefs    by viewModel.unitPreferences.collectAsState()
     val ketoManualEntries by viewModel.ketoManualEntriesForTrends.collectAsState()
+    val weightEntriesForTrends by viewModel.weightEntriesForTrends.collectAsState()
 
     // false = Graph/Trends view (default); true = History/Edit view
     var showHistory by remember { mutableStateOf(false) }
@@ -376,6 +378,7 @@ fun KetoTrendsScreen(
                 unitPrefs = unitPrefs,
                 paddingValues = paddingValues,
                 manualEntries = ketoManualEntries,
+                weightEntries = weightEntriesForTrends,
                 onDeleteManualEntry = { ketoManualEntryToDelete = it },
             )
         } else {
@@ -749,22 +752,27 @@ private fun KetoMetricHistoryContent(
     unitPrefs: UnitPreferences,
     paddingValues: PaddingValues,
     manualEntries: List<ManualHealthEntry> = emptyList(),
+    weightEntries: List<WeightEntry> = emptyList(),
     onDeleteManualEntry: ((ManualHealthEntry) -> Unit)? = null,
 ) {
     val weightUnit = unitPrefs.weightUnit
     val volUnit = unitPrefs.volumeUnit
     val foodUnit = unitPrefs.foodWeightUnit
 
-    // Build a list of days that have a non-zero value for this metric, newest first.
-    val historyRows = trendsData
-        .filter { day ->
-            when (trendsMetric) {
-                "weight"    -> (day.weightKg ?: 0.0) > 0
-                "nak_ratio" -> day.nakRatio != null
-                else        -> day.selectMetric(trendsMetric) > 0f
+    // For weight metric, use raw WeightEntry list; for all others use DayTotals aggregates.
+    val historyRows = if (trendsMetric == "weight") {
+        emptyList() // weight renders from weightEntries below
+    } else {
+        // Build a list of days that have a non-zero value for this metric, newest first.
+        trendsData
+            .filter { day ->
+                when (trendsMetric) {
+                    "nak_ratio" -> day.nakRatio != null
+                    else        -> day.selectMetric(trendsMetric) > 0f
+                }
             }
-        }
-        .sortedByDescending { it.date }
+            .sortedByDescending { it.date }
+    }
 
     val unit = when (trendsMetric) {
         "weight"    -> weightUnit.symbol
@@ -852,6 +860,84 @@ private fun KetoMetricHistoryContent(
             }
         }
 
+        // ── Weight history section (raw WeightEntry rows) ────────────────────
+        if (trendsMetric == "weight") {
+            if (weightEntries.isEmpty()) {
+                item {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 56.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = "No $metricLabel entries in selected range",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = OnSurfaceVariant,
+                            textAlign = TextAlign.Center
+                        )
+                        Text(
+                            text = "Tap + to log a weight entry.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = OnSurfaceVariant,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+            } else {
+                item {
+                    Text(
+                        text = "WEIGHT HISTORY  ($unit)",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = OnSurfaceVariant,
+                        letterSpacing = 0.8.sp,
+                        modifier = Modifier.padding(top = 4.dp, bottom = 4.dp)
+                    )
+                }
+                items(weightEntries, key = { "weight_${it.id}" }) { entry ->
+                    val displayValue = "%.1f %s".format(
+                        weightUnit.fromKg(entry.weightKg), weightUnit.symbol
+                    )
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surface
+                        ),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = displayValue,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = ketoMetricGraphColor(trendsMetric)
+                                )
+                                Text(
+                                    text = entry.entryDate,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = OnSurfaceVariant
+                                )
+                                if (entry.source != null) {
+                                    Text(
+                                        text = "Health Connect",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = OnSurfaceVariant.copy(alpha = 0.6f),
+                                        fontSize = 10.sp
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        } else {
         // ── Food-diary aggregate section ──────────────────────────────────────
         if (historyRows.isEmpty() && manualEntries.isEmpty()) {
             item {
@@ -870,7 +956,6 @@ private fun KetoMetricHistoryContent(
                     )
                     Text(
                         text = when {
-                            trendsMetric == "weight" -> "Tap + to log a weight entry."
                             trendsMetric == "nak_ratio" ->
                                 "Log food entries with sodium and potassium in the Keto diary to see data here."
                             else ->
@@ -895,7 +980,6 @@ private fun KetoMetricHistoryContent(
 
             items(historyRows, key = { "diary_${it.date}" }) { day ->
                 val displayValue: String = when (trendsMetric) {
-                    "weight"    -> "%.1f %s".format(weightUnit.fromKg(day.weightKg ?: 0.0), weightUnit.symbol)
                     "hydration" -> "%.0f %s".format(volUnit.fromMl(day.waterMl), volUnit.symbol)
                     "protein"   -> "%.1f %s".format(foodUnit.fromG(day.proteinG), foodUnit.symbol)
                     "fat"       -> "%.1f %s".format(foodUnit.fromG(day.fatG), foodUnit.symbol)
@@ -943,6 +1027,7 @@ private fun KetoMetricHistoryContent(
                 }
             }
         }
+        } // end else (non-weight metrics)
 
         item { Spacer(modifier = Modifier.height(80.dp)) }
     }
