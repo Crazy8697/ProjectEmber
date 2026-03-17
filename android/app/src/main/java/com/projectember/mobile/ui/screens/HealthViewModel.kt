@@ -5,16 +5,23 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.projectember.mobile.data.local.HealthMetric
 import com.projectember.mobile.data.local.HealthMetricPreferencesStore
+import com.projectember.mobile.data.local.entities.ManualHealthEntry
+import com.projectember.mobile.data.repository.ManualHealthEntryRepository
 import com.projectember.mobile.sync.ActivitySummary
 import com.projectember.mobile.sync.HealthConnectManager
 import com.projectember.mobile.sync.HealthConnectUiState
 import com.projectember.mobile.sync.HealthMetricsSnapshot
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.time.LocalDate
+import java.time.LocalTime
+import java.time.format.DateTimeFormatter
 
 /** State for the async Health Connect data fetch on the Health screen. */
 sealed class HealthDataState {
@@ -35,6 +42,7 @@ sealed class ActivityDataState {
 class HealthViewModel(
     private val healthConnectManager: HealthConnectManager,
     private val metricPrefs: HealthMetricPreferencesStore,
+    private val manualHealthEntryRepository: ManualHealthEntryRepository,
 ) : ViewModel() {
 
     // ── Metric toggle states ──────────────────────────────────────────────────
@@ -47,8 +55,19 @@ class HealthViewModel(
                 initialValue = metricPrefs.getAllSettings()
             )
 
+    val graphEnabledMetrics: StateFlow<Map<HealthMetric, Boolean>> =
+        metricPrefs.graphSettingsFlow
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5_000),
+                initialValue = metricPrefs.getAllGraphSettings()
+            )
+
     fun isMetricEnabled(metric: HealthMetric): Boolean =
         enabledMetrics.value[metric] ?: true
+
+    fun isMetricGraphEnabled(metric: HealthMetric): Boolean =
+        graphEnabledMetrics.value[metric] ?: false
 
     // ── Health Connect UI state ───────────────────────────────────────────────
 
@@ -64,6 +83,61 @@ class HealthViewModel(
 
     private val _activityData = MutableStateFlow<ActivityDataState>(ActivityDataState.Loading)
     val activityData: StateFlow<ActivityDataState> = _activityData.asStateFlow()
+
+    // ── Manual health entries ─────────────────────────────────────────────────
+
+    /**
+     * Latest manual entry per metric type, keyed by [HealthMetric.name].
+     * Used by Health/Exercise card display to give manual Ember entries priority
+     * over Health Connect imported values.
+     */
+    val latestManualEntriesMap: StateFlow<Map<String, ManualHealthEntry>> =
+        manualHealthEntryRepository.getLatestForAllMetrics()
+            .map { list -> list.associateBy { it.metricType } }
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5_000),
+                initialValue = emptyMap()
+            )
+
+    /** Returns a flow of all manual entries for the given metric, newest first. */
+    fun getManualEntriesForMetric(metric: HealthMetric): Flow<List<ManualHealthEntry>> =
+        manualHealthEntryRepository.getAllForMetric(metric.name)
+
+    /** Latest manual entry for a metric — for card overlay display. */
+    fun getLatestManualEntryForMetric(metric: HealthMetric): Flow<ManualHealthEntry?> =
+        manualHealthEntryRepository.getLatestForMetric(metric.name)
+
+    /**
+     * Save a manual health entry for the given metric.
+     * [value1] is the primary value (BPM, °C, %, etc.).
+     * [value2] is optional — used for blood pressure diastolic.
+     * Date defaults to today; time defaults to now.
+     */
+    fun saveManualEntry(
+        metric: HealthMetric,
+        value1: Double,
+        value2: Double? = null,
+        entryDate: String = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE),
+        entryTime: String = LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm")),
+    ) {
+        viewModelScope.launch {
+            manualHealthEntryRepository.insert(
+                ManualHealthEntry(
+                    metricType = metric.name,
+                    value1 = value1,
+                    value2 = value2,
+                    entryDate = entryDate,
+                    entryTime = entryTime,
+                )
+            )
+        }
+    }
+
+    /** Delete a manual health entry. */
+    fun deleteManualEntry(entry: ManualHealthEntry) {
+        viewModelScope.launch { manualHealthEntryRepository.delete(entry) }
+    }
 
     // ── Initialisation ────────────────────────────────────────────────────────
 
@@ -125,8 +199,10 @@ class HealthViewModel(
 class HealthViewModelFactory(
     private val healthConnectManager: HealthConnectManager,
     private val metricPrefs: HealthMetricPreferencesStore,
+    private val manualHealthEntryRepository: ManualHealthEntryRepository,
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T =
-        HealthViewModel(healthConnectManager, metricPrefs) as T
+        HealthViewModel(healthConnectManager, metricPrefs, manualHealthEntryRepository) as T
 }
+

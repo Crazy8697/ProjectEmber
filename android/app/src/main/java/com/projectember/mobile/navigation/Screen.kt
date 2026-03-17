@@ -29,4 +29,7 @@ sealed class Screen(val route: String) {
     }
     data object WeightHistory : Screen("weight_history")
     data object Health : Screen("health")
+    data object HealthMetricTrends : Screen("health_metric_trends/{metric}") {
+        fun createRoute(metric: String) = "health_metric_trends/$metric"
+    }
 }

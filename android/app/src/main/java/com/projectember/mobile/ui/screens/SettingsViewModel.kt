@@ -409,8 +409,28 @@ class SettingsViewModel(
                 initialValue = healthMetricPreferencesStore.getAllSettings()
             )
 
+    val graphEnabledMetrics: StateFlow<Map<HealthMetric, Boolean>> =
+        healthMetricPreferencesStore.graphSettingsFlow
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5_000),
+                initialValue = healthMetricPreferencesStore.getAllGraphSettings()
+            )
+
     fun setMetricEnabled(metric: HealthMetric, enabled: Boolean) {
         healthMetricPreferencesStore.setMetricEnabled(metric, enabled)
+    }
+
+    fun setMetricGraphEnabled(metric: HealthMetric, enabled: Boolean) {
+        healthMetricPreferencesStore.setMetricGraphEnabled(metric, enabled)
+    }
+
+    fun setAllMetricsEnabled(enabled: Boolean) {
+        healthMetricPreferencesStore.setAllMetricsEnabled(enabled)
+    }
+
+    fun setAllGraphEnabled(enabled: Boolean) {
+        healthMetricPreferencesStore.setAllGraphEnabled(enabled)
     }
 
     fun isMetricEnabled(metric: HealthMetric): Boolean =
