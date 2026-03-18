@@ -70,22 +70,27 @@ private fun recipeExportFileName() = "ember_recipes_${System.currentTimeMillis()
 private val RECIPE_IMPORT_TEMPLATE = """
 {
   "schemaVersion": 1,
+  "appVersion": "0.3",
+  "exportedAt": "2026-03-18T12:00:00Z",
   "recipeCount": 1,
   "recipes": [
     {
-      "name": "REPLACE_ME",
-      "category": "General",
+      "name": "Goblin Electrolyte Coffee",
+      "category": "Drink",
+      "description": "Butter coffee with light electrolytes and almond milk.",
       "servings": 1,
-      "calories": 0,
-      "proteinG": 0,
-      "fatG": 0,
-      "netCarbsG": 0,
-      "totalCarbsG": 0,
-      "fiberG": 0,
-      "sodiumMg": 0,
-      "potassiumMg": 0,
-      "magnesiumMg": 0,
-      "waterMl": 0
+      "calories": 65,
+      "proteinG": 1,
+      "fatG": 6,
+      "netCarbsG": 1,
+      "totalCarbsG": 2,
+      "fiberG": 1,
+      "sodiumMg": 250,
+      "potassiumMg": 220,
+      "magnesiumMg": 8,
+      "waterMl": 590,
+      "ketoNotes": "Light electrolyte support drink. Not a full correction dose.",
+      "ingredientsRaw": "Coffee\t590ml\nSalt\t1/16 tsp\nNoSalt\t1/16 tsp\nSalted Butter\t1/2 tbsp\nAlmond Milk (unsweetened)\t1/3 cup\nCinnamon\tpinch"
     }
   ]
 }
