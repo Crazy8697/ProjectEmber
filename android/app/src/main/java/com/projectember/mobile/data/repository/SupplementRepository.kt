@@ -18,6 +18,15 @@ class SupplementRepository(private val dao: SupplementEntryDao) {
 
     suspend fun getAllOnce(): List<SupplementEntry> = dao.getAllOnce()
 
+    fun getByDefinitionId(definitionId: Int): Flow<List<SupplementEntry>> =
+        dao.getByDefinitionId(definitionId)
+
+    suspend fun getByDefinitionIdOnce(definitionId: Int): List<SupplementEntry> =
+        dao.getByDefinitionIdOnce(definitionId)
+
+    suspend fun deleteByDefinitionId(definitionId: Int) =
+        dao.deleteByDefinitionId(definitionId)
+
     suspend fun replaceAll(entries: List<SupplementEntry>) {
         dao.deleteAll()
         entries.forEach { dao.insert(it) }

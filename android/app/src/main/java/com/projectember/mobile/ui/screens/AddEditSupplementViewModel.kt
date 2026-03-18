@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.projectember.mobile.data.local.entities.SupplementEntry
+import com.projectember.mobile.data.repository.KetoRepository
 import com.projectember.mobile.data.repository.SupplementRepository
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -15,6 +16,7 @@ import java.time.format.DateTimeFormatter
 
 class AddEditSupplementViewModel(
     private val supplementRepository: SupplementRepository,
+    private val ketoRepository: KetoRepository,
     private val editEntryId: Int? = null
 ) : ViewModel() {
 
@@ -90,7 +92,7 @@ class AddEditSupplementViewModel(
 
         val trimmedName = name.trim()
         if (trimmedName.isBlank()) {
-            nameError = "Supplement name is required"
+            nameError = "Stack name is required"
             valid = false
         }
 
@@ -144,6 +146,12 @@ class AddEditSupplementViewModel(
     fun deleteEntry(onSuccess: () -> Unit) {
         val entry = originalEntry ?: return
         viewModelScope.launch {
+            // If this log created a linked Keto entry, remove it too
+            entry.ketoEntryId?.let { ketoId ->
+                ketoRepository.getEntryById(ketoId)?.let { ketoEntry ->
+                    ketoRepository.deleteEntry(ketoEntry)
+                }
+            }
             supplementRepository.delete(entry)
             onSuccess()
         }
@@ -152,9 +160,10 @@ class AddEditSupplementViewModel(
 
 class AddEditSupplementViewModelFactory(
     private val supplementRepository: SupplementRepository,
+    private val ketoRepository: KetoRepository,
     private val editEntryId: Int? = null
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T =
-        AddEditSupplementViewModel(supplementRepository, editEntryId) as T
+        AddEditSupplementViewModel(supplementRepository, ketoRepository, editEntryId) as T
 }

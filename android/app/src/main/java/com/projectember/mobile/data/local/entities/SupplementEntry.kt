@@ -15,5 +15,9 @@ data class SupplementEntry(
     val unit: String? = null,
     val entryDate: String,   // "yyyy-MM-dd"
     val entryTime: String,   // "HH:mm"
-    val notes: String? = null
+    val notes: String? = null,
+    /** FK to stack_definitions.id — null for one-off log entries not tied to a definition. */
+    val stackDefinitionId: Int? = null,
+    /** FK to keto_entries.id — set when this log contributed nutrition to Keto totals. */
+    val ketoEntryId: Int? = null
 )

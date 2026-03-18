@@ -11,6 +11,7 @@ import com.projectember.mobile.data.local.dao.ExerciseEntryDao
 import com.projectember.mobile.data.local.dao.KetoDao
 import com.projectember.mobile.data.local.dao.ManualHealthEntryDao
 import com.projectember.mobile.data.local.dao.RecipeDao
+import com.projectember.mobile.data.local.dao.StackDefinitionDao
 import com.projectember.mobile.data.local.dao.SupplementEntryDao
 import com.projectember.mobile.data.local.dao.SyncStatusDao
 import com.projectember.mobile.data.local.dao.WeightDao
@@ -19,6 +20,7 @@ import com.projectember.mobile.data.local.entities.ExerciseEntry
 import com.projectember.mobile.data.local.entities.KetoEntry
 import com.projectember.mobile.data.local.entities.ManualHealthEntry
 import com.projectember.mobile.data.local.entities.Recipe
+import com.projectember.mobile.data.local.entities.StackDefinition
 import com.projectember.mobile.data.local.entities.SupplementEntry
 import com.projectember.mobile.data.local.entities.SyncStatus
 import com.projectember.mobile.data.local.entities.WeightEntry
@@ -27,8 +29,8 @@ import com.projectember.mobile.data.local.entities.WeightEntry
     entities = [KetoEntry::class, Recipe::class, SyncStatus::class,
                 ExerciseCategory::class, ExerciseEntry::class,
                 WeightEntry::class, ManualHealthEntry::class,
-                SupplementEntry::class],
-    version = 14,
+                SupplementEntry::class, StackDefinition::class],
+    version = 15,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -40,6 +42,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun weightDao(): WeightDao
     abstract fun manualHealthEntryDao(): ManualHealthEntryDao
     abstract fun supplementEntryDao(): SupplementEntryDao
+    abstract fun stackDefinitionDao(): StackDefinitionDao
 
     companion object {
         @Volatile
@@ -220,6 +223,41 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * Upgrades supplement tracking to Stacks System:
+         *  - Adds stackDefinitionId (FK to stack_definitions.id) to supplement_entries
+         *  - Adds ketoEntryId (FK to keto_entries.id) to supplement_entries
+         *  - Creates the stack_definitions table (reusable library items)
+         */
+        private val MIGRATION_14_15 = object : Migration(14, 15) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // Add new columns to supplement_entries (existing rows get NULL)
+                database.execSQL(
+                    "ALTER TABLE supplement_entries ADD COLUMN stackDefinitionId INTEGER"
+                )
+                database.execSQL(
+                    "ALTER TABLE supplement_entries ADD COLUMN ketoEntryId INTEGER"
+                )
+                // Create the stack_definitions table
+                database.execSQL(
+                    """CREATE TABLE IF NOT EXISTS `stack_definitions` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `name` TEXT NOT NULL,
+                        `defaultDose` TEXT,
+                        `defaultUnit` TEXT,
+                        `notes` TEXT,
+                        `caloriesKcal` REAL,
+                        `proteinG` REAL,
+                        `fatG` REAL,
+                        `netCarbsG` REAL,
+                        `sodiumMg` REAL,
+                        `potassiumMg` REAL,
+                        `magnesiumMg` REAL
+                    )"""
+                )
+            }
+        }
+
         fun getInstance(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 INSTANCE ?: Room.databaseBuilder(
@@ -232,7 +270,7 @@ abstract class AppDatabase : RoomDatabase() {
                         MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7,
                         MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10,
                         MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13,
-                        MIGRATION_13_14
+                        MIGRATION_13_14, MIGRATION_14_15
                     )
                     .build().also { INSTANCE = it }
             }

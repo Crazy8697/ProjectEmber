@@ -67,8 +67,8 @@ fun AddEditSupplementScreen(
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
-            title = { Text("Delete Supplement") },
-            text = { Text("Delete this supplement entry? This cannot be undone.") },
+            title = { Text("Delete Log Entry") },
+            text = { Text("Delete this stack log entry? This cannot be undone.") },
             confirmButton = {
                 TextButton(
                     onClick = {

@@ -31,4 +31,13 @@ interface SupplementEntryDao {
 
     @Query("DELETE FROM supplement_entries")
     suspend fun deleteAll()
+
+    @Query("SELECT * FROM supplement_entries WHERE stackDefinitionId = :definitionId ORDER BY entryDate DESC, entryTime DESC, id DESC")
+    fun getByDefinitionId(definitionId: Int): Flow<List<SupplementEntry>>
+
+    @Query("SELECT * FROM supplement_entries WHERE stackDefinitionId = :definitionId ORDER BY entryDate DESC, entryTime DESC, id DESC")
+    suspend fun getByDefinitionIdOnce(definitionId: Int): List<SupplementEntry>
+
+    @Query("DELETE FROM supplement_entries WHERE stackDefinitionId = :definitionId")
+    suspend fun deleteByDefinitionId(definitionId: Int)
 }

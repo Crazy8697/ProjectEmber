@@ -10,12 +10,14 @@ import com.projectember.mobile.data.local.entities.ExerciseCategory
 import com.projectember.mobile.data.local.entities.ExerciseEntry
 import com.projectember.mobile.data.local.entities.KetoEntry
 import com.projectember.mobile.data.local.entities.Recipe
+import com.projectember.mobile.data.local.entities.StackDefinition
 import com.projectember.mobile.data.local.entities.SupplementEntry
 import com.projectember.mobile.data.local.entities.WeightEntry
 import com.projectember.mobile.data.repository.ExerciseCategoryRepository
 import com.projectember.mobile.data.repository.ExerciseRepository
 import com.projectember.mobile.data.repository.KetoRepository
 import com.projectember.mobile.data.repository.RecipeRepository
+import com.projectember.mobile.data.repository.StackDefinitionRepository
 import com.projectember.mobile.data.repository.SupplementRepository
 import com.projectember.mobile.data.repository.WeightRepository
 import org.json.JSONArray
@@ -49,6 +51,7 @@ class BackupManager(
     private val exerciseCategoryRepository: ExerciseCategoryRepository,
     private val weightRepository: WeightRepository,
     private val supplementRepository: SupplementRepository,
+    private val stackDefinitionRepository: StackDefinitionRepository,
     private val ketoTargetsStore: KetoTargetsStore,
     private val appVersion: String
 ) {
@@ -106,7 +109,8 @@ class BackupManager(
             // 3. Weight entries have no cross-table dependencies
             weightRepository.replaceAll(payload.weightEntries.map { it.toEntity() })
 
-            // 4. Supplement entries have no cross-table dependencies
+            // 4. Stack definitions before supplement entries (supplement_entries.stackDefinitionId references stack_definitions.id)
+            stackDefinitionRepository.replaceAll(payload.stackDefinitions.map { it.toEntity() })
             supplementRepository.replaceAll(payload.supplementEntries.map { it.toEntity() })
         }
 
@@ -129,6 +133,7 @@ class BackupManager(
             exerciseRepository.replaceAll(emptyList())
             weightRepository.replaceAll(emptyList())
             supplementRepository.replaceAll(emptyList())
+            stackDefinitionRepository.replaceAll(emptyList())
         }
         ketoTargetsStore.save(KetoTargets())
     }
@@ -150,6 +155,7 @@ class BackupManager(
         root.put("exerciseEntries", exerciseRepository.getAllOnce().toJsonArray { it.toJson() })
         root.put("weightEntries", weightRepository.getAllOnce().toJsonArray { it.toJson() })
         root.put("supplementEntries", supplementRepository.getAllOnce().toJsonArray { it.toJson() })
+        root.put("stackDefinitions", stackDefinitionRepository.getAllOnce().toJsonArray { it.toJson() })
         root.put("ketoTargets", ketoTargetsStore.targets.value.toJson())
 
         return root.toString(2)
@@ -179,6 +185,8 @@ class BackupManager(
             ?.let { parseWeightEntries(it) } ?: emptyList()
         val supplementEntries = root.optJSONArray("supplementEntries")
             ?.let { parseSupplementEntries(it) } ?: emptyList()
+        val stackDefinitions = root.optJSONArray("stackDefinitions")
+            ?.let { parseStackDefinitions(it) } ?: emptyList()
         val ketoTargets = root.optJSONObject("ketoTargets")
             ?.let { parseKetoTargets(it) } ?: KetoTargetsDto()
 
@@ -209,6 +217,7 @@ class BackupManager(
             exerciseCategories = exerciseCategories,
             weightEntries = weightEntries,
             supplementEntries = supplementEntries,
+            stackDefinitions = stackDefinitions,
             ketoTargets = ketoTargets
         )
     }
@@ -295,6 +304,23 @@ private fun SupplementEntry.toJson() = JSONObject().apply {
     put("entryDate", entryDate)
     put("entryTime", entryTime)
     putOpt("notes", notes)
+    putOpt("stackDefinitionId", stackDefinitionId)
+    putOpt("ketoEntryId", ketoEntryId)
+}
+
+private fun StackDefinition.toJson() = JSONObject().apply {
+    put("id", id)
+    put("name", name)
+    putOpt("defaultDose", defaultDose)
+    putOpt("defaultUnit", defaultUnit)
+    putOpt("notes", notes)
+    putOpt("caloriesKcal", caloriesKcal)
+    putOpt("proteinG", proteinG)
+    putOpt("fatG", fatG)
+    putOpt("netCarbsG", netCarbsG)
+    putOpt("sodiumMg", sodiumMg)
+    putOpt("potassiumMg", potassiumMg)
+    putOpt("magnesiumMg", magnesiumMg)
 }
 
 private fun KetoTargets.toJson() = JSONObject().apply {
@@ -407,7 +433,32 @@ private fun parseSupplementEntries(arr: JSONArray): List<SupplementEntryDto> =
             unit = o.optString("unit", "").takeIf { it.isNotEmpty() },
             entryDate = o.getString("entryDate"),
             entryTime = o.getString("entryTime"),
-            notes = o.optString("notes", "").takeIf { it.isNotEmpty() }
+            notes = o.optString("notes", "").takeIf { it.isNotEmpty() },
+            stackDefinitionId = if (o.has("stackDefinitionId") && !o.isNull("stackDefinitionId"))
+                o.getInt("stackDefinitionId") else null,
+            ketoEntryId = if (o.has("ketoEntryId") && !o.isNull("ketoEntryId"))
+                o.getInt("ketoEntryId") else null
+        )
+    }
+
+private fun parseStackDefinitions(arr: JSONArray): List<StackDefinitionDto> =
+    (0 until arr.length()).map { i ->
+        val o = arr.getJSONObject(i)
+        fun optDoubleOrNull(key: String): Double? =
+            if (o.has(key) && !o.isNull(key)) o.getDouble(key) else null
+        StackDefinitionDto(
+            id = o.getInt("id"),
+            name = o.getString("name"),
+            defaultDose = o.optString("defaultDose", "").takeIf { it.isNotEmpty() },
+            defaultUnit = o.optString("defaultUnit", "").takeIf { it.isNotEmpty() },
+            notes = o.optString("notes", "").takeIf { it.isNotEmpty() },
+            caloriesKcal = optDoubleOrNull("caloriesKcal"),
+            proteinG = optDoubleOrNull("proteinG"),
+            fatG = optDoubleOrNull("fatG"),
+            netCarbsG = optDoubleOrNull("netCarbsG"),
+            sodiumMg = optDoubleOrNull("sodiumMg"),
+            potassiumMg = optDoubleOrNull("potassiumMg"),
+            magnesiumMg = optDoubleOrNull("magnesiumMg")
         )
     }
 
@@ -496,7 +547,24 @@ internal fun SupplementEntryDto.toEntity() = SupplementEntry(
     unit = unit,
     entryDate = entryDate,
     entryTime = entryTime,
-    notes = notes
+    notes = notes,
+    stackDefinitionId = stackDefinitionId,
+    ketoEntryId = ketoEntryId
+)
+
+internal fun StackDefinitionDto.toEntity() = StackDefinition(
+    id = id,
+    name = name,
+    defaultDose = defaultDose,
+    defaultUnit = defaultUnit,
+    notes = notes,
+    caloriesKcal = caloriesKcal,
+    proteinG = proteinG,
+    fatG = fatG,
+    netCarbsG = netCarbsG,
+    sodiumMg = sodiumMg,
+    potassiumMg = potassiumMg,
+    magnesiumMg = magnesiumMg
 )
 
 internal fun KetoTargetsDto.toKetoTargets() = KetoTargets(

@@ -26,6 +26,9 @@ interface KetoDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(entry: KetoEntry)
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAndReturnId(entry: KetoEntry): Long
+
     @Update
     suspend fun update(entry: KetoEntry)
 
