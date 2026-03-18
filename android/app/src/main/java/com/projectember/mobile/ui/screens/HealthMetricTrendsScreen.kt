@@ -238,9 +238,8 @@ private fun HealthMetricGraphContent(
     val displayEntries = remember(graphEntries) { graphEntries.takeLast(30) }
     var selectedChartIndex by remember(displayEntries) { mutableStateOf<Int?>(null) }
     val selectedEntry: ManualHealthEntry? = selectedChartIndex?.let { displayEntries.getOrNull(it) }
-    // The entry shown in the LATEST card: selected point when active, latest otherwise
+    // The entry shown as the headline: selected point when active, latest otherwise
     val displayedEntry: ManualHealthEntry? = selectedEntry ?: latestEntry
-    val cardLabel = if (selectedEntry != null) "SELECTED" else "LATEST"
 
     LazyColumn(
         modifier = Modifier
@@ -250,67 +249,6 @@ private fun HealthMetricGraphContent(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item { Spacer(modifier = Modifier.height(4.dp)) }
-
-        // ── Latest value card ─────────────────────────────────────────────────
-        item {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                ),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        text = cardLabel,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = OnSurfaceVariant,
-                        letterSpacing = 0.8.sp
-                    )
-                    Spacer(modifier = Modifier.height(6.dp))
-                    if (displayedEntry != null) {
-                        Text(
-                            text = formatEntryValue(metric, displayedEntry),
-                            style = MaterialTheme.typography.headlineSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                            text = "${displayedEntry.entryDate}  ${displayedEntry.entryTime}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = OnSurfaceVariant
-                        )
-                        val sourceLabel = if (displayedEntry.source == ManualHealthEntry.SOURCE_MANUAL)
-                            "Manual · Ember only" else "Health Connect"
-                        Text(
-                            text = sourceLabel,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = OnSurfaceVariant.copy(alpha = 0.6f),
-                            fontSize = 10.sp
-                        )
-                    } else if (hcLoadState == HcLoadState.Loading) {
-                        Text(
-                            text = "Loading…",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = OnSurfaceVariant
-                        )
-                    } else {
-                        Text(
-                            text = "No data yet",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = OnSurfaceVariant
-                        )
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                            text = "Tap  History → +  to add a manual reading",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = OnSurfaceVariant.copy(alpha = 0.7f)
-                        )
-                    }
-                }
-            }
-        }
 
         // ── Date range selector ───────────────────────────────────────────────
         item {
@@ -373,10 +311,12 @@ private fun HealthMetricGraphContent(
             }
         }
 
-        // ── Trend chart ───────────────────────────────────────────────────────
+        // ── Unified chart card (headline + chart) ─────────────────────────────
         item {
             MetricTrendChart(
                 metric = metric,
+                displayedEntry = displayedEntry,
+                isSelected = selectedEntry != null,
                 graphEntries = graphEntries,
                 hcLoadState = hcLoadState,
                 selectedIndex = selectedChartIndex,
@@ -393,28 +333,95 @@ private fun HealthMetricGraphContent(
     }
 }
 
+/**
+ * Unified chart card matching the Keto trend chart style:
+ * metric title + unit label at top, headline value (in metric color), date/source sub-labels,
+ * then the line chart — all in one card.
+ */
 @Composable
 private fun MetricTrendChart(
     metric: HealthMetric,
+    displayedEntry: ManualHealthEntry?,
+    isSelected: Boolean,
     graphEntries: List<ManualHealthEntry>,
     hcLoadState: HcLoadState = HcLoadState.Done,
     selectedIndex: Int? = null,
     onIndexSelected: ((Int?) -> Unit)? = null,
 ) {
+    val lineColor = healthMetricGraphColor(metric)
+    val unit = metricDisplayUnit(metric)
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                text = "TREND",
-                style = MaterialTheme.typography.labelSmall,
-                color = OnSurfaceVariant,
-                letterSpacing = 0.8.sp
-            )
-            Spacer(modifier = Modifier.height(8.dp))
 
+            // ── Title row ─────────────────────────────────────────────────────
+            Text(
+                text = "${metric.displayName} ($unit)",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+
+            // ── Headline value ────────────────────────────────────────────────
+            Spacer(modifier = Modifier.height(6.dp))
+            if (displayedEntry != null) {
+                // When a chart point is selected show its date label above the value,
+                // mirroring the behaviour in the Keto trend screen.
+                if (isSelected) {
+                    Text(
+                        text = displayedEntry.entryDate,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = OnSurfaceVariant,
+                        fontSize = 10.sp
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                }
+                Text(
+                    text = formatEntryValue(metric, displayedEntry),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = lineColor
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = "${displayedEntry.entryDate}  ${displayedEntry.entryTime}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = OnSurfaceVariant
+                )
+                val sourceLabel = if (displayedEntry.source == ManualHealthEntry.SOURCE_MANUAL)
+                    "Manual · Ember only" else "Health Connect"
+                Text(
+                    text = sourceLabel,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = OnSurfaceVariant.copy(alpha = 0.6f),
+                    fontSize = 10.sp
+                )
+            } else if (hcLoadState == HcLoadState.Loading) {
+                Text(
+                    text = "Loading…",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = OnSurfaceVariant
+                )
+            } else {
+                Text(
+                    text = "No data yet",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = OnSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = "Tap  History → +  to add a manual reading",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = OnSurfaceVariant.copy(alpha = 0.7f)
+                )
+            }
+
+            // ── Chart ─────────────────────────────────────────────────────────
+            Spacer(modifier = Modifier.height(12.dp))
             if (graphEntries.size < 2) {
                 Box(
                     modifier = Modifier
@@ -438,7 +445,6 @@ private fun MetricTrendChart(
                 }
             } else {
                 val displayEntries = graphEntries.takeLast(30)
-                val lineColor = healthMetricGraphColor(metric)
                 val chartData = displayEntries.map { entry ->
                     entry.entryDate.takeLast(5) to entry.value1.toFloat()
                 }
@@ -720,6 +726,30 @@ private fun metricInputSpec(metric: HealthMetric): MetricInputSpec = when (metri
     HealthMetric.DISTANCE -> MetricInputSpec("Distance", "", "km", "")
     HealthMetric.ACTIVE_CALORIES -> MetricInputSpec("Active Calories", "", "kcal", "")
     HealthMetric.EXERCISE_SESSIONS -> MetricInputSpec("Duration", "", "minutes", "")
+}
+
+/**
+ * Short unit string used in the chart card title row, e.g. "Heart Rate (bpm)".
+ *
+ * Units are fixed for each metric because [ManualHealthEntry.value1] is always stored in the
+ * same unit for a given metric (e.g. weight is always kg in this screen, matching
+ * [formatEntryValue]).  This is intentional: [HealthMetricTrendsViewModel] does not carry user
+ * unit preferences, and the health-metric weight entry is separate from the keto weight tracking
+ * (which does honour [WeightUnit]).
+ */
+private fun metricDisplayUnit(metric: HealthMetric): String = when (metric) {
+    HealthMetric.HEART_RATE, HealthMetric.RESTING_HEART_RATE -> "bpm"
+    HealthMetric.BLOOD_PRESSURE -> "mmHg"
+    HealthMetric.BLOOD_GLUCOSE -> "mmol/L"
+    HealthMetric.BODY_TEMPERATURE -> "°C"
+    HealthMetric.OXYGEN_SATURATION -> "%"
+    HealthMetric.RESPIRATORY_RATE -> "breaths/min"
+    HealthMetric.SLEEP -> "h"
+    HealthMetric.WEIGHT -> "kg"
+    HealthMetric.STEPS -> "steps"
+    HealthMetric.DISTANCE -> "km"
+    HealthMetric.ACTIVE_CALORIES -> "kcal"
+    HealthMetric.EXERCISE_SESSIONS -> "min"
 }
 
 /** Format a [ManualHealthEntry] value for display in the entry list and graph cards. */
