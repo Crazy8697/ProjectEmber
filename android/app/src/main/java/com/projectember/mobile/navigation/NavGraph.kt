@@ -40,6 +40,9 @@ import com.projectember.mobile.ui.screens.KetoViewModelFactory
 import com.projectember.mobile.ui.screens.KetoTargetsScreen
 import com.projectember.mobile.ui.screens.KetoTargetsViewModel
 import com.projectember.mobile.ui.screens.KetoTargetsViewModelFactory
+import com.projectember.mobile.ui.screens.RecipeNerdModeScreen
+import com.projectember.mobile.ui.screens.RecipeNerdModeViewModelFactory
+import com.projectember.mobile.ui.screens.RecipeNerdModeViewModel
 import com.projectember.mobile.ui.screens.RecipesScreen
 import com.projectember.mobile.ui.screens.RecipesViewModel
 import com.projectember.mobile.ui.screens.RecipesViewModelFactory
@@ -163,7 +166,18 @@ fun EmberNavGraph(
                 onNavigateToAddRecipe = { navController.navigate(Screen.RecipeAdd.route) },
                 onNavigateToEditRecipe = { recipeId ->
                     navController.navigate(Screen.RecipeEdit.createRoute(recipeId))
-                }
+                },
+                onNavigateToNerdMode = { navController.navigate(Screen.RecipeNerdMode.route) }
+            )
+        }
+
+        composable(Screen.RecipeNerdMode.route) {
+            val viewModel: RecipeNerdModeViewModel = viewModel(
+                factory = RecipeNerdModeViewModelFactory(app.recipeImportExportManager)
+            )
+            RecipeNerdModeScreen(
+                viewModel = viewModel,
+                onNavigateBack = { navController.popBackStack() }
             )
         }
 

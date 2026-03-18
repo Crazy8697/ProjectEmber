@@ -2,6 +2,7 @@ package com.projectember.mobile
 
 import android.app.Application
 import com.projectember.mobile.data.backup.BackupManager
+import com.projectember.mobile.data.recipe.RecipeImportExportManager
 import com.projectember.mobile.data.local.db.AppDatabase
 import com.projectember.mobile.data.local.db.DatabaseSeeder
 import com.projectember.mobile.data.local.HealthMetricPreferencesStore
@@ -65,6 +66,14 @@ class EmberApplication : Application() {
             exerciseCategoryRepository = exerciseCategoryRepository,
             weightRepository = weightRepository,
             ketoTargetsStore = ketoTargetsStore,
+            appVersion = BuildConfig.VERSION_NAME
+        )
+    }
+
+    val recipeImportExportManager by lazy {
+        RecipeImportExportManager(
+            context = applicationContext,
+            recipeRepository = recipeRepository,
             appVersion = BuildConfig.VERSION_NAME
         )
     }
