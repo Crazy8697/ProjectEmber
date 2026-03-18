@@ -116,20 +116,21 @@ class RecipeImportExportManager(
         val invalid = mutableListOf<RecipeParseError>()
 
         for (i in 0 until arr.length()) {
-            val obj = runCatching { arr.getJSONObject(i) }.getOrElse {
+            val obj = try {
+                arr.getJSONObject(i)
+            } catch (_: Exception) {
                 invalid.add(RecipeParseError(i, "Item at index $i is not a JSON object"))
                 continue
             }
 
-            val parseResult = runCatching { parseRecipeObject(obj, i) }
-            if (parseResult.isFailure) {
+            val candidate = try {
+                parseRecipeObject(obj, i)
+            } catch (e: Exception) {
                 invalid.add(
-                    RecipeParseError(i, parseResult.exceptionOrNull()?.message ?: "Unknown parse error")
+                    RecipeParseError(i, e.message ?: "Unknown parse error")
                 )
                 continue
             }
-
-            val candidate = parseResult.getOrThrow()
             val key = normaliseKey(candidate.name, candidate.category)
             val existing = existingByKey[key]?.firstOrNull()
 
