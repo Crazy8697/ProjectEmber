@@ -92,7 +92,7 @@ class AddEditSupplementViewModel(
 
         val trimmedName = name.trim()
         if (trimmedName.isBlank()) {
-            nameError = "Stack name is required"
+            nameError = "Supplement name is required"
             valid = false
         }
 
