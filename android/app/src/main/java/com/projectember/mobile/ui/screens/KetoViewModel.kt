@@ -367,6 +367,11 @@ class KetoViewModel(
     fun deleteKetoManualEntry(entry: ManualHealthEntry) {
         viewModelScope.launch(Dispatchers.IO) { manualHealthEntryRepository.delete(entry) }
     }
+
+    /** Delete a weight entry from the weight history. */
+    fun deleteWeightEntry(entry: WeightEntry) {
+        viewModelScope.launch(Dispatchers.IO) { weightRepository.delete(entry) }
+    }
 }
 
 class KetoViewModelFactory(
