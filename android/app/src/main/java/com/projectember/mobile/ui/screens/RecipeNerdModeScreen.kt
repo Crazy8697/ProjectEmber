@@ -22,6 +22,7 @@ import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.FileUpload
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -65,6 +66,31 @@ private enum class ImportMethod { FILE, PASTE }
 
 private fun recipeExportFileName() = "ember_recipes_${System.currentTimeMillis()}.json"
 
+/** Template shown to users who click "Load Template" in the paste import flow. */
+private val RECIPE_IMPORT_TEMPLATE = """
+{
+  "schemaVersion": 1,
+  "recipeCount": 1,
+  "recipes": [
+    {
+      "name": "REPLACE_ME",
+      "category": "General",
+      "servings": 1,
+      "calories": 0,
+      "proteinG": 0,
+      "fatG": 0,
+      "netCarbsG": 0,
+      "totalCarbsG": 0,
+      "fiberG": 0,
+      "sodiumMg": 0,
+      "potassiumMg": 0,
+      "magnesiumMg": 0,
+      "waterMl": 0
+    }
+  ]
+}
+""".trimIndent()
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RecipeNerdModeScreen(
@@ -82,6 +108,29 @@ fun RecipeNerdModeScreen(
 
     var importMethod by remember { mutableStateOf(ImportMethod.FILE) }
     var pasteText by remember { mutableStateOf("") }
+    var showTemplateReplaceDialog by remember { mutableStateOf(false) }
+
+    // ── Template replace confirmation dialog ──────────────────────────────────
+    if (showTemplateReplaceDialog) {
+        AlertDialog(
+            onDismissRequest = { showTemplateReplaceDialog = false },
+            title = { Text("Replace JSON?") },
+            text = { Text("This will replace your current JSON content with the template. Any unsaved changes will be lost. Continue?") },
+            confirmButton = {
+                TextButton(onClick = {
+                    pasteText = RECIPE_IMPORT_TEMPLATE
+                    showTemplateReplaceDialog = false
+                }) {
+                    Text("Replace")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showTemplateReplaceDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
 
     // ── SAF file-save launcher (Export) ──────────────────────────────────────
     val exportFileLauncher = rememberLauncherForActivityResult(
@@ -313,6 +362,38 @@ fun RecipeNerdModeScreen(
                     }
 
                     ImportMethod.PASTE -> {
+                        // ── Helper buttons ────────────────────────────────────
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            OutlinedButton(
+                                onClick = {
+                                    if (pasteText.isBlank()) {
+                                        pasteText = RECIPE_IMPORT_TEMPLATE
+                                    } else {
+                                        showTemplateReplaceDialog = true
+                                    }
+                                },
+                                enabled = !isBusy,
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text("Load Template")
+                            }
+                            OutlinedButton(
+                                onClick = { pasteText = "" },
+                                enabled = !isBusy && pasteText.isNotBlank(),
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text("Clear")
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(4.dp))
+                        // ── Helper text ───────────────────────────────────────
+                        Text(
+                            text = "Paste recipe JSON here. Use 'Load Template' to see the expected format.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        // ── Text input ────────────────────────────────────────
                         OutlinedTextField(
                             value = pasteText,
                             onValueChange = { pasteText = it },
@@ -325,6 +406,7 @@ fun RecipeNerdModeScreen(
                             enabled = !isBusy
                         )
                         Spacer(modifier = Modifier.height(8.dp))
+                        // ── Validate button ───────────────────────────────────
                         Button(
                             onClick = { viewModel.validatePasteImport(pasteText) },
                             enabled = !isBusy && pasteText.isNotBlank(),
