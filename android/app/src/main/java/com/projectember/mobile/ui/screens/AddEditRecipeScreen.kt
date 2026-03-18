@@ -1,6 +1,7 @@
 package com.projectember.mobile.ui.screens
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -17,12 +18,17 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -53,12 +59,14 @@ private val CATEGORIES = AddEditRecipeViewModel.CATEGORIES
 @Composable
 fun AddEditRecipeScreen(
     viewModel: AddEditRecipeViewModel,
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    onNavigateToHome: () -> Unit = {}
 ) {
     val unitPrefs by viewModel.unitPreferences.collectAsState()
     val foodSym = unitPrefs.foodWeightUnit.symbol
     val volSym  = unitPrefs.volumeUnit.symbol
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var showMenu by remember { mutableStateOf(false) }
     val scrollState = rememberScrollState()
     val coroutineScope = rememberCoroutineScope()
 
@@ -97,6 +105,50 @@ fun AddEditRecipeScreen(
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Cancel")
+                    }
+                },
+                actions = {
+                    Box {
+                        IconButton(onClick = { showMenu = true }) {
+                            Icon(Icons.Default.MoreVert, contentDescription = "More options")
+                        }
+                        DropdownMenu(
+                            expanded = showMenu,
+                            onDismissRequest = { showMenu = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Home") },
+                                leadingIcon = {
+                                    Icon(Icons.Default.Home, contentDescription = null)
+                                },
+                                onClick = {
+                                    showMenu = false
+                                    onNavigateToHome()
+                                }
+                            )
+                            if (viewModel.isEditMode) {
+                                HorizontalDivider()
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            "Delete Recipe",
+                                            color = MaterialTheme.colorScheme.error
+                                        )
+                                    },
+                                    leadingIcon = {
+                                        Icon(
+                                            Icons.Default.Delete,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.error
+                                        )
+                                    },
+                                    onClick = {
+                                        showMenu = false
+                                        showDeleteDialog = true
+                                    }
+                                )
+                            }
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -363,7 +415,7 @@ fun AddEditRecipeScreen(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // ── Save / Delete ────────────────────────────────────────────────
+            // ── Save ────────────────────────────────────────────────────────
             Button(
                 onClick = {
                     viewModel.save(
@@ -376,18 +428,6 @@ fun AddEditRecipeScreen(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(if (viewModel.isEditMode) "Save Changes" else "Save Recipe")
-            }
-
-            if (viewModel.isEditMode) {
-                OutlinedButton(
-                    onClick = { showDeleteDialog = true },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = MaterialTheme.colorScheme.error
-                    )
-                ) {
-                    Text("Delete Recipe")
-                }
             }
 
             Spacer(modifier = Modifier.height(24.dp))
