@@ -130,10 +130,11 @@ fun StacksScreen(
                     onQuickLog = { definition ->
                         viewModel.quickLog(definition) { ketoLinked ->
                             coroutineScope.launch {
-                                val msg = if (ketoLinked)
-                                    "Logged "${definition.name}" — Keto totals updated"
-                                else
-                                    "Logged "${definition.name}""
+                                val msg = if (ketoLinked) {
+                                    "Logged \"${definition.name}\" — Keto totals updated"
+                                } else {
+                                    "Logged \"${definition.name}\""
+                                }
                                 snackbarHostState.showSnackbar(msg)
                             }
                         }

@@ -49,9 +49,9 @@ import com.projectember.mobile.ui.screens.RecipesViewModelFactory
 import com.projectember.mobile.ui.screens.SettingsScreen
 import com.projectember.mobile.ui.screens.SettingsViewModel
 import com.projectember.mobile.ui.screens.SettingsViewModelFactory
-import com.projectember.mobile.ui.screens.SupplementScreen
-import com.projectember.mobile.ui.screens.SupplementViewModel
-import com.projectember.mobile.ui.screens.SupplementViewModelFactory
+import com.projectember.mobile.ui.screens.StacksScreen
+import com.projectember.mobile.ui.screens.StacksViewModel
+import com.projectember.mobile.ui.screens.StacksViewModelFactory
 import com.projectember.mobile.ui.screens.AddEditSupplementScreen
 import com.projectember.mobile.ui.screens.AddEditSupplementViewModelFactory
 import com.projectember.mobile.ui.screens.AddEditSupplementViewModel
@@ -440,16 +440,24 @@ fun EmberNavGraph(
             )
         }
 
-        // ── Supplements ───────────────────────────────────────────────────────
+        // ── Supplements / Stacks ─────────────────────────────────────────────
         composable(Screen.Supplements.route) {
-            val viewModel: SupplementViewModel = viewModel(
-                factory = SupplementViewModelFactory(app.supplementRepository)
+            val viewModel: StacksViewModel = viewModel(
+                factory = StacksViewModelFactory(
+                    app.stackDefinitionRepository,
+                    app.supplementRepository,
+                    app.ketoRepository
+                )
             )
-            SupplementScreen(
+            StacksScreen(
                 viewModel = viewModel,
                 onNavigateBack = { navController.popBackStack() },
-                onNavigateToAddEntry = { navController.navigate(Screen.SupplementAddEntry.route) },
-                onNavigateToEditEntry = { entryId ->
+                onNavigateToAddDefinition = { navController.navigate(Screen.StackDefinitionAdd.route) },
+                onNavigateToEditDefinition = { definitionId ->
+                    navController.navigate(Screen.StackDefinitionEdit.createRoute(definitionId))
+                },
+                onNavigateToAddLog = { navController.navigate(Screen.SupplementAddEntry.route) },
+                onNavigateToEditLog = { entryId ->
                     navController.navigate(Screen.SupplementEditEntry.createRoute(entryId))
                 }
             )
@@ -457,7 +465,10 @@ fun EmberNavGraph(
 
         composable(Screen.SupplementAddEntry.route) {
             val viewModel: AddEditSupplementViewModel = viewModel(
-                factory = AddEditSupplementViewModelFactory(app.supplementRepository)
+                factory = AddEditSupplementViewModelFactory(
+                app.supplementRepository,
+                app.ketoRepository
+            )
             )
             AddEditSupplementScreen(
                 viewModel = viewModel,
@@ -477,6 +488,7 @@ fun EmberNavGraph(
             val viewModel: AddEditSupplementViewModel = viewModel(
                 factory = AddEditSupplementViewModelFactory(
                     app.supplementRepository,
+                    app.ketoRepository,
                     editEntryId = entryId
                 )
             )
