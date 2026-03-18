@@ -2,6 +2,30 @@
 
 _Date: 2026-03-18_
 
+## Short version
+
+### Current state
+1. **Health Connect foundation:** availability, permissions, sync status, and first usable import path are in place.
+2. **Smart Daily Pacing:** rhythm/timing settings and pacing-aware Home feedback are working.
+3. **Unified trends/charts:** Keto and Health now use a much more consistent chart/trend/history system.
+4. **Health metric support:** manual entry, visibility toggles, imported history, and trend/detail flows are in place.
+5. **Recipe system foundation:** categories, add/edit/detail, servings, and core recipe logging flow are in place.
+6. **Nerd Mode recipe JSON tools:** recipe import/export, file import, paste import, validation, preview, and duplicate handling foundation are done.
+7. **Recipe/entry UX unification:** Add Entry was brought closer to Add Recipe and contextual actions were cleaned up.
+8. **Core app shell:** dashboard sections, Settings, themes, units, export/import, daily targets, and date switching are all in place.
+
+### Future work
+1. **Supplement tracking:** dedicated supplement logging flow and structure.
+2. **Calorie + electrolyte truth pass:** verify calorie behavior and improve sodium/potassium target/reference clarity.
+3. **Exercise + trend polish:** refine exercise UX and continue interaction polish on the shared chart system.
+4. **Shared form + feedback polish:** keep validation, save feedback, and scroll-to-error behavior clean and obvious.
+5. **Settings + personalization expansion:** keep Settings organized and continue theme/personalization cleanup.
+6. **Recipe library usefulness pass:** seed more real recipes and improve real-world browsing/filter usefulness.
+7. **Settings version/build verification:** make sure the version/build display reads live app metadata correctly.
+8. **Later reassessment:** reprioritize after more real-device use.
+
+---
+
 ## Mobile scope
 
 This worklist covers the Android/mobile app side of Project Ember.
@@ -46,22 +70,22 @@ Current app progress already includes:
   - manual health metric entry/edit behavior
   - health metric trends/history
   - imported Health Connect history for supported health metrics
-- trend-system unification and metric-detail improvements:
-  - Keto metrics now use dedicated per-metric trend screens
-  - graph → history → edit flow is unified more consistently across supported metric families
-  - metric history `+` flow now uses the correct metric-specific manual-entry path
+- unified metric/trend system:
+  - Keto metrics use dedicated per-metric trend screens
+  - graph → history → edit flow is aligned more consistently across supported metric families
+  - metric history `+` flow uses the correct metric-specific manual-entry path
   - semantic graph colors applied by metric family
-  - Health imported history behavior remains intact after trend-system cleanup
-- latest chart/trend polish pass:
+  - Health imported history behavior remains intact after cleanup
+- latest chart/trend polish:
   - weight history in Keto trends reads from the correct source
   - weight chart unit/conversion issues fixed
   - weight rolling averages no longer dilute across null/no-data days
   - trend chart headline/current value updates from selected bar/point
-  - selected-point behavior now works across chart interactions
+  - selected-point behavior works across chart interactions
   - Y-axis and horizontal grid/reference lines added
   - chart readability improved substantially
   - chart visual style unified across Keto and Health trends
-  - filled/smoothed trend style now acts like one chart system instead of mixed generations
+  - filled/smoothed trend style behaves like one chart system instead of mixed generations
 - Nerd Mode / Recipe JSON tools:
   - recipe library JSON export
   - recipe JSON import
@@ -83,23 +107,22 @@ Current app progress already includes:
 ## Highest priority
 
 ### 1. Supplement tracking
-This is now the top near-term feature area.
+Top near-term feature area.
 
 Focus now:
 - add dedicated supplement tracking section/flow
 - make supplement logging lightweight and quick
 - support supplement name, dose/amount, time taken, optional notes
-- keep supplement tracking distinct enough from food logging to stay clear
+- keep supplement tracking clearly distinct from food logging
 - design it so optional reminder/alarm support can be added later without ripping it apart
-- keep the logging flow fast enough to use daily without becoming another annoying ritual humans invent for themselves
 
 ### 2. Calorie + electrolyte truth pass
-These belong together now because they both affect whether the app tells the truth about the day instead of making pretty lies.
+These belong together because they both affect whether the app reflects the actual day correctly.
 
 Focus now:
 - confirm Home and Keto screens match intended calorie logic
 - confirm exercise burn interaction is correct in practice
-- confirm pacing-aware Home summary and full-target Keto detail continue to stay logically aligned
+- confirm pacing-aware Home summary and full-target Keto detail stay logically aligned
 - use existing sodium target in graph/reference treatment
 - use existing potassium target in graph/reference treatment
 - make electrolyte progress/target display as clear as the other major metrics
@@ -107,38 +130,36 @@ Focus now:
 - trust device behavior over theory
 
 ### 3. Exercise + trend polish
-These are both polish passes now and should be treated together instead of pretending charts and exercise UX live on different planets.
+One combined polish pass.
 
 Focus now:
 - validate add/edit parity
-- refine category management UX
-- clarify category vs activity type if wording feels messy
+- refine category/activity-type UX where wording or structure feels messy
 - improve quick logging speed/usability
 - clean up any awkward custom-category behavior
-- make Exercise feel as mature and intentional as Keto and Recipes
 - keep subtype behavior lightweight and optional if touched
 - preserve calorie behavior correctness
 - keep selected-point behavior consistent everywhere
 - ensure headline/current-value treatment remains intuitive
 - make trend date labeling clear when selecting specific bars/points
-- refine chart interaction details without breaking the now-good shared chart system
+- refine chart interaction details without breaking the shared chart system
 
-### 4. Form UX polish
-Baseline forms exist and are usable, so this is polish, not greenfield work.
+### 4. Shared form + feedback polish
+One combined UX cleanup track.
 
 Focus now:
 - keep improving validation clarity
 - make save feedback obvious
 - verify scroll-to-error behavior is actually good in ugly real-world cases
 - remove any “nothing happened” moments
-- continue using one familiar form pattern with context-sensitive sections instead of unrelated form styles
+- continue using one familiar form pattern with context-sensitive sections
 - reduce clutter while keeping important actions obvious
 - review Exercise and future Supplement flows against the newer form language established in Recipes/Add Entry
 
-### 5. Settings and personalization expansion
+### 5. Settings + personalization expansion
 Foundation exists already.
 
-Next work:
+Focus now:
 - continue theme/personalization expansion
 - keep settings organized as new pacing/health options are added
 - avoid turning Settings into a junk drawer
@@ -155,11 +176,14 @@ Focus now:
 - improve category/filter behavior only where it still feels clunky
 - identify any remaining friction in servings-based recipe logging
 
+### 7. Later reassessment
+After more real-device usage, re-evaluate the order and decide what deserves to stay, split, or die.
+
 ---
 
 ## Mobile architecture direction
 
-### 7. Mobile app remains a client, not the whole system
+### 8. Mobile app remains a client, not the whole system
 The Android app should be:
 - a practical front end
 - a fast daily-use control surface
@@ -170,14 +194,14 @@ It should not become:
 - the only way the user interacts with Ember
 - a giant pile of mixed UI/business logic sludge
 
-### 8. Preferred phased approach
+### 9. Preferred phased approach
 Saved longer-term direction:
 - Phase 1: Android client connected to current backend
 - Phase 2: local utility layer for time/reminders/log caching/offline queue
 - Phase 3: optional small offline local model fallback
 - Phase 4: fuller assistant/mobile integrations
 
-### 9. Cross-device Ember sync is later work
+### 10. Cross-device Ember sync is later work
 Keep this out of near-term mobile priorities for now.
 
 Not current priority:
@@ -193,33 +217,20 @@ Reason:
 
 ## Workflow / process rules for mobile work
 
-### 10. One actionable step at a time
+### 11. One actionable step at a time
 - one step at a time unless no feedback is needed
 
-### 11. Build/version rule
+### 12. Build/version rule
 - app version = shared release line
 - build number = active PR number during pre-v1 work
 - example: PR44 should use version `0.3`, build `44`
 
-### 12. Real-device testing wins
+### 13. Real-device testing wins
 - device behavior overrides simulator assumptions
 - user testing feedback overrides “the code looks right”
 
-### 13. Keep fixes local when obvious
+### 14. Keep fixes local when obvious
 - for small obvious code fixes, fix directly instead of punting everything to Copilot
-
----
-
-## Suggested build order now
-
-1. Supplement tracking foundation
-2. Calorie + electrolyte truth pass
-3. Exercise + trend polish
-4. Continue form UX polish and validation clarity
-5. Continue settings/theme cleanup as pacing and health options expand
-6. Verify/fix Settings version-build display
-7. Recipe library usefulness pass
-8. Reassess after more real-device usage
 
 ---
 
@@ -277,21 +288,3 @@ These are considered done enough and should stay out of the active priority list
 - recipe/edit action clutter reduction pass
 - improved Keto ↔ Recipes movement where implemented
 - Save to Recipe Book contextual flow foundation
-
----
-
-## Short version
-
-- Health Connect foundation is done
-- Smart Daily Pacing foundation is done
-- Health metric import/history foundation is done
-- trend-system unification is done enough for merge
-- latest chart/trend correctness and visual unification pass is done
-- Nerd Mode / Recipe JSON import-export is done enough for merge
-- recipe / entry UX unification pass is done enough for merge
-- Home now shows pacing truth
-- Keto now shows full-day target truth
-- next work is supplement tracking, calorie/electrolyte truth cleanup, exercise/trend polish, form polish, settings cleanup, and recipe-library usefulness
-- Settings version/build display still needs follow-up verification
-- keep cross-device Ember sync for later
-- keep the app as a client for Ember, not the whole damn system
