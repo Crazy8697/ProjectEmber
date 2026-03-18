@@ -49,6 +49,15 @@ import com.projectember.mobile.ui.screens.RecipesViewModelFactory
 import com.projectember.mobile.ui.screens.SettingsScreen
 import com.projectember.mobile.ui.screens.SettingsViewModel
 import com.projectember.mobile.ui.screens.SettingsViewModelFactory
+import com.projectember.mobile.ui.screens.StacksScreen
+import com.projectember.mobile.ui.screens.StacksViewModel
+import com.projectember.mobile.ui.screens.StacksViewModelFactory
+import com.projectember.mobile.ui.screens.AddEditStackDefinitionScreen
+import com.projectember.mobile.ui.screens.AddEditStackDefinitionViewModelFactory
+import com.projectember.mobile.ui.screens.AddEditStackDefinitionViewModel
+import com.projectember.mobile.ui.screens.AddEditSupplementScreen
+import com.projectember.mobile.ui.screens.AddEditSupplementViewModelFactory
+import com.projectember.mobile.ui.screens.AddEditSupplementViewModel
 import com.projectember.mobile.ui.screens.WeightHistoryScreen
 import com.projectember.mobile.ui.screens.WeightHistoryViewModel
 import com.projectember.mobile.ui.screens.WeightHistoryViewModelFactory
@@ -83,6 +92,7 @@ fun EmberNavGraph(
                 onNavigateToRecipes = { navController.navigate(Screen.Recipes.route) },
                 onNavigateToExercise = { navController.navigate(Screen.Exercise.route) },
                 onNavigateToHealth = { navController.navigate(Screen.Health.route) },
+                onNavigateToSupplements = { navController.navigate(Screen.Supplements.route) },
                 onNavigateToSettings = { navController.navigate(Screen.Settings.route) },
                 onNavigateToTrends = { navController.navigate(Screen.KetoTrends.createRoute("calories")) }
             )
@@ -428,6 +438,101 @@ fun EmberNavGraph(
             )
             HealthMetricTrendsScreen(
                 metric = metric,
+                viewModel = viewModel,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        // ── Supplements / Stacks ─────────────────────────────────────────────
+        composable(Screen.Supplements.route) {
+            val viewModel: StacksViewModel = viewModel(
+                factory = StacksViewModelFactory(
+                    app.stackDefinitionRepository,
+                    app.supplementRepository,
+                    app.ketoRepository
+                )
+            )
+            StacksScreen(
+                viewModel = viewModel,
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToAddDefinition = { navController.navigate(Screen.StackDefinitionAdd.route) },
+                onNavigateToEditDefinition = { definitionId ->
+                    navController.navigate(Screen.StackDefinitionEdit.createRoute(definitionId))
+                },
+                onNavigateToAddLog = { navController.navigate(Screen.SupplementAddEntry.route) },
+                onNavigateToEditLog = { entryId ->
+                    navController.navigate(Screen.SupplementEditEntry.createRoute(entryId))
+                }
+            )
+        }
+
+        composable(Screen.StackDefinitionAdd.route) {
+            val viewModel: AddEditStackDefinitionViewModel = viewModel(
+                factory = AddEditStackDefinitionViewModelFactory(
+                    app.stackDefinitionRepository
+                )
+            )
+            AddEditStackDefinitionScreen(
+                viewModel = viewModel,
+                supplementRepository = app.supplementRepository,
+                ketoRepository = app.ketoRepository,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(
+            route = Screen.StackDefinitionEdit.route,
+            arguments = listOf(navArgument("definitionId") { type = NavType.IntType })
+        ) { backStackEntry ->
+            val definitionId = backStackEntry.arguments?.getInt("definitionId")
+            if (definitionId == null) {
+                navController.popBackStack()
+                return@composable
+            }
+            val viewModel: AddEditStackDefinitionViewModel = viewModel(
+                factory = AddEditStackDefinitionViewModelFactory(
+                    app.stackDefinitionRepository,
+                    editDefinitionId = definitionId
+                )
+            )
+            AddEditStackDefinitionScreen(
+                viewModel = viewModel,
+                supplementRepository = app.supplementRepository,
+                ketoRepository = app.ketoRepository,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Screen.SupplementAddEntry.route) {
+            val viewModel: AddEditSupplementViewModel = viewModel(
+                factory = AddEditSupplementViewModelFactory(
+                    app.supplementRepository,
+                    app.ketoRepository
+                )
+            )
+            AddEditSupplementScreen(
+                viewModel = viewModel,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(
+            route = Screen.SupplementEditEntry.route,
+            arguments = listOf(navArgument("entryId") { type = NavType.IntType })
+        ) { backStackEntry ->
+            val entryId = backStackEntry.arguments?.getInt("entryId")
+            if (entryId == null) {
+                navController.popBackStack()
+                return@composable
+            }
+            val viewModel: AddEditSupplementViewModel = viewModel(
+                factory = AddEditSupplementViewModelFactory(
+                    app.supplementRepository,
+                    app.ketoRepository,
+                    editEntryId = entryId
+                )
+            )
+            AddEditSupplementScreen(
                 viewModel = viewModel,
                 onNavigateBack = { navController.popBackStack() }
             )

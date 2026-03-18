@@ -18,6 +18,8 @@ data class BackupPayloadV1(
     val exerciseEntries: List<ExerciseEntryDto>,
     val exerciseCategories: List<ExerciseCategoryDto>,
     val weightEntries: List<WeightEntryDto>,
+    val supplementEntries: List<SupplementEntryDto> = emptyList(),
+    val stackDefinitions: List<StackDefinitionDto> = emptyList(),
     val ketoTargets: KetoTargetsDto
 )
 
@@ -96,4 +98,31 @@ data class KetoTargetsDto(
     val sodiumMg: Double = 2300.0,
     val potassiumMg: Double = 3500.0,
     val magnesiumMg: Double = 400.0
+)
+
+data class SupplementEntryDto(
+    val id: Int = 0,
+    val name: String,
+    val dose: String,
+    val unit: String? = null,
+    val entryDate: String,
+    val entryTime: String,
+    val notes: String? = null,
+    val stackDefinitionId: Int? = null,
+    val ketoEntryId: Int? = null
+)
+
+data class StackDefinitionDto(
+    val id: Int = 0,
+    val name: String,
+    val defaultDose: String? = null,
+    val defaultUnit: String? = null,
+    val notes: String? = null,
+    val caloriesKcal: Double? = null,
+    val proteinG: Double? = null,
+    val fatG: Double? = null,
+    val netCarbsG: Double? = null,
+    val sodiumMg: Double? = null,
+    val potassiumMg: Double? = null,
+    val magnesiumMg: Double? = null
 )

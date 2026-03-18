@@ -17,6 +17,8 @@ import com.projectember.mobile.data.repository.ExerciseRepository
 import com.projectember.mobile.data.repository.KetoRepository
 import com.projectember.mobile.data.repository.ManualHealthEntryRepository
 import com.projectember.mobile.data.repository.RecipeRepository
+import com.projectember.mobile.data.repository.StackDefinitionRepository
+import com.projectember.mobile.data.repository.SupplementRepository
 import com.projectember.mobile.data.repository.SyncRepository
 import com.projectember.mobile.data.repository.WeightRepository
 import com.projectember.mobile.sync.SyncManager
@@ -50,6 +52,8 @@ class EmberApplication : Application() {
     val exerciseCategoryRepository by lazy { ExerciseCategoryRepository(database.exerciseCategoryDao()) }
     val exerciseRepository by lazy { ExerciseRepository(database.exerciseEntryDao()) }
     val manualHealthEntryRepository by lazy { ManualHealthEntryRepository(database.manualHealthEntryDao()) }
+    val supplementRepository by lazy { SupplementRepository(database.supplementEntryDao()) }
+    val stackDefinitionRepository by lazy { StackDefinitionRepository(database.stackDefinitionDao()) }
     val themePreferencesStore by lazy { ThemePreferencesStore(this) }
     val unitsPreferencesStore by lazy { UnitsPreferencesStore(this) }
     val dailyRhythmStore by lazy { DailyRhythmStore(this) }
@@ -65,6 +69,8 @@ class EmberApplication : Application() {
             exerciseRepository = exerciseRepository,
             exerciseCategoryRepository = exerciseCategoryRepository,
             weightRepository = weightRepository,
+            supplementRepository = supplementRepository,
+            stackDefinitionRepository = stackDefinitionRepository,
             ketoTargetsStore = ketoTargetsStore,
             appVersion = BuildConfig.VERSION_NAME
         )

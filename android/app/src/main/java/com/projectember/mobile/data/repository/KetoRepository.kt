@@ -15,6 +15,9 @@ class KetoRepository(private val ketoDao: KetoDao) {
         ketoDao.insert(entry)
     }
 
+    suspend fun insertEntryAndReturnId(entry: KetoEntry): Long =
+        ketoDao.insertAndReturnId(entry)
+
     suspend fun updateEntry(entry: KetoEntry) {
         ketoDao.update(entry)
     }
