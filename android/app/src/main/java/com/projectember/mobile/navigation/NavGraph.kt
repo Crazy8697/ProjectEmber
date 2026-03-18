@@ -49,6 +49,12 @@ import com.projectember.mobile.ui.screens.RecipesViewModelFactory
 import com.projectember.mobile.ui.screens.SettingsScreen
 import com.projectember.mobile.ui.screens.SettingsViewModel
 import com.projectember.mobile.ui.screens.SettingsViewModelFactory
+import com.projectember.mobile.ui.screens.SupplementScreen
+import com.projectember.mobile.ui.screens.SupplementViewModel
+import com.projectember.mobile.ui.screens.SupplementViewModelFactory
+import com.projectember.mobile.ui.screens.AddEditSupplementScreen
+import com.projectember.mobile.ui.screens.AddEditSupplementViewModelFactory
+import com.projectember.mobile.ui.screens.AddEditSupplementViewModel
 import com.projectember.mobile.ui.screens.WeightHistoryScreen
 import com.projectember.mobile.ui.screens.WeightHistoryViewModel
 import com.projectember.mobile.ui.screens.WeightHistoryViewModelFactory
@@ -83,6 +89,7 @@ fun EmberNavGraph(
                 onNavigateToRecipes = { navController.navigate(Screen.Recipes.route) },
                 onNavigateToExercise = { navController.navigate(Screen.Exercise.route) },
                 onNavigateToHealth = { navController.navigate(Screen.Health.route) },
+                onNavigateToSupplements = { navController.navigate(Screen.Supplements.route) },
                 onNavigateToSettings = { navController.navigate(Screen.Settings.route) },
                 onNavigateToTrends = { navController.navigate(Screen.KetoTrends.createRoute("calories")) }
             )
@@ -428,6 +435,52 @@ fun EmberNavGraph(
             )
             HealthMetricTrendsScreen(
                 metric = metric,
+                viewModel = viewModel,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        // ── Supplements ───────────────────────────────────────────────────────
+        composable(Screen.Supplements.route) {
+            val viewModel: SupplementViewModel = viewModel(
+                factory = SupplementViewModelFactory(app.supplementRepository)
+            )
+            SupplementScreen(
+                viewModel = viewModel,
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToAddEntry = { navController.navigate(Screen.SupplementAddEntry.route) },
+                onNavigateToEditEntry = { entryId ->
+                    navController.navigate(Screen.SupplementEditEntry.createRoute(entryId))
+                }
+            )
+        }
+
+        composable(Screen.SupplementAddEntry.route) {
+            val viewModel: AddEditSupplementViewModel = viewModel(
+                factory = AddEditSupplementViewModelFactory(app.supplementRepository)
+            )
+            AddEditSupplementScreen(
+                viewModel = viewModel,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(
+            route = Screen.SupplementEditEntry.route,
+            arguments = listOf(navArgument("entryId") { type = NavType.IntType })
+        ) { backStackEntry ->
+            val entryId = backStackEntry.arguments?.getInt("entryId")
+            if (entryId == null) {
+                navController.popBackStack()
+                return@composable
+            }
+            val viewModel: AddEditSupplementViewModel = viewModel(
+                factory = AddEditSupplementViewModelFactory(
+                    app.supplementRepository,
+                    editEntryId = entryId
+                )
+            )
+            AddEditSupplementScreen(
                 viewModel = viewModel,
                 onNavigateBack = { navController.popBackStack() }
             )

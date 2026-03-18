@@ -18,6 +18,7 @@ import androidx.compose.material.icons.filled.DirectionsRun
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.MonitorWeight
+import androidx.compose.material.icons.filled.Science
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.ShowChart
 import androidx.compose.material3.Card
@@ -56,6 +57,7 @@ fun HomeScreen(
     onNavigateToRecipes: () -> Unit,
     onNavigateToExercise: () -> Unit,
     onNavigateToHealth: () -> Unit,
+    onNavigateToSupplements: () -> Unit,
     onNavigateToSettings: () -> Unit,
     onNavigateToTrends: () -> Unit
 ) {
@@ -139,6 +141,13 @@ fun HomeScreen(
                 subtitle = "Vitals & sleep from Health Connect",
                 icon = Icons.Default.Favorite,
                 onClick = onNavigateToHealth
+            )
+
+            NavCard(
+                title = "Supplements",
+                subtitle = "Daily supplement log",
+                icon = Icons.Default.Science,
+                onClick = onNavigateToSupplements
             )
 
             Spacer(modifier = Modifier.height(24.dp))
