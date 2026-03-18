@@ -793,7 +793,7 @@ fun KetoTrendsScreen(
                             barColor = barColor,
                             unit = unit,
                             targetValue = targetValue,
-                            useLineChart = (trendsMetric == "weight"),
+                            useLineChart = true,
                             selectedIndex = selectedChartIndex,
                             onIndexSelected = { tappedIdx ->
                                 // Toggle: tapping the already-selected point deselects it

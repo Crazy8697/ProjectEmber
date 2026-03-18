@@ -455,7 +455,7 @@ private fun MetricTrendChart(
                         .fillMaxWidth()
                         .height(160.dp),
                     lineColor = lineColor,
-                    showArea = false,
+                    showArea = true,
                     showYAxis = true,
                     showXLabels = true,
                     selectedIndex = selectedIndex,
