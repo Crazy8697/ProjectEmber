@@ -287,8 +287,9 @@ class AddKetoEntryViewModel(
      * [onSuccess] receives the recipe name that was saved.
      */
     fun saveToRecipeBook(onSuccess: (String) -> Unit, onError: (() -> Unit)? = null) {
-        val repo = recipeRepository ?: return
-        val name = label.trim().ifBlank { return }
+        val repo = recipeRepository ?: run { onError?.invoke(); return }
+        val name = label.trim()
+        if (name.isBlank()) { onError?.invoke(); return }
         val storedProteinG  = foodUnit.toG(parseDoubleOrZero(proteinG))
         val storedFatG      = foodUnit.toG(parseDoubleOrZero(fatG))
         val storedNetCarbsG = foodUnit.toG(parseDoubleOrZero(netCarbsG))
