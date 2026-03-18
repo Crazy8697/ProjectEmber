@@ -29,6 +29,8 @@ import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
@@ -57,6 +59,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.projectember.mobile.data.local.entities.Recipe
+import androidx.compose.material.icons.filled.MoreVert
 import com.projectember.mobile.data.local.entities.decodeIngredients
 import com.projectember.mobile.ui.theme.KetoAccent
 import kotlinx.coroutines.launch
@@ -78,6 +81,7 @@ fun RecipesScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var showRecipeMenu by remember { mutableStateOf(false) }
 
     if (showDeleteDialog) {
         val recipeName = selectedRecipe?.name ?: ""
@@ -136,12 +140,34 @@ fun RecipesScreen(
                         }) {
                             Icon(Icons.Default.Edit, contentDescription = "Edit recipe")
                         }
-                        IconButton(onClick = { showDeleteDialog = true }) {
-                            Icon(
-                                Icons.Default.Delete,
-                                contentDescription = "Delete recipe",
-                                tint = MaterialTheme.colorScheme.error
-                            )
+                        Box {
+                            IconButton(onClick = { showRecipeMenu = true }) {
+                                Icon(Icons.Default.MoreVert, contentDescription = "More options")
+                            }
+                            DropdownMenu(
+                                expanded = showRecipeMenu,
+                                onDismissRequest = { showRecipeMenu = false }
+                            ) {
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            "Delete Recipe",
+                                            color = MaterialTheme.colorScheme.error
+                                        )
+                                    },
+                                    leadingIcon = {
+                                        Icon(
+                                            Icons.Default.Delete,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.error
+                                        )
+                                    },
+                                    onClick = {
+                                        showRecipeMenu = false
+                                        showDeleteDialog = true
+                                    }
+                                )
+                            }
                         }
                     } else {
                         IconButton(onClick = onNavigateToNerdMode) {

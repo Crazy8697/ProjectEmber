@@ -11,7 +11,9 @@ import com.projectember.mobile.data.local.UnitPreferences
 import com.projectember.mobile.data.local.UnitsPreferencesStore
 import com.projectember.mobile.data.local.VolumeUnit
 import com.projectember.mobile.data.local.entities.KetoEntry
+import com.projectember.mobile.data.local.entities.Recipe
 import com.projectember.mobile.data.repository.KetoRepository
+import com.projectember.mobile.data.repository.RecipeRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -22,7 +24,8 @@ import java.time.format.DateTimeFormatter
 class AddKetoEntryViewModel(
     private val ketoRepository: KetoRepository,
     private val editEntryId: Int? = null,
-    private val unitsPreferencesStore: UnitsPreferencesStore? = null
+    private val unitsPreferencesStore: UnitsPreferencesStore? = null,
+    private val recipeRepository: RecipeRepository? = null
 ) : ViewModel() {
 
     companion object {
@@ -272,14 +275,62 @@ class AddKetoEntryViewModel(
             onSuccess()
         }
     }
+
+    /** True when the current entry type can be saved as a recipe (food entries only). */
+    val canSaveToRecipeBook: Boolean
+        get() = !isRecipeDerived &&
+            eventType in listOf("meal", "snack", "drink") &&
+            recipeRepository != null
+
+    /**
+     * Saves the current entry's nutrition as a single-serving recipe.
+     * [onSuccess] receives the recipe name that was saved.
+     */
+    fun saveToRecipeBook(onSuccess: (String) -> Unit, onError: (() -> Unit)? = null) {
+        val repo = recipeRepository ?: return
+        val name = label.trim().ifBlank { return }
+        val storedProteinG  = foodUnit.toG(parseDoubleOrZero(proteinG))
+        val storedFatG      = foodUnit.toG(parseDoubleOrZero(fatG))
+        val storedNetCarbsG = foodUnit.toG(parseDoubleOrZero(netCarbsG))
+        val storedWaterMl   = volUnit.toMl(parseDoubleOrZero(waterMl))
+        val category = when (eventType.lowercase()) {
+            "snack" -> "Snack"
+            "drink" -> "Drink"
+            else    -> "General"
+        }
+        val recipe = Recipe(
+            name        = name,
+            category    = category,
+            description = notes.trim().ifBlank { null },
+            calories    = parseDoubleOrZero(calories),
+            proteinG    = storedProteinG,
+            fatG        = storedFatG,
+            netCarbsG   = storedNetCarbsG,
+            totalCarbsG = storedNetCarbsG,
+            sodiumMg    = parseDoubleOrZero(sodiumMg),
+            potassiumMg = parseDoubleOrZero(potassiumMg),
+            magnesiumMg = parseDoubleOrZero(magnesiumMg),
+            waterMl     = storedWaterMl,
+            servings    = 1.0
+        )
+        viewModelScope.launch {
+            try {
+                repo.insertRecipe(recipe)
+                onSuccess(name)
+            } catch (_: Exception) {
+                onError?.invoke()
+            }
+        }
+    }
 }
 
 class AddKetoEntryViewModelFactory(
     private val ketoRepository: KetoRepository,
     private val editEntryId: Int? = null,
-    private val unitsPreferencesStore: UnitsPreferencesStore? = null
+    private val unitsPreferencesStore: UnitsPreferencesStore? = null,
+    private val recipeRepository: RecipeRepository? = null
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T =
-        AddKetoEntryViewModel(ketoRepository, editEntryId, unitsPreferencesStore) as T
+        AddKetoEntryViewModel(ketoRepository, editEntryId, unitsPreferencesStore, recipeRepository) as T
 }

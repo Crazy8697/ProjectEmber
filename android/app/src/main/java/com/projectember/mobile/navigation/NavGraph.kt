@@ -121,12 +121,20 @@ fun EmberNavGraph(
             val viewModel: AddKetoEntryViewModel = viewModel(
                 factory = AddKetoEntryViewModelFactory(
                     app.ketoRepository,
-                    unitsPreferencesStore = app.unitsPreferencesStore
+                    unitsPreferencesStore = app.unitsPreferencesStore,
+                    recipeRepository = app.recipeRepository
                 )
             )
             AddKetoEntryScreen(
                 viewModel = viewModel,
-                onNavigateBack = { navController.popBackStack() }
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToHome = {
+                    navController.navigate(Screen.Home.route) {
+                        popUpTo(navController.graph.startDestinationId) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                },
+                onNavigateToRecipes = { navController.navigate(Screen.Recipes.route) }
             )
         }
 
@@ -143,12 +151,20 @@ fun EmberNavGraph(
                 factory = AddKetoEntryViewModelFactory(
                     app.ketoRepository,
                     entryId,
-                    app.unitsPreferencesStore
+                    app.unitsPreferencesStore,
+                    app.recipeRepository
                 )
             )
             AddKetoEntryScreen(
                 viewModel = viewModel,
-                onNavigateBack = { navController.popBackStack() }
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToHome = {
+                    navController.navigate(Screen.Home.route) {
+                        popUpTo(navController.graph.startDestinationId) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                },
+                onNavigateToRecipes = { navController.navigate(Screen.Recipes.route) }
             )
         }
 
@@ -190,7 +206,13 @@ fun EmberNavGraph(
             )
             AddEditRecipeScreen(
                 viewModel = viewModel,
-                onNavigateBack = { navController.popBackStack() }
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToHome = {
+                    navController.navigate(Screen.Home.route) {
+                        popUpTo(navController.graph.startDestinationId) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                }
             )
         }
 
@@ -212,7 +234,13 @@ fun EmberNavGraph(
             )
             AddEditRecipeScreen(
                 viewModel = viewModel,
-                onNavigateBack = { navController.popBackStack() }
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToHome = {
+                    navController.navigate(Screen.Home.route) {
+                        popUpTo(navController.graph.startDestinationId) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                }
             )
         }
 
