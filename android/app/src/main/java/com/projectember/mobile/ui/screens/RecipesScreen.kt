@@ -22,6 +22,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
@@ -66,7 +67,8 @@ fun RecipesScreen(
     viewModel: RecipesViewModel,
     onNavigateBack: () -> Unit,
     onNavigateToAddRecipe: () -> Unit,
-    onNavigateToEditRecipe: (Int) -> Unit
+    onNavigateToEditRecipe: (Int) -> Unit,
+    onNavigateToNerdMode: () -> Unit
 ) {
     val recipes by viewModel.recipes.collectAsState()
     val selectedRecipe by viewModel.selectedRecipe.collectAsState()
@@ -139,6 +141,13 @@ fun RecipesScreen(
                                 Icons.Default.Delete,
                                 contentDescription = "Delete recipe",
                                 tint = MaterialTheme.colorScheme.error
+                            )
+                        }
+                    } else {
+                        IconButton(onClick = onNavigateToNerdMode) {
+                            Icon(
+                                Icons.Default.Tune,
+                                contentDescription = "Advanced Tools"
                             )
                         }
                     }
