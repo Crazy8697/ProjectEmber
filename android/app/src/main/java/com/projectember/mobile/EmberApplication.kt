@@ -24,6 +24,7 @@ import com.projectember.mobile.data.repository.SyncRepository
 import com.projectember.mobile.data.repository.WeightRepository
 import com.projectember.mobile.sync.SyncManager
 import com.projectember.mobile.sync.HealthConnectManager
+import com.projectember.mobile.sync.HealthSyncWorker
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
