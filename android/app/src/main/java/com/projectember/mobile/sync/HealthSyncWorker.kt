@@ -1,72 +1,67 @@
 package com.projectember.mobile.sync
 
+import android.app.AlarmManager
+import android.app.PendingIntent
+import android.content.BroadcastReceiver
 import android.content.Context
-import androidx.work.CoroutineWorker
-import androidx.work.ExistingPeriodicWorkPolicy
-import androidx.work.PeriodicWorkRequestBuilder
-import androidx.work.WorkManager
-import androidx.work.WorkerParameters
+import android.content.Intent
+import com.projectember.mobile.EmberApplication
+import android.os.SystemClock
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import java.time.ZonedDateTime
 import java.time.Duration
-import java.util.concurrent.TimeUnit
 
 /**
- * Lightweight periodic worker that triggers a Health Connect sync once per day.
- * Scheduled to run roughly around 10:00 local time by calculating an initial delay.
+ * Lightweight daily scheduler that uses AlarmManager to trigger an in-app sync receiver.
+ * This avoids requiring WorkManager in environments where it's not available.
  */
-class HealthSyncWorker(
-    private val ctx: Context,
-    params: WorkerParameters
-) : CoroutineWorker(ctx, params) {
-
-    override suspend fun doWork(): Result {
-        try {
-            // Obtain a HealthConnectManager instance through EmberApplication if available
-            val app = ctx.applicationContext as? EmberApplication
-                ?: return Result.success()
-            val manager = app.healthConnectManager
-
-            // Only run when Health Connect is available and permissions are granted
-            if (!manager.isAvailable()) return Result.success()
-            val granted = try { manager.getGrantedPermissions() } catch (_: Exception) { return Result.success() }
-            if (granted.isEmpty()) return Result.success()
-
-            // Perform a short lookback sync (7 days) to keep recent data fresh but avoid heavy reads
-            manager.syncFromHealthConnect(lookbackDays = 7L)
-            return Result.success()
-        } catch (e: Exception) {
-            return Result.retry()
+class HealthSyncReceiver : BroadcastReceiver() {
+    override fun onReceive(context: Context, intent: Intent?) {
+        val app = context.applicationContext as? EmberApplication ?: return
+        val manager = app.healthConnectManager
+        // Run sync in background coroutine
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                if (!manager.isAvailable()) return@launch
+                val granted = try { manager.getGrantedPermissions() } catch (_: Exception) { return@launch }
+                if (granted.isEmpty()) return@launch
+                manager.syncFromHealthConnect(lookbackDays = 7L)
+            } catch (_: Exception) {
+                // Swallow; nothing actionable in receiver
+            }
         }
     }
 
     companion object {
-        const val WORK_NAME = "health_daily_sync"
+        private const val ACTION_SYNC = "com.projectember.mobile.action.HEALTH_DAILY_SYNC"
 
-        fun scheduleDaily(context: Context) {
-            val workManager = WorkManager.getInstance(context)
+        fun scheduleDaily(context: Context, hourLocal: Int = 10) {
+            val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+            val intent = Intent(context, HealthSyncReceiver::class.java).apply { action = ACTION_SYNC }
+            val pending = PendingIntent.getBroadcast(context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
 
-            // Create a periodic request that repeats every 24 hours.
-            // Rely on WorkManager's flex window to run roughly near the desired time.
-            val request = PeriodicWorkRequestBuilder<HealthSyncWorker>(24, TimeUnit.HOURS)
-                .setInitialDelay(calculateInitialDelayToHour(10))
-                .build()
+            val initialDelay = calculateInitialDelayToHour(hourLocal)
+            val triggerAt = System.currentTimeMillis() + initialDelay.toMillis()
 
-            workManager.enqueueUniquePeriodicWork(
-                WORK_NAME,
-                ExistingPeriodicWorkPolicy.KEEP,
-                request
+            // Use setInexactRepeating to be battery-friendly; exact timing is not required.
+            alarmManager.setInexactRepeating(
+                AlarmManager.RTC_WAKEUP,
+                triggerAt,
+                AlarmManager.INTERVAL_DAY,
+                pending
             )
         }
 
         private fun calculateInitialDelayToHour(hourLocal: Int): Duration {
-            // Calculate approximate initial delay (in case device just booted). We'll use a best-effort approach.
-            try {
-                val now = java.time.ZonedDateTime.now()
+            return try {
+                val now = ZonedDateTime.now()
                 var target = now.withHour(hourLocal).withMinute(0).withSecond(0).withNano(0)
                 if (target.isBefore(now)) target = target.plusDays(1)
-                val delayMillis = java.time.Duration.between(now, target).toMillis()
-                return Duration.ofMillis(delayMillis)
+                Duration.between(now, target)
             } catch (e: Exception) {
-                return Duration.ofHours(1)
+                Duration.ofHours(1)
             }
         }
     }
