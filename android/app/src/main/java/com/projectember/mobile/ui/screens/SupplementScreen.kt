@@ -131,9 +131,9 @@ fun StacksScreen(
                         viewModel.quickLog(definition) { ketoLinked ->
                             coroutineScope.launch {
                                 val msg = if (ketoLinked) {
-                                    "Logged \"${definition.name}\" — Keto totals updated"
+                                    "\"${definition.name}\" logged to Stacks and Keto"
                                 } else {
-                                    "Logged \"${definition.name}\""
+                                    "\"${definition.name}\" logged to Stacks only"
                                 }
                                 snackbarHostState.showSnackbar(msg)
                             }
@@ -221,7 +221,7 @@ private fun StackDefinitionCard(
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.Top
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
@@ -241,14 +241,30 @@ private fun StackDefinitionCard(
                             fontWeight = FontWeight.Medium
                         )
                     }
+                    // Keto eligibility status — always shown so it is never ambiguous
+                    if (definition.hasNutritionData()) {
+                        Text(
+                            text = "Logs to Keto",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = KetoAccent,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    } else {
+                        Text(
+                            text = "Stack only",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
-                // Keto badge
+                // Keto badge — shown when keto-eligible for a quick at-a-glance scan
                 if (definition.hasNutritionData()) {
-                    Badge(containerColor = KetoAccent.copy(alpha = 0.15f)) {
+                    Badge(containerColor = KetoAccent.copy(alpha = 0.20f)) {
                         Text(
                             text = "Keto",
                             style = MaterialTheme.typography.labelSmall,
-                            color = KetoAccent
+                            color = KetoAccent,
+                            fontWeight = FontWeight.Bold
                         )
                     }
                 }
@@ -274,6 +290,7 @@ private fun StackDefinitionCard(
                 ) {
                     Text("Edit")
                 }
+                val logButtonLabel = if (definition.hasNutritionData()) "Log to Keto" else "Log Stack Only"
                 Button(
                     onClick = onLog,
                     modifier = Modifier.weight(1f).padding(start = 6.dp),
@@ -284,7 +301,7 @@ private fun StackDefinitionCard(
                         contentDescription = null,
                         modifier = Modifier.size(16.dp).padding(end = 4.dp)
                     )
-                    Text("Log Now")
+                    Text(logButtonLabel)
                 }
             }
         }
