@@ -350,6 +350,8 @@ fun KetoScreen(
                         nakRatio = nakRatio,
                         todaySodium = todaySodium,
                         todayPotassium = todayPotassium,
+                        sodiumTarget = targets.sodiumMg,
+                        potassiumTarget = targets.potassiumMg,
                         onClick = { onNavigateToTrends("nak_ratio") }
                     )
                 }
@@ -598,6 +600,8 @@ private fun NakRatioBlock(
     nakRatio: String,
     todaySodium: Double,
     todayPotassium: Double,
+    sodiumTarget: Double = 0.0,
+    potassiumTarget: Double = 0.0,
     onClick: () -> Unit
 ) {
     // If potassium is 0 but sodium > 0 → treat as max ratio (fully Na-heavy)
@@ -661,6 +665,7 @@ private fun NakRatioBlock(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
+                // Show contextual hint and simple per-nutrient progress references
                 Text(
                     text = when {
                         todayPotassium <= 0 && todaySodium > 0 -> "no potassium logged"
@@ -671,13 +676,20 @@ private fun NakRatioBlock(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 10.sp
                 )
-                // Explicit target reference
-                Text(
-                    text = "target \u22641.0",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontSize = 10.sp
-                )
+                Column(horizontalAlignment = Alignment.End) {
+                    Text(
+                        text = "Na: %.0f/%.0f mg".format(todaySodium, sodiumTarget),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontSize = 10.sp
+                    )
+                    Text(
+                        text = "K: %.0f/%.0f mg".format(todayPotassium, potassiumTarget),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontSize = 10.sp
+                    )
+                }
             }
             Spacer(modifier = Modifier.height(4.dp))
             // Balance indicator bar: left = Na-heavy, right = K-heavy (matches "Na:K" label order)
