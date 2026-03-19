@@ -37,6 +37,8 @@ import com.projectember.mobile.data.local.VolumeUnit
 import com.projectember.mobile.data.local.WeightUnit
 import com.projectember.mobile.data.local.entities.SyncStatus
 import com.projectember.mobile.data.repository.SyncRepository
+import com.projectember.mobile.data.repository.KetoRepository
+import com.projectember.mobile.data.repository.RecipeRepository
 import com.projectember.mobile.sync.HealthConnectManager
 import com.projectember.mobile.sync.HealthConnectUiState
 import com.projectember.mobile.ui.theme.ThemeOption
@@ -57,6 +59,8 @@ sealed class BackupOpState {
 
 class SettingsViewModel(
     private val syncRepository: SyncRepository,
+    private val ketoRepository: KetoRepository,
+    private val recipeRepository: RecipeRepository,
     private val healthConnectManager: HealthConnectManager,
     private val backupManager: BackupManager,
     private val themePreferencesStore: ThemePreferencesStore,
@@ -199,7 +203,7 @@ class SettingsViewModel(
         viewModelScope.launch {
             _isSyncing.value = true
             _healthConnectState.value = HealthConnectUiState.Syncing
-            val result = healthConnectManager.syncFromHealthConnect()
+            healthConnectManager.syncFromHealthConnect()
             _isSyncing.value = false
             // Refresh HC state to reflect the new outcome
             checkHealthConnectStatus()
@@ -332,12 +336,12 @@ class SettingsViewModel(
         viewModelScope.launch {
             _clearRecipeIndexState.value = BackupOpState.InProgress
             runCatching {
-                // Detach all recipe references in keto entries so historical logs remain accurate
-                ketoRepository.clearAllRecipeReferences()
+                // Delete all saved recipes from the recipe library so the user can import a clean recipe set.
+                recipeRepository.replaceAll(emptyList())
             }.onSuccess {
-                _clearRecipeIndexState.value = BackupOpState.Success("Recipe index cleared. Recipe library preserved.")
+                _clearRecipeIndexState.value = BackupOpState.Success("All saved recipes deleted. Keto log entries preserved.")
             }.onFailure { e ->
-                _clearRecipeIndexState.value = BackupOpState.Error(e.message ?: "Failed to clear recipe index.")
+                _clearRecipeIndexState.value = BackupOpState.Error(e.message ?: "Failed to clear recipe index (delete recipes).")
             }
         }
     }
@@ -461,6 +465,8 @@ class SettingsViewModel(
 
 class SettingsViewModelFactory(
     private val syncRepository: SyncRepository,
+    private val ketoRepository: KetoRepository,
+    private val recipeRepository: RecipeRepository,
     private val healthConnectManager: HealthConnectManager,
     private val backupManager: BackupManager,
     private val themePreferencesStore: ThemePreferencesStore,
@@ -473,6 +479,8 @@ class SettingsViewModelFactory(
     override fun <T : ViewModel> create(modelClass: Class<T>): T =
         SettingsViewModel(
             syncRepository,
+            ketoRepository,
+            recipeRepository,
             healthConnectManager,
             backupManager,
             themePreferencesStore,

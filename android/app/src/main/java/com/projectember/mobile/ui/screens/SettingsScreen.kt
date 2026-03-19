@@ -1057,8 +1057,10 @@ fun SettingsScreen(
             title = { Text("Clear Recipe Index?") },
             text = {
                 Text(
-                    "This will detach recipe references from historical keto log entries so that " +
-                        "the app no longer links those entries to recipes. \n\nWhat will be erased: \n- Recipe-derived lookup/index references (i.e. recipe links on past keto entries). \n\nWhat will NOT be erased: \n- Your actual recipe library items (saved recipes) \n- Keto log entries and their nutrition data (only the recipeId link is removed)."
+                    "This will delete all saved recipes from your recipe library so you can import a clean recipe JSON set.\n\n" +
+                        "What will be erased:\n- All saved recipes in the recipe library/index.\n\n" +
+                        "What will NOT be erased:\n- Keto log entries and their nutrition data.\n- Other app data and settings.\n\n" +
+                        "Important:\n- This is intended to prepare for a clean recipe import.\n- This cannot be undone."
                 )
             },
             confirmButton = {
@@ -1079,8 +1081,14 @@ fun SettingsScreen(
     if (showClearIndexConfirm2) {
         AlertDialog(
             onDismissRequest = { showClearIndexConfirm2 = false },
-            title = { Text("Are you absolutely sure?") },
-            text = { Text("This action cannot be undone. Recipe links on past keto entries will be permanently removed.") },
+            title = { Text("Delete All Recipes?") },
+            text = {
+                Text(
+                    "This will permanently delete all saved recipes from the recipe library.\n\n" +
+                        "Keto log entries will remain.\n\n" +
+                        "Are you absolutely sure you want to continue?"
+                )
+            },
             confirmButton = {
                 TextButton(onClick = {
                     showClearIndexConfirm2 = false
