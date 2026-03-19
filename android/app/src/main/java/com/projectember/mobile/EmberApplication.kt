@@ -2,6 +2,7 @@ package com.projectember.mobile
 
 import android.app.Application
 import com.projectember.mobile.data.backup.BackupManager
+import com.projectember.mobile.data.keto.KetoImportManager
 import com.projectember.mobile.data.recipe.RecipeImportExportManager
 import com.projectember.mobile.data.local.db.AppDatabase
 import com.projectember.mobile.data.local.db.DatabaseSeeder
@@ -81,6 +82,13 @@ class EmberApplication : Application() {
             context = applicationContext,
             recipeRepository = recipeRepository,
             appVersion = BuildConfig.VERSION_NAME
+        )
+    }
+
+    val ketoImportManager by lazy {
+        KetoImportManager(
+            context = applicationContext,
+            ketoRepository = ketoRepository
         )
     }
 
