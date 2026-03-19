@@ -109,6 +109,8 @@ class EmberApplication : Application() {
             // saved weight entry AND the Room weight_entries table is empty, migrate
             // that single entry into Room so no historical data is lost.
             migrateWeightStoreIfNeeded()
+            // Schedule daily lightweight Health Connect sync (around 10:00 local)
+            HealthSyncWorker.scheduleDaily(applicationContext)
         }
     }
 
