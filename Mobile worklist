@@ -17,12 +17,30 @@ _Date: 2026-03-19_
 10. **Form polish foundation:** editable event time and scroll-to-error behavior are in place.
 
 ### Future work
-1. **Calorie + electrolyte truth pass:** verify calorie behavior and improve sodium/potassium target/reference clarity.
-2. **Exercise + trend polish:** refine exercise UX and continue interaction polish on the shared chart system.
-3. **Shared form + feedback polish:** keep validation, save feedback, and edge-case form behavior clean and obvious.
-4. **Settings + personalization cleanup:** keep Settings organized and prevent future junk-drawer creep.
-5. **Recipe library usefulness pass:** seed more real recipes and improve real-world browsing/filter usefulness.
-6. **Later reassessment:** reprioritize after more real-device use.
+1. **Day Accuracy + Activity Polish**
+   - calorie behavior truth pass
+   - exercise burn correctness
+   - Home/Keto alignment
+   - sodium/potassium target/reference clarity
+   - exercise UX cleanup
+   - trend interaction/date-label/current-value polish
+
+2. **UX Cleanup + Settings Hygiene**
+   - validation clarity
+   - save feedback
+   - edge-case form behavior cleanup
+   - Settings organization
+   - destructive/settings flow clarity
+   - anti-junk-drawer cleanup
+
+3. **Recipe Library Usefulness Pass**
+   - seed more real recipes
+   - improve browsing/filter usefulness
+   - validate real-device recipe library flow
+   - clean up remaining servings/category friction
+
+4. **Later reassessment**
+   - reprioritize after more real-device use
 
 ---
 
