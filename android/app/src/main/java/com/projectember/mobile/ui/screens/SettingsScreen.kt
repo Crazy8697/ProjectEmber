@@ -85,6 +85,7 @@ fun SettingsScreen(
     val pendingImport by viewModel.pendingImport.collectAsState()
     val pendingEmailExport by viewModel.pendingEmailExport.collectAsState()
     val resetState by viewModel.resetState.collectAsState()
+    val clearRecipeIndexState by viewModel.clearRecipeIndexState.collectAsState()
     val selectedTheme by viewModel.selectedTheme.collectAsState()
     val unitPrefs by viewModel.unitPreferences.collectAsState()
     val dailyRhythm by viewModel.dailyRhythm.collectAsState()
@@ -97,6 +98,9 @@ fun SettingsScreen(
     // Danger Zone confirmation state
     var showResetConfirm1 by remember { mutableStateOf(false) }
     var showResetConfirm2 by remember { mutableStateOf(false) }
+    // Recipe Index clear confirmation state
+    var showClearIndexConfirm1 by remember { mutableStateOf(false) }
+    var showClearIndexConfirm2 by remember { mutableStateOf(false) }
 
     // Export method chooser state
     var showExportChooser by remember { mutableStateOf(false) }
@@ -895,6 +899,30 @@ fun SettingsScreen(
                 title = "Danger Zone",
                 titleColor = MaterialTheme.colorScheme.error
             ) {
+                // Clear Recipe Index — scoped destructive action
+                Button(
+                    onClick = { showClearIndexConfirm1 = true },
+                    enabled = !isBusy,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    if (clearRecipeIndexState is BackupOpState.InProgress) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.onError
+                        )
+                        Text("  Clearing…", modifier = Modifier.padding(start = 4.dp))
+                    } else {
+                        Text("Clear Recipe Index")
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Full app reset button kept below, clearly separated
                 Button(
                     onClick = { showResetConfirm1 = true },
                     enabled = !isBusy,
@@ -1018,6 +1046,59 @@ fun SettingsScreen(
                 TextButton(onClick = { showResetConfirm1 = false }) {
                     Text("Cancel")
                 }
+            }
+        )
+    }
+
+    // ── Clear Recipe Index: first confirmation ───────────────────────────────
+    if (showClearIndexConfirm1) {
+        AlertDialog(
+            onDismissRequest = { showClearIndexConfirm1 = false },
+            title = { Text("Clear Recipe Index?") },
+            text = {
+                Text(
+                    "This will delete all saved recipes from your recipe library so you can import a clean recipe JSON set.\n\n" +
+                        "What will be erased:\n- All saved recipes in the recipe library/index.\n\n" +
+                        "What will NOT be erased:\n- Keto log entries and their nutrition data.\n- Other app data and settings.\n\n" +
+                        "Important:\n- This is intended to prepare for a clean recipe import.\n- This cannot be undone."
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    showClearIndexConfirm1 = false
+                    showClearIndexConfirm2 = true
+                }) {
+                    Text("Continue", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showClearIndexConfirm1 = false }) { Text("Cancel") }
+            }
+        )
+    }
+
+    // ── Clear Recipe Index: second (final) confirmation ──────────────────────
+    if (showClearIndexConfirm2) {
+        AlertDialog(
+            onDismissRequest = { showClearIndexConfirm2 = false },
+            title = { Text("Delete All Recipes?") },
+            text = {
+                Text(
+                    "This will permanently delete all saved recipes from the recipe library.\n\n" +
+                        "Keto log entries will remain.\n\n" +
+                        "Are you absolutely sure you want to continue?"
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    showClearIndexConfirm2 = false
+                    viewModel.clearRecipeIndex()
+                }) {
+                    Text("Clear Recipe Index", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showClearIndexConfirm2 = false }) { Text("Cancel") }
             }
         )
     }

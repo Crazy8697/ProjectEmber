@@ -53,6 +53,12 @@ class BackupManager(
     private val supplementRepository: SupplementRepository,
     private val stackDefinitionRepository: StackDefinitionRepository,
     private val ketoTargetsStore: KetoTargetsStore,
+    // Preference stores for exporting/restoring preferences
+    private val themePreferencesStore: com.projectember.mobile.data.local.ThemePreferencesStore,
+    private val unitsPreferencesStore: com.projectember.mobile.data.local.UnitsPreferencesStore,
+    private val dailyRhythmStore: com.projectember.mobile.data.local.DailyRhythmStore,
+    private val mealTimingStore: com.projectember.mobile.data.local.MealTimingStore,
+    private val healthMetricPreferencesStore: com.projectember.mobile.data.local.HealthMetricPreferencesStore,
     private val appVersion: String
 ) {
 
@@ -116,6 +122,62 @@ class BackupManager(
 
         // SharedPreferences are saved only after the DB transaction has committed.
         ketoTargetsStore.save(payload.ketoTargets.toKetoTargets())
+
+        // Restore preference stores (non-DB data)
+        try {
+            // Theme
+            try {
+                val themeName = payload.theme.selectedThemeName
+                com.projectember.mobile.ui.theme.ThemeOption.valueOf(themeName).let {
+                    themePreferencesStore.setTheme(it)
+                }
+            } catch (_: Exception) {}
+
+            // Units
+            try {
+                unitsPreferencesStore.setWeightUnit(com.projectember.mobile.data.local.WeightUnit.valueOf(payload.units.weightUnit))
+                unitsPreferencesStore.setFoodWeightUnit(com.projectember.mobile.data.local.FoodWeightUnit.valueOf(payload.units.foodWeightUnit))
+                unitsPreferencesStore.setVolumeUnit(com.projectember.mobile.data.local.VolumeUnit.valueOf(payload.units.volumeUnit))
+            } catch (_: Exception) {}
+
+            // Daily rhythm
+            try {
+                dailyRhythmStore.setWakeTime(payload.dailyRhythm.wakeHour, payload.dailyRhythm.wakeMinute)
+                dailyRhythmStore.setSleepTime(payload.dailyRhythm.sleepHour, payload.dailyRhythm.sleepMinute)
+                payload.dailyRhythm.eatingStyle.let { s ->
+                    try {
+                        dailyRhythmStore.setEatingStyle(com.projectember.mobile.data.local.EatingStyle.valueOf(s))
+                    } catch (_: Exception) {}
+                }
+            } catch (_: Exception) {}
+
+            // Meal timing
+            try {
+                fun toMealWindow(dto: com.projectember.mobile.data.backup.MealWindowDto?): com.projectember.mobile.data.local.MealWindow? =
+                    dto?.let { com.projectember.mobile.data.local.MealWindow(it.startHour, it.startMinute, it.endHour, it.endMinute) }
+
+                mealTimingStore.setBreakfastWindow(toMealWindow(payload.mealTiming.breakfastWindow))
+                mealTimingStore.setLunchWindow(toMealWindow(payload.mealTiming.lunchWindow))
+                mealTimingStore.setDinnerWindow(toMealWindow(payload.mealTiming.dinnerWindow))
+                mealTimingStore.setSnackWindow(toMealWindow(payload.mealTiming.snackWindow))
+            } catch (_: Exception) {}
+
+            // Health metric preferences
+            try {
+                payload.healthMetricPreferences.enabled.forEach { (k, v) ->
+                    try {
+                        val metric = com.projectember.mobile.data.local.HealthMetric.valueOf(k)
+                        healthMetricPreferencesStore.setMetricEnabled(metric, v)
+                    } catch (_: Exception) {}
+                }
+                payload.healthMetricPreferences.graphEnabled.forEach { (k, v) ->
+                    try {
+                        val metric = com.projectember.mobile.data.local.HealthMetric.valueOf(k)
+                        healthMetricPreferencesStore.setMetricGraphEnabled(metric, v)
+                    } catch (_: Exception) {}
+                }
+            } catch (_: Exception) {}
+        } catch (_: Exception) {}
     }
 
     // ── Reset ─────────────────────────────────────────────────────────────────
@@ -158,6 +220,65 @@ class BackupManager(
         root.put("stackDefinitions", stackDefinitionRepository.getAllOnce().toJsonArray { it.toJson() })
         root.put("ketoTargets", ketoTargetsStore.targets.value.toJson())
 
+        // Preferences: theme, units, daily rhythm, meal timing, health metric prefs
+        try {
+            val theme = JSONObject().apply {
+                put("selectedThemeName", themePreferencesStore.getTheme().name)
+            }
+            root.put("theme", theme)
+        } catch (_: Exception) {}
+
+        try {
+            val units = JSONObject().apply {
+                val p = unitsPreferencesStore.getPreferences()
+                put("weightUnit", p.weightUnit.name)
+                put("foodWeightUnit", p.foodWeightUnit.name)
+                put("volumeUnit", p.volumeUnit.name)
+            }
+            root.put("units", units)
+        } catch (_: Exception) {}
+
+        try {
+            val dr = dailyRhythmStore.getRhythm()
+            val drj = JSONObject().apply {
+                put("wakeHour", dr.wakeHour)
+                put("wakeMinute", dr.wakeMinute)
+                put("sleepHour", dr.sleepHour)
+                put("sleepMinute", dr.sleepMinute)
+                put("eatingStyle", dr.eatingStyle.name)
+            }
+            root.put("dailyRhythm", drj)
+        } catch (_: Exception) {}
+
+        try {
+            val mt = mealTimingStore.getMealTiming()
+            fun mwToJson(w: com.projectember.mobile.data.local.MealWindow?) = w?.let {
+                JSONObject().apply {
+                    put("startHour", it.startHour)
+                    put("startMinute", it.startMinute)
+                    put("endHour", it.endHour)
+                    put("endMinute", it.endMinute)
+                }
+            }
+            val mtj = JSONObject().apply {
+                mwToJson(mt.breakfastWindow)?.let { put("breakfastWindow", it) }
+                mwToJson(mt.lunchWindow)?.let { put("lunchWindow", it) }
+                mwToJson(mt.dinnerWindow)?.let { put("dinnerWindow", it) }
+                mwToJson(mt.snackWindow)?.let { put("snackWindow", it) }
+            }
+            root.put("mealTiming", mtj)
+        } catch (_: Exception) {}
+
+        try {
+            val enabled = healthMetricPreferencesStore.getAllSettings().mapKeys { it.key.name }
+            val graph = healthMetricPreferencesStore.getAllGraphSettings().mapKeys { it.key.name }
+            val hmj = JSONObject().apply {
+                put("enabled", JSONObject(enabled))
+                put("graphEnabled", JSONObject(graph))
+            }
+            root.put("healthMetricPreferences", hmj)
+        } catch (_: Exception) {}
+
         return root.toString(2)
     }
 
@@ -190,6 +311,58 @@ class BackupManager(
         val ketoTargets = root.optJSONObject("ketoTargets")
             ?.let { parseKetoTargets(it) } ?: KetoTargetsDto()
 
+        // Optional new preference sections — maintain backward compatibility by falling back to defaults
+        val theme = root.optJSONObject("theme")?.let {
+            ThemeDto(selectedThemeName = it.optString("selectedThemeName", "EMBER_DARK"))
+        } ?: ThemeDto()
+
+        val units = root.optJSONObject("units")?.let {
+            UnitsDto(
+                weightUnit = it.optString("weightUnit", "KG"),
+                foodWeightUnit = it.optString("foodWeightUnit", "G"),
+                volumeUnit = it.optString("volumeUnit", "ML")
+            )
+        } ?: UnitsDto()
+
+        val dailyRhythm = root.optJSONObject("dailyRhythm")?.let {
+            DailyRhythmDto(
+                wakeHour = it.optInt("wakeHour", 7),
+                wakeMinute = it.optInt("wakeMinute", 0),
+                sleepHour = it.optInt("sleepHour", 23),
+                sleepMinute = it.optInt("sleepMinute", 0),
+                eatingStyle = it.optString("eatingStyle", "NORMAL_EATER")
+            )
+        } ?: DailyRhythmDto()
+
+        val mealTiming = root.optJSONObject("mealTiming")?.let { mt ->
+            fun parseWindow(key: String): MealWindowDto? = mt.optJSONObject(key)?.let { w ->
+                MealWindowDto(
+                    startHour = w.optInt("startHour"),
+                    startMinute = w.optInt("startMinute"),
+                    endHour = w.optInt("endHour"),
+                    endMinute = w.optInt("endMinute")
+                )
+            }
+            MealTimingDto(
+                breakfastWindow = parseWindow("breakfastWindow"),
+                lunchWindow = parseWindow("lunchWindow"),
+                dinnerWindow = parseWindow("dinnerWindow"),
+                snackWindow = parseWindow("snackWindow")
+            )
+        } ?: MealTimingDto()
+
+        val healthMetricPreferences = root.optJSONObject("healthMetricPreferences")?.let { h ->
+            val enabled = mutableMapOf<String, Boolean>()
+            val graph = mutableMapOf<String, Boolean>()
+            h.optJSONObject("enabled")?.let { jo ->
+                jo.keys().forEach { k -> enabled[k] = jo.optBoolean(k, true) }
+            }
+            h.optJSONObject("graphEnabled")?.let { jo ->
+                jo.keys().forEach { k -> graph[k] = jo.optBoolean(k, false) }
+            }
+            HealthMetricPreferencesDto(enabled = enabled, graphEnabled = graph)
+        } ?: HealthMetricPreferencesDto()
+
         // ── Referential integrity checks ──────────────────────────────────────
         val recipeIds = recipes.map { it.id }.toSet()
         val orphanedKetoRefs = ketoEntries.filter { it.recipeId != null && it.recipeId !in recipeIds }
@@ -218,7 +391,12 @@ class BackupManager(
             weightEntries = weightEntries,
             supplementEntries = supplementEntries,
             stackDefinitions = stackDefinitions,
-            ketoTargets = ketoTargets
+            ketoTargets = ketoTargets,
+            theme = theme,
+            units = units,
+            dailyRhythm = dailyRhythm,
+            mealTiming = mealTiming,
+            healthMetricPreferences = healthMetricPreferences
         )
     }
 }

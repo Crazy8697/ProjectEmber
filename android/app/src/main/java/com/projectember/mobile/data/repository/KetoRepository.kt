@@ -47,4 +47,7 @@ class KetoRepository(private val ketoDao: KetoDao) {
      * Idempotent — safe to call on every app launch.
      */
     suspend fun clearDanglingRecipeReferences() = ketoDao.clearDanglingRecipeReferences()
+
+    /** Clears recipeId from all keto entries (detaches all recipe references). */
+    suspend fun clearAllRecipeReferences() = ketoDao.clearAllRecipeReferences()
 }

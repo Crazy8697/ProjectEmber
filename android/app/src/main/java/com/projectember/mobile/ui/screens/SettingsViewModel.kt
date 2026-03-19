@@ -37,6 +37,8 @@ import com.projectember.mobile.data.local.VolumeUnit
 import com.projectember.mobile.data.local.WeightUnit
 import com.projectember.mobile.data.local.entities.SyncStatus
 import com.projectember.mobile.data.repository.SyncRepository
+import com.projectember.mobile.data.repository.KetoRepository
+import com.projectember.mobile.data.repository.RecipeRepository
 import com.projectember.mobile.sync.HealthConnectManager
 import com.projectember.mobile.sync.HealthConnectUiState
 import com.projectember.mobile.ui.theme.ThemeOption
@@ -57,6 +59,8 @@ sealed class BackupOpState {
 
 class SettingsViewModel(
     private val syncRepository: SyncRepository,
+    private val ketoRepository: KetoRepository,
+    private val recipeRepository: RecipeRepository,
     private val healthConnectManager: HealthConnectManager,
     private val backupManager: BackupManager,
     private val themePreferencesStore: ThemePreferencesStore,
@@ -199,7 +203,7 @@ class SettingsViewModel(
         viewModelScope.launch {
             _isSyncing.value = true
             _healthConnectState.value = HealthConnectUiState.Syncing
-            val result = healthConnectManager.syncFromHealthConnect()
+            healthConnectManager.syncFromHealthConnect()
             _isSyncing.value = false
             // Refresh HC state to reflect the new outcome
             checkHealthConnectStatus()
@@ -309,6 +313,9 @@ class SettingsViewModel(
     private val _resetState = MutableStateFlow<BackupOpState>(BackupOpState.Idle)
     val resetState: StateFlow<BackupOpState> = _resetState.asStateFlow()
 
+    private val _clearRecipeIndexState = MutableStateFlow<BackupOpState>(BackupOpState.Idle)
+    val clearRecipeIndexState: StateFlow<BackupOpState> = _clearRecipeIndexState.asStateFlow()
+
     fun resetAll() {
         viewModelScope.launch {
             _resetState.value = BackupOpState.InProgress
@@ -322,7 +329,26 @@ class SettingsViewModel(
         }
     }
 
+    /** Scoped operation: clear Recipe Index. This detaches recipe references (recipeId) from keto entries
+     *  and leaves Recipe library items intact. Runs inside a coroutine and reports progress via
+     *  clearRecipeIndexState. */
+    fun clearRecipeIndex() {
+        viewModelScope.launch {
+            _clearRecipeIndexState.value = BackupOpState.InProgress
+            runCatching {
+                // Delete all saved recipes from the recipe library so the user can import a clean recipe set.
+                recipeRepository.replaceAll(emptyList())
+            }.onSuccess {
+                _clearRecipeIndexState.value = BackupOpState.Success("All saved recipes deleted. Keto log entries preserved.")
+            }.onFailure { e ->
+                _clearRecipeIndexState.value = BackupOpState.Error(e.message ?: "Failed to clear recipe index (delete recipes).")
+            }
+        }
+    }
+
     fun clearResetState() { _resetState.value = BackupOpState.Idle }
+
+    fun clearClearRecipeIndexState() { _clearRecipeIndexState.value = BackupOpState.Idle }
 
     // ── Theme ─────────────────────────────────────────────────────────────────
 
@@ -439,6 +465,8 @@ class SettingsViewModel(
 
 class SettingsViewModelFactory(
     private val syncRepository: SyncRepository,
+    private val ketoRepository: KetoRepository,
+    private val recipeRepository: RecipeRepository,
     private val healthConnectManager: HealthConnectManager,
     private val backupManager: BackupManager,
     private val themePreferencesStore: ThemePreferencesStore,
@@ -451,6 +479,8 @@ class SettingsViewModelFactory(
     override fun <T : ViewModel> create(modelClass: Class<T>): T =
         SettingsViewModel(
             syncRepository,
+            ketoRepository,
+            recipeRepository,
             healthConnectManager,
             backupManager,
             themePreferencesStore,
