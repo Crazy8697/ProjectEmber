@@ -231,7 +231,7 @@ fun AddEditStackDefinitionScreen(
             AnimatedVisibility(visible = showNutritionSection) {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(
-                        text = "Fields filled here make this stack Keto-eligible — logging it will create a Keto entry and update your daily totals. Leave all fields blank and the stack is logged to Stacks history only.",
+                        text = "Fields filled here make this stack Keto-eligible — logging it will create a Keto entry and update your daily totals. Without nutrition values, the stack cannot be logged to Keto.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
