@@ -72,4 +72,8 @@ interface KetoDao {
         """
     )
     suspend fun clearDanglingRecipeReferences()
+
+    /** Clears recipeId from ALL keto entries (detach all recipe references). */
+    @Query("UPDATE keto_entries SET recipeId = NULL WHERE recipeId IS NOT NULL")
+    suspend fun clearAllRecipeReferences()
 }

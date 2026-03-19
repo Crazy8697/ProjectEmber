@@ -309,6 +309,9 @@ class SettingsViewModel(
     private val _resetState = MutableStateFlow<BackupOpState>(BackupOpState.Idle)
     val resetState: StateFlow<BackupOpState> = _resetState.asStateFlow()
 
+    private val _clearRecipeIndexState = MutableStateFlow<BackupOpState>(BackupOpState.Idle)
+    val clearRecipeIndexState: StateFlow<BackupOpState> = _clearRecipeIndexState.asStateFlow()
+
     fun resetAll() {
         viewModelScope.launch {
             _resetState.value = BackupOpState.InProgress
@@ -322,7 +325,26 @@ class SettingsViewModel(
         }
     }
 
+    /** Scoped operation: clear Recipe Index. This detaches recipe references (recipeId) from keto entries
+     *  and leaves Recipe library items intact. Runs inside a coroutine and reports progress via
+     *  clearRecipeIndexState. */
+    fun clearRecipeIndex() {
+        viewModelScope.launch {
+            _clearRecipeIndexState.value = BackupOpState.InProgress
+            runCatching {
+                // Detach all recipe references in keto entries so historical logs remain accurate
+                ketoRepository.clearAllRecipeReferences()
+            }.onSuccess {
+                _clearRecipeIndexState.value = BackupOpState.Success("Recipe index cleared. Recipe library preserved.")
+            }.onFailure { e ->
+                _clearRecipeIndexState.value = BackupOpState.Error(e.message ?: "Failed to clear recipe index.")
+            }
+        }
+    }
+
     fun clearResetState() { _resetState.value = BackupOpState.Idle }
+
+    fun clearClearRecipeIndexState() { _clearRecipeIndexState.value = BackupOpState.Idle }
 
     // ── Theme ─────────────────────────────────────────────────────────────────
 

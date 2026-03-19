@@ -20,7 +20,50 @@ data class BackupPayloadV1(
     val weightEntries: List<WeightEntryDto>,
     val supplementEntries: List<SupplementEntryDto> = emptyList(),
     val stackDefinitions: List<StackDefinitionDto> = emptyList(),
-    val ketoTargets: KetoTargetsDto
+    val ketoTargets: KetoTargetsDto,
+    // Newly added preference coverage
+    val theme: ThemeDto = ThemeDto(),
+    val units: UnitsDto = UnitsDto(),
+    val dailyRhythm: DailyRhythmDto = DailyRhythmDto(),
+    val mealTiming: MealTimingDto = MealTimingDto(),
+    val healthMetricPreferences: HealthMetricPreferencesDto = HealthMetricPreferencesDto()
+)
+
+data class ThemeDto(
+    val selectedThemeName: String = "EMBER_DARK"
+)
+
+data class UnitsDto(
+    val weightUnit: String = "KG",
+    val foodWeightUnit: String = "G",
+    val volumeUnit: String = "ML"
+)
+
+data class DailyRhythmDto(
+    val wakeHour: Int = 7,
+    val wakeMinute: Int = 0,
+    val sleepHour: Int = 23,
+    val sleepMinute: Int = 0,
+    val eatingStyle: String = "NORMAL_EATER"
+)
+
+data class MealTimingDto(
+    val breakfastWindow: MealWindowDto? = null,
+    val lunchWindow: MealWindowDto? = null,
+    val dinnerWindow: MealWindowDto? = null,
+    val snackWindow: MealWindowDto? = null
+)
+
+data class MealWindowDto(
+    val startHour: Int,
+    val startMinute: Int,
+    val endHour: Int,
+    val endMinute: Int
+)
+
+data class HealthMetricPreferencesDto(
+    val enabled: Map<String, Boolean> = emptyMap(),
+    val graphEnabled: Map<String, Boolean> = emptyMap()
 )
 
 data class KetoEntryDto(

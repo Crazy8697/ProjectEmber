@@ -73,6 +73,11 @@ class EmberApplication : Application() {
             supplementRepository = supplementRepository,
             stackDefinitionRepository = stackDefinitionRepository,
             ketoTargetsStore = ketoTargetsStore,
+            themePreferencesStore = themePreferencesStore,
+            unitsPreferencesStore = unitsPreferencesStore,
+            dailyRhythmStore = dailyRhythmStore,
+            mealTimingStore = mealTimingStore,
+            healthMetricPreferencesStore = healthMetricPreferencesStore,
             appVersion = BuildConfig.VERSION_NAME
         )
     }
