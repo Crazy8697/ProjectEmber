@@ -9,12 +9,13 @@ _Date: 2026-03-19_
 2. **Smart Daily Pacing:** rhythm/timing settings and pacing-aware Home feedback are working.
 3. **Unified trends/charts:** Keto and Health now use a much more consistent chart/trend/history system.
 4. **Health metric support:** manual entry, visibility toggles, imported history, and trend/detail flows are in place.
-5. **Recipe system:** categories, add/edit/detail, servings, core recipe logging flow, and recipe-library reset flow are in place.
+5. **Recipe system:** categories, add/edit/detail, servings, core recipe logging flow, recipe-library reset flow, and recipe-index reset flow are in place.
 6. **Nerd Mode recipe JSON tools:** recipe import/export, file import, paste import, validation, preview, duplicate handling, and clean-library-import workflow are done.
 7. **Recipe/entry UX unification:** Add Entry was brought closer to Add Recipe and contextual actions were cleaned up.
 8. **Core app shell:** dashboard sections, Settings, themes, units, export/import, daily targets, date switching, and live version/build display are in place.
 9. **Supplement tracking foundation:** dedicated supplement tracking flow is now in place, including working supplement/stacks logging behavior.
-10. **Form polish foundation:** editable event time and scroll-to-error behavior are in place.
+10. **Settings polish + backup coverage:** Settings cleanup, clearer destructive flow handling, and backup/restore coverage for newer settings are now in place.
+11. **Form polish foundation:** editable event time and scroll-to-error behavior are in place.
 
 ### Future work
 1. **Day Accuracy + Activity Polish**
@@ -25,19 +26,19 @@ _Date: 2026-03-19_
    - exercise UX cleanup
    - trend interaction/date-label/current-value polish
 
-2. **UX Cleanup + Settings Hygiene**
+2. **UX Cleanup**
    - validation clarity
    - save feedback
    - edge-case form behavior cleanup
-   - Settings organization
-   - destructive/settings flow clarity
    - anti-junk-drawer cleanup
+   - remaining destructive/settings flow polish only if real friction remains
 
 3. **Recipe Library Usefulness Pass**
    - seed more real recipes
    - improve browsing/filter usefulness
    - validate real-device recipe library flow
    - clean up remaining servings/category friction
+   - add recipe image support using local file paths (`imagePath`)
 
 4. **Later reassessment**
    - reprioritize after more real-device use
@@ -60,6 +61,7 @@ Current app progress already includes:
 - recipe add/edit/detail flow
 - recipe servings support
 - recipe-library wipe/reset flow for clean JSON re-import
+- recipe-index wipe/reset flow with guarded destructive flow
 - daily targets editor
 - date switching on relevant screens
 - graph cards showing actual numeric values
@@ -130,6 +132,11 @@ Current app progress already includes:
   - editable event time in add/edit flows
   - scroll-to-first-error behavior
   - stronger validation surfacing in normal save flows
+- settings / backup polish already landed:
+  - clearer destructive/settings flow handling
+  - recipe-index reset action in Settings
+  - backup/export coverage updated for newer settings/preferences
+  - restore/import updated to bring those settings/preferences back correctly
 
 ---
 
@@ -175,17 +182,7 @@ Focus now:
 - reduce clutter while keeping important actions obvious
 - review Exercise and Supplement flows against the newer form language established in Recipes/Add Entry
 
-### 4. Settings + personalization cleanup
-Foundation exists already.
-
-Focus now:
-- keep settings organized as new pacing/health/supplement options are added
-- avoid turning Settings into a junk drawer
-- continue visual cleanup to match intended dashboard style
-- keep destructive actions clearly separated and understandable
-- keep version/build info trustworthy
-
-### 5. Recipe library usefulness pass
+### 4. Recipe library usefulness pass
 Core recipe flow and Nerd Mode import/export now exist, so this is no longer infrastructure work.
 
 Focus now:
@@ -194,6 +191,20 @@ Focus now:
 - validate real-device browsing/filter flow now that the underlying structure is stronger
 - improve category/filter behavior only where it still feels clunky
 - identify any remaining friction in servings-based recipe logging
+- support recipe images using local file paths rather than embedding images in JSON
+- preferred schema field:
+  - `"imagePath": "/storage/emulated/0/ProjectEmber/recipes/crimson_nak.jpg"`
+
+### 5. UX cleanup / settings hygiene follow-through
+Foundation is better now, but keep an eye on real-device friction.
+
+Focus now:
+- keep settings organized as new pacing/health/supplement options are added
+- avoid turning Settings into a junk drawer
+- continue visual cleanup to match intended dashboard style
+- keep destructive actions clearly separated and understandable
+- keep version/build info trustworthy
+- only promote this work if real friction appears, not out of compulsive tinkering
 
 ### 6. Later reassessment
 After more real-device usage, re-evaluate the order and decide what deserves to stay, split, or die.
@@ -242,7 +253,7 @@ Reason:
 ### 11. Build/version rule
 - app version = shared release line
 - build number = active PR number during pre-v1 work
-- example: PR44 should use version `0.3`, build `44`
+- example: PR51 should use version `0.3`, build `51`
 
 ### 12. Real-device testing wins
 - device behavior overrides simulator assumptions
@@ -304,6 +315,7 @@ These are considered done enough and should stay out of the active priority list
 - copy/paste JSON import for recipe JSON
 - JSON validation / preview / duplicate-handling foundation
 - recipe-library wipe/reset flow for clean import
+- recipe-index wipe/reset flow with guarded destructive flow
 - Add Entry and Add Recipe structural alignment pass
 - contextual overflow action pattern foundation
 - recipe/edit action clutter reduction pass
@@ -311,4 +323,7 @@ These are considered done enough and should stay out of the active priority list
 - Save to Recipe Book contextual flow foundation
 - supplement/stacks “Log to Keto” fix
 - dedicated supplement tracking flow foundation
+- settings polish + backup coverage fix pass
+- backup coverage updated for newer settings/preferences
+- restore/import updated for newer settings/preferences
 - scroll-to-first-error behavior
