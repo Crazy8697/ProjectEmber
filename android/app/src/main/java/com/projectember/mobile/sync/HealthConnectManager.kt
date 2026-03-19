@@ -391,19 +391,27 @@ class HealthConnectManager(
                 ReadRecordsRequest(WeightRecord::class, timeRange)
             )
             for (record in weightResponse.records) {
-                val date = record.time
-                    .atZone(ZoneId.systemDefault())
-                    .toLocalDate()
-                    .format(dateFormatter)
-                val kg = record.weight.inKilograms
-                weightRepository.upsertForDate(
-                    WeightEntry(
-                        entryDate = date,
-                        weightKg = kg,
-                        source = WeightEntry.SOURCE_HEALTH_CONNECT
+                try {
+                    val date = record.time
+                        .atZone(ZoneId.systemDefault())
+                        .toLocalDate()
+                        .format(dateFormatter)
+                    val kg = record.weight.inKilograms
+                    // Guard: ignore invalid or non-positive weights
+                    if (kg <= 0.0) continue
+                    weightRepository.upsertForDate(
+                        WeightEntry(
+                            entryDate = date,
+                            weightKg = kg,
+                            source = WeightEntry.SOURCE_HEALTH_CONNECT
+                        )
                     )
-                )
-                weightsImported++
+                    weightsImported++
+                } catch (e: Exception) {
+                    // Skip malformed records but continue processing the rest so a single bad
+                    // record does not block all subsequent weight imports.
+                    continue
+                }
             }
 
             // ── Exercise sessions ─────────────────────────────────────────────

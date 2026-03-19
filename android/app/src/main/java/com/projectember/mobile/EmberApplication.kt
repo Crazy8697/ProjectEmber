@@ -24,6 +24,7 @@ import com.projectember.mobile.data.repository.SyncRepository
 import com.projectember.mobile.data.repository.WeightRepository
 import com.projectember.mobile.sync.SyncManager
 import com.projectember.mobile.sync.HealthConnectManager
+import com.projectember.mobile.sync.HealthSyncReceiver
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -109,6 +110,8 @@ class EmberApplication : Application() {
             // saved weight entry AND the Room weight_entries table is empty, migrate
             // that single entry into Room so no historical data is lost.
             migrateWeightStoreIfNeeded()
+            // Schedule daily lightweight Health Connect sync (around 10:00 local)
+            HealthSyncReceiver.scheduleDaily(applicationContext)
         }
     }
 
