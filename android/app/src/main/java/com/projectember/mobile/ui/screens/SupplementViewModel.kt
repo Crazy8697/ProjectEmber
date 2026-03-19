@@ -37,14 +37,6 @@ class StacksViewModel(
             initialValue = emptyList()
         )
 
-    /** All logged Stack entries, sorted date/time descending. */
-    val logEntries: StateFlow<List<SupplementEntry>> = supplementRepository.getAll()
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5_000),
-            initialValue = emptyList()
-        )
-
     /**
      * Quick-log a saved Stack definition with the current date and time.
      *

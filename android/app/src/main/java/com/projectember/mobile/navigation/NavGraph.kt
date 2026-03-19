@@ -58,9 +58,6 @@ import com.projectember.mobile.ui.screens.StacksViewModelFactory
 import com.projectember.mobile.ui.screens.AddEditStackDefinitionScreen
 import com.projectember.mobile.ui.screens.AddEditStackDefinitionViewModelFactory
 import com.projectember.mobile.ui.screens.AddEditStackDefinitionViewModel
-import com.projectember.mobile.ui.screens.AddEditSupplementScreen
-import com.projectember.mobile.ui.screens.AddEditSupplementViewModelFactory
-import com.projectember.mobile.ui.screens.AddEditSupplementViewModel
 import com.projectember.mobile.ui.screens.WeightHistoryScreen
 import com.projectember.mobile.ui.screens.WeightHistoryViewModel
 import com.projectember.mobile.ui.screens.WeightHistoryViewModelFactory
@@ -472,10 +469,6 @@ fun EmberNavGraph(
                 onNavigateToAddDefinition = { navController.navigate(Screen.StackDefinitionAdd.route) },
                 onNavigateToEditDefinition = { definitionId ->
                     navController.navigate(Screen.StackDefinitionEdit.createRoute(definitionId))
-                },
-                onNavigateToAddLog = { navController.navigate(Screen.SupplementAddEntry.route) },
-                onNavigateToEditLog = { entryId ->
-                    navController.navigate(Screen.SupplementEditEntry.createRoute(entryId))
                 }
             )
         }
@@ -513,41 +506,6 @@ fun EmberNavGraph(
                 viewModel = viewModel,
                 supplementRepository = app.supplementRepository,
                 ketoRepository = app.ketoRepository,
-                onNavigateBack = { navController.popBackStack() }
-            )
-        }
-
-        composable(Screen.SupplementAddEntry.route) {
-            val viewModel: AddEditSupplementViewModel = viewModel(
-                factory = AddEditSupplementViewModelFactory(
-                    app.supplementRepository,
-                    app.ketoRepository
-                )
-            )
-            AddEditSupplementScreen(
-                viewModel = viewModel,
-                onNavigateBack = { navController.popBackStack() }
-            )
-        }
-
-        composable(
-            route = Screen.SupplementEditEntry.route,
-            arguments = listOf(navArgument("entryId") { type = NavType.IntType })
-        ) { backStackEntry ->
-            val entryId = backStackEntry.arguments?.getInt("entryId")
-            if (entryId == null) {
-                navController.popBackStack()
-                return@composable
-            }
-            val viewModel: AddEditSupplementViewModel = viewModel(
-                factory = AddEditSupplementViewModelFactory(
-                    app.supplementRepository,
-                    app.ketoRepository,
-                    editEntryId = entryId
-                )
-            )
-            AddEditSupplementScreen(
-                viewModel = viewModel,
                 onNavigateBack = { navController.popBackStack() }
             )
         }

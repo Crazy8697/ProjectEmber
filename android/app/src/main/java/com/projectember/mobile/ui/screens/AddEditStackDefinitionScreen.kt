@@ -204,12 +204,25 @@ fun AddEditStackDefinitionScreen(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text(
-                    text = "Keto / Nutrition",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.SemiBold
-                )
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Keto / Nutrition",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text(
+                        text = if (showNutritionSection && viewModel.hasAnyNutrition)
+                            "Logging this stack will update Keto totals"
+                        else
+                            "Fill in to link this stack to Keto",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (showNutritionSection && viewModel.hasAnyNutrition)
+                            MaterialTheme.colorScheme.primary
+                        else
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
                 TextButton(onClick = { showNutritionSection = !showNutritionSection }) {
                     Text(if (showNutritionSection) "Hide" else "Show")
                 }
@@ -218,7 +231,7 @@ fun AddEditStackDefinitionScreen(
             AnimatedVisibility(visible = showNutritionSection) {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(
-                        text = "Optional — only fill in fields that apply. Logging this stack will contribute these values to your Keto daily totals.",
+                        text = "Fields filled here make this stack Keto-eligible — logging it will create a Keto entry and update your daily totals. Without nutrition values, the stack cannot be logged to Keto.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
