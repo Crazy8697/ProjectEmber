@@ -61,28 +61,42 @@ class StacksViewModel(
         val timeStr = LocalTime.now().format(DateTimeFormatter.ofPattern(TIME_FORMAT))
 
         viewModelScope.launch {
+            // Step 1: Try to create the linked Keto entry if this definition has nutrition data.
+            // A failed Keto insert must NOT prevent the Stack log from being saved — so the
+            // entire Keto-insert path is wrapped in its own try/catch.
             var ketoEntryId: Int? = null
-
             if (definition.hasNutritionData()) {
-                val ketoEntry = KetoEntry(
-                    label = definition.name,
-                    eventType = KETO_EVENT_TYPE,
-                    calories = definition.caloriesKcal ?: 0.0,
-                    proteinG = definition.proteinG ?: 0.0,
-                    fatG = definition.fatG ?: 0.0,
-                    netCarbsG = definition.netCarbsG ?: 0.0,
-                    waterMl = 0.0,
-                    sodiumMg = definition.sodiumMg ?: 0.0,
-                    potassiumMg = definition.potassiumMg ?: 0.0,
-                    magnesiumMg = definition.magnesiumMg ?: 0.0,
-                    entryDate = dateStr,
-                    eventTimestamp = "$dateStr $timeStr",
-                    notes = "Logged from Stacks",
-                    servings = 1.0
-                )
-                ketoEntryId = ketoRepository.insertEntryAndReturnId(ketoEntry).toInt()
+                try {
+                    val insertedId = ketoRepository.insertEntryAndReturnId(
+                        KetoEntry(
+                            label = definition.name,
+                            eventType = KETO_EVENT_TYPE,
+                            calories = definition.caloriesKcal ?: 0.0,
+                            proteinG = definition.proteinG ?: 0.0,
+                            fatG = definition.fatG ?: 0.0,
+                            netCarbsG = definition.netCarbsG ?: 0.0,
+                            waterMl = 0.0,
+                            sodiumMg = definition.sodiumMg ?: 0.0,
+                            potassiumMg = definition.potassiumMg ?: 0.0,
+                            magnesiumMg = definition.magnesiumMg ?: 0.0,
+                            entryDate = dateStr,
+                            eventTimestamp = "$dateStr $timeStr",
+                            notes = "Logged from Stacks",
+                            servings = 1.0
+                        )
+                    )
+                    // Only store the link when the DB returned a valid, positive row id
+                    // that fits within Int range (the ketoEntryId column is INTEGER/Int).
+                    if (insertedId > 0L && insertedId <= Int.MAX_VALUE) {
+                        ketoEntryId = insertedId.toInt()
+                    }
+                } catch (_: Exception) {
+                    // Keto insert failed — the Stack log will still be saved below,
+                    // just without a Keto link. ketoEntryId stays null.
+                }
             }
 
+            // Step 2: Always save the Stack log, carrying the Keto link when one was created.
             supplementRepository.insert(
                 SupplementEntry(
                     name = definition.name,
@@ -96,6 +110,7 @@ class StacksViewModel(
                 )
             )
 
+            // Only report ketoLinked = true when the Keto entry was actually created and linked.
             onComplete(ketoEntryId != null)
         }
     }
