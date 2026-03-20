@@ -265,13 +265,14 @@ private fun HealthMetricGraphContent(
     paddingValues: PaddingValues,
     onShowFromPicker: () -> Unit,
     onShowToPicker: () -> Unit,
+    selectedIndex: Int? = null,
+    onIndexSelected: ((Int?) -> Unit)? = null,
 ) {
     // displayEntries is the actual list plotted by MetricTrendChart (last 30 entries).
-    // selectedChartIndex keys on displayEntries so it resets whenever the plotted set changes,
-    // preventing a stale index from pointing to the wrong data point.
+    // selectedIndex is provided by the caller (screen-level state) so it survives
+    // toggles between graph and history. Resolve the selected entry from that index.
     val displayEntries = remember(graphEntries) { graphEntries.takeLast(30) }
-    var selectedChartIndex by remember(displayEntries) { mutableStateOf<Int?>(null) }
-    val selectedEntry: ManualHealthEntry? = selectedChartIndex?.let { displayEntries.getOrNull(it) }
+    val selectedEntry: ManualHealthEntry? = selectedIndex?.let { displayEntries.getOrNull(it) }
     // The entry shown as the headline: selected point when active, latest otherwise
     val displayedEntry: ManualHealthEntry? = selectedEntry ?: latestEntry
 
@@ -353,13 +354,8 @@ private fun HealthMetricGraphContent(
                 isSelected = selectedEntry != null,
                 graphEntries = graphEntries,
                 hcLoadState = hcLoadState,
-                selectedIndex = selectedChartIndex,
-                onIndexSelected = { tappedIdx ->
-                    // Toggle: tapping the already-selected point deselects it
-                    selectedChartIndex =
-                        if (tappedIdx != null && tappedIdx == selectedChartIndex) null
-                        else tappedIdx
-                },
+                selectedIndex = selectedIndex,
+                onIndexSelected = onIndexSelected,
             )
         }
 
