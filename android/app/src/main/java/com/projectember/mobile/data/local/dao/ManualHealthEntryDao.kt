@@ -2,6 +2,7 @@ package com.projectember.mobile.data.local.dao
 
 import androidx.room.Dao
 import androidx.room.Delete
+import androidx.room.Update
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
@@ -38,6 +39,9 @@ interface ManualHealthEntryDao {
 
     @Delete
     suspend fun delete(entry: ManualHealthEntry)
+
+    @Update
+    suspend fun update(entry: ManualHealthEntry)
 
     @Query("DELETE FROM manual_health_entries")
     suspend fun deleteAll()
