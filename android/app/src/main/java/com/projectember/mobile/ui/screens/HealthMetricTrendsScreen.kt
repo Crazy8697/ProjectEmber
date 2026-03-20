@@ -52,6 +52,7 @@ fun HealthMetricTrendsScreen(
     metric: HealthMetric,
     viewModel: HealthMetricTrendsViewModel,
     onNavigateBack: () -> Unit,
+    onNavigateToJsonImport: (String?) -> Unit
 ) {
     val entries by viewModel.entries.collectAsState()
     val fromDate by viewModel.fromDate.collectAsState()
@@ -61,6 +62,7 @@ fun HealthMetricTrendsScreen(
     // false = Graph/Trends view (default); true = History/Edit view
     var showHistory by remember { mutableStateOf(false) }
     var showAddDialog by remember { mutableStateOf(false) }
+    var showAddChoiceDialog by remember { mutableStateOf(false) }
     var entryToDelete by remember { mutableStateOf<ManualHealthEntry?>(null) }
     var showFromPicker by remember { mutableStateOf(false) }
     var showToPicker by remember { mutableStateOf(false) }
@@ -217,12 +219,34 @@ fun HealthMetricTrendsScreen(
         },
         floatingActionButton = {
             if (showHistory) {
-                FloatingActionButton(onClick = { showAddDialog = true }) {
+                FloatingActionButton(onClick = { showAddChoiceDialog = true }) {
                     Icon(Icons.Default.Add, contentDescription = "Add entry")
                 }
             }
         }
     ) { paddingValues ->
+        if (showAddChoiceDialog) {
+            AlertDialog(
+                onDismissRequest = { showAddChoiceDialog = false },
+                title = { Text("Add ${metric.displayName} data") },
+                text = { Text("How would you like to add ${metric.displayName} data?") },
+                confirmButton = {
+                    TextButton(onClick = {
+                        showAddChoiceDialog = false
+                        showAddDialog = true
+                    }) { Text("Manual Add") }
+                },
+                dismissButton = {
+                    Row {
+                        TextButton(onClick = {
+                            showAddChoiceDialog = false
+                            onNavigateToJsonImport(metric.name.lowercase())
+                        }) { Text("JSON Import") }
+                        TextButton(onClick = { showAddChoiceDialog = false }) { Text("Cancel") }
+                    }
+                }
+            )
+        }
             if (showHistory) {
                 HealthMetricHistoryContent(
                     metric = metric,

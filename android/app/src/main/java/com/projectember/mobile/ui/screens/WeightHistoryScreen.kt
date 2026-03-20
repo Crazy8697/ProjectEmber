@@ -10,6 +10,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -17,6 +18,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import com.projectember.mobile.data.local.WeightUnit
 import com.projectember.mobile.data.local.entities.WeightEntry
 import com.projectember.mobile.ui.theme.KetoAccent
@@ -26,12 +29,19 @@ import com.projectember.mobile.ui.theme.OnSurfaceVariant
 @Composable
 fun WeightHistoryScreen(
     viewModel: WeightHistoryViewModel,
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    onNavigateToJsonImport: (String?) -> Unit
 ) {
     val entries by viewModel.allEntries.collectAsState()
     val unitPrefs by viewModel.unitPreferences.collectAsState()
     val weightUnit = unitPrefs.weightUnit
     var showLogDialog by remember { mutableStateOf(false) }
+    var showAddChoiceDialog by remember { mutableStateOf(false) }
+
+    // Ensure fresh query results whenever this screen becomes visible again after import.
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+        viewModel.refreshEntries()
+    }
 
     // Log weight dialog
     if (showLogDialog) {
@@ -84,6 +94,32 @@ fun WeightHistoryScreen(
         )
     }
 
+    // Add-choice dialog (Manual Add vs JSON Import)
+    if (showAddChoiceDialog) {
+        AlertDialog(
+            onDismissRequest = { showAddChoiceDialog = false },
+            title = { Text("Add weight data") },
+            text = { Text("How would you like to add weight data?") },
+            confirmButton = {
+                TextButton(onClick = {
+                    // Manual add
+                    showAddChoiceDialog = false
+                    showLogDialog = true
+                }) { Text("Manual Add") }
+            },
+            dismissButton = {
+                Row {
+                    TextButton(onClick = {
+                        // JSON Import — route using parent-provided lambda and pass the domain context
+                        showAddChoiceDialog = false
+                        onNavigateToJsonImport("weight")
+                    }) { Text("JSON Import") }
+                    TextButton(onClick = { showAddChoiceDialog = false }) { Text("Cancel") }
+                }
+            }
+        )
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -93,6 +129,11 @@ fun WeightHistoryScreen(
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
+                actions = {
+                    IconButton(onClick = { viewModel.refreshEntries() }) {
+                        Icon(Icons.Default.Refresh, contentDescription = "Refresh")
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surface
                 )
@@ -100,7 +141,7 @@ fun WeightHistoryScreen(
         },
         floatingActionButton = {
             FloatingActionButton(
-                onClick = { showLogDialog = true },
+                onClick = { showAddChoiceDialog = true },
                 containerColor = MaterialTheme.colorScheme.primary
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Log Weight")
@@ -320,17 +361,25 @@ private fun WeightEntryRow(
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
-                if (entry.source == WeightEntry.SOURCE_HEALTH_CONNECT) {
+                val sourceLabel = when (entry.source) {
+                    WeightEntry.SOURCE_HEALTH_CONNECT -> "Health Connect"
+                    WeightEntry.SOURCE_IMPORT -> "Import"
+                    else -> null
+                }
+                if (sourceLabel != null) {
                     SuggestionChip(
                         onClick = {},
                         label = {
                             Text(
-                                text = "Health Connect",
+                                text = sourceLabel,
                                 style = MaterialTheme.typography.labelSmall
                             )
                         },
                         colors = SuggestionChipDefaults.suggestionChipColors(
-                            containerColor = MaterialTheme.colorScheme.secondaryContainer
+                            containerColor = if (entry.source == WeightEntry.SOURCE_IMPORT)
+                                MaterialTheme.colorScheme.tertiaryContainer
+                            else
+                                MaterialTheme.colorScheme.secondaryContainer
                         )
                     )
                 }

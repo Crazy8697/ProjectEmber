@@ -39,4 +39,5 @@ sealed class Screen(val route: String) {
     data object StackDefinitionEdit : Screen("stack_definition_edit/{definitionId}") {
         fun createRoute(definitionId: Int) = "stack_definition_edit/$definitionId"
     }
+    data object JsonImport : Screen("json_import")
 }
