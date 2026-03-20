@@ -9,8 +9,11 @@ import com.projectember.mobile.data.local.WeightUnit
 import com.projectember.mobile.data.local.entities.WeightEntry
 import com.projectember.mobile.data.repository.WeightRepository
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -22,15 +25,25 @@ class WeightHistoryViewModel(
 ) : ViewModel() {
 
     private val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+    private val _allEntries = MutableStateFlow<List<WeightEntry>>(emptyList())
+    private var entriesJob: Job? = null
 
     /** All weight entries, newest first. */
-    val allEntries: StateFlow<List<WeightEntry>> = weightRepository
-        .getAllEntries()
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5_000),
-            initialValue = emptyList()
-        )
+    val allEntries: StateFlow<List<WeightEntry>> = _allEntries
+
+    init {
+        refreshEntries()
+    }
+
+    @Suppress("unused")
+    fun refreshEntries() {
+        entriesJob?.cancel()
+        entriesJob = viewModelScope.launch {
+            weightRepository.getAllEntries().collectLatest { rows ->
+                _allEntries.value = rows
+            }
+        }
+    }
 
     /** Live unit preferences so the screen can react to changes. */
     val unitPreferences: StateFlow<UnitPreferences> = unitsPreferencesStore

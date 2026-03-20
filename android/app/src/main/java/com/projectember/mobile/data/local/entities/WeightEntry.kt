@@ -27,5 +27,6 @@ data class WeightEntry(
 ) {
     companion object {
         const val SOURCE_HEALTH_CONNECT = "health_connect"
+        const val SOURCE_IMPORT = "import"
     }
 }

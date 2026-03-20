@@ -11,6 +11,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -21,6 +22,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import com.projectember.mobile.data.local.UnitPreferences
 import com.projectember.mobile.data.local.WeightUnit
 import com.projectember.mobile.data.local.entities.ManualHealthEntry
@@ -102,6 +105,7 @@ fun KetoTrendsScreen(
     viewModel: KetoViewModel,
     initialMetric: String = "",
     onNavigateBack: () -> Unit,
+    onNavigateToJsonImport: (String?) -> Unit
 ) {
     val trendsData   by viewModel.trendsData.collectAsState()
     val trendsMetric by viewModel.trendsMetric.collectAsState()
@@ -125,6 +129,7 @@ fun KetoTrendsScreen(
 
     // Keto metric manual entry dialog state (non-weight measurable metrics)
     var showAddKetoMetricDialog by remember { mutableStateOf(false) }
+    var showAddChoiceDialog by remember { mutableStateOf(false) }
     var ketoManualEntryToDelete by remember { mutableStateOf<ManualHealthEntry?>(null) }
     var weightEntryToDelete by remember { mutableStateOf<WeightEntry?>(null) }
 
@@ -134,6 +139,19 @@ fun KetoTrendsScreen(
     LaunchedEffect(initialMetric) {
         if (initialMetric.isNotBlank()) {
             viewModel.setTrendsMetric(initialMetric)
+        }
+    }
+
+    // When coming back from JSON import, force weight history re-query.
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+        if (showHistory && trendsMetric == "weight") {
+            viewModel.refreshWeightHistory()
+        }
+    }
+
+    LaunchedEffect(showHistory, trendsMetric) {
+        if (showHistory && trendsMetric == "weight") {
+            viewModel.refreshWeightHistory()
         }
     }
 
@@ -394,6 +412,12 @@ fun KetoTrendsScreen(
                 },
                 actions = {
                     if (showHistory) {
+                        IconButton(
+                            onClick = { viewModel.refreshWeightHistory() },
+                            modifier = Modifier.padding(end = 4.dp)
+                        ) {
+                            Icon(Icons.Default.Refresh, contentDescription = "Refresh history")
+                        }
                         OutlinedButton(
                             onClick = { showHistory = false },
                             modifier = Modifier.padding(end = 8.dp),
@@ -414,20 +438,39 @@ fun KetoTrendsScreen(
         },
         floatingActionButton = {
             if (showHistory) {
-                when {
-                    trendsMetric == "weight" ->
-                        FloatingActionButton(onClick = { showAddWeightDialog = true }) {
-                            Icon(Icons.Default.Add, contentDescription = "Add weight entry")
-                        }
-                    viewModel.ketoMetricManualType(trendsMetric) != null ->
-                        FloatingActionButton(onClick = { showAddKetoMetricDialog = true }) {
-                            Icon(Icons.Default.Add, contentDescription = "Add $metricLabel entry")
-                        }
-                    // nak_ratio is a computed ratio — no standalone manual entry
+                FloatingActionButton(onClick = { showAddChoiceDialog = true }) {
+                    Icon(Icons.Default.Add, contentDescription = "Add entry")
                 }
             }
         }
+
     ) { paddingValues ->
+        // Add-choice dialog for history FAB
+        if (showAddChoiceDialog) {
+            AlertDialog(
+                onDismissRequest = { showAddChoiceDialog = false },
+                title = { Text("Add data") },
+                text = { Text("How would you like to add data for $metricLabel?") },
+                confirmButton = {
+                    TextButton(onClick = {
+                        // Manual add: route to existing dialogs
+                        showAddChoiceDialog = false
+                        if (trendsMetric == "weight") showAddWeightDialog = true
+                        else if (viewModel.ketoMetricManualType(trendsMetric) != null) showAddKetoMetricDialog = true
+                    }) { Text("Manual Add") }
+                },
+                dismissButton = {
+                    Row {
+                        TextButton(onClick = {
+                            // JSON Import — open import screen with suggested domain
+                            showAddChoiceDialog = false
+                                onNavigateToJsonImport(if (trendsMetric.isNotBlank()) trendsMetric.lowercase() else null)
+                        }) { Text("JSON Import") }
+                        TextButton(onClick = { showAddChoiceDialog = false }) { Text("Cancel") }
+                    }
+                }
+            )
+        }
         if (showHistory) {
             KetoMetricHistoryContent(
                 trendsMetric = trendsMetric,
@@ -1002,9 +1045,14 @@ private fun KetoMetricHistoryContent(
                                     style = MaterialTheme.typography.bodySmall,
                                     color = OnSurfaceVariant
                                 )
-                                if (entry.source != null) {
+                                val sourceLabel = when (entry.source) {
+                                    WeightEntry.SOURCE_HEALTH_CONNECT -> "Health Connect"
+                                    WeightEntry.SOURCE_IMPORT -> "Import"
+                                    else -> null
+                                }
+                                if (sourceLabel != null) {
                                     Text(
-                                        text = "Health Connect",
+                                        text = sourceLabel,
                                         style = MaterialTheme.typography.labelSmall,
                                         color = OnSurfaceVariant.copy(alpha = 0.6f),
                                         fontSize = 10.sp

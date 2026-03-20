@@ -35,6 +35,7 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -319,34 +320,28 @@ class KetoViewModel(
             )
 
     /**
-     * Raw weight entries for the current trends date range, newest first.
-     * Same-day deduplication is applied: manual entries (source == null) take
-     * priority over Health Connect imports; among ties, the highest id wins.
-     * Used by the Weight History section in KetoTrendsScreen.
+     * Raw weight entries for history, newest first.
+     * Includes all persisted sources (manual/import/Health Connect) without
+     * same-day collapsing so users can inspect every stored row.
      */
+    private val _weightHistoryRefreshSignal = MutableStateFlow(0)
+
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     val weightEntriesForTrends: StateFlow<List<WeightEntry>> =
-        combine(_trendsFromDate, _trendsToDate) { from, to -> from to to }
-            .flatMapLatest { (from, to) ->
-                weightRepository.getEntriesInRange(from, to)
-                    .map { entries ->
-                        entries
-                            .groupBy { it.entryDate }
-                            .mapValues { (_, dayEntries) ->
-                                val manual = dayEntries.filter {
-                                    it.source != WeightEntry.SOURCE_HEALTH_CONNECT
-                                }
-                                (manual.ifEmpty { dayEntries }).maxBy { it.id }
-                            }
-                            .values
-                            .sortedByDescending { it.entryDate }
-                    }
+        _weightHistoryRefreshSignal
+            .flatMapLatest {
+                // History should show all persisted rows across sources; no source-preference collapsing.
+                weightRepository.getAllEntries()
             }
             .stateIn(
                 scope = viewModelScope,
                 started = SharingStarted.WhileSubscribed(5_000),
                 initialValue = emptyList()
             )
+
+    fun refreshWeightHistory() {
+        _weightHistoryRefreshSignal.update { it + 1 }
+    }
 
     /** Save a standalone manual measurement for a keto trends metric. */
     fun saveKetoManualEntry(metric: String, value: Double, date: String, time: String) {

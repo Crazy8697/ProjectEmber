@@ -61,6 +61,7 @@ import com.projectember.mobile.ui.screens.AddEditStackDefinitionViewModel
 import com.projectember.mobile.ui.screens.WeightHistoryScreen
 import com.projectember.mobile.ui.screens.WeightHistoryViewModel
 import com.projectember.mobile.ui.screens.WeightHistoryViewModelFactory
+import com.projectember.mobile.ui.import.JsonImportScreen
 
 @Composable
 fun EmberNavGraph(
@@ -208,6 +209,13 @@ fun EmberNavGraph(
             )
         }
 
+        composable(route = Screen.JsonImport.route + "?domain={domain}", arguments = listOf(navArgument("domain") { type = NavType.StringType; defaultValue = "" })) {
+            JsonImportScreen(
+                onNavigateBack = { navController.popBackStack() },
+                initialDomain = it.arguments?.getString("domain")?.takeIf { s -> s.isNotBlank() }
+            )
+        }
+
         composable(Screen.KetoNerdMode.route) {
             val viewModel: KetoNerdModeViewModel = viewModel(
                 factory = KetoNerdModeViewModelFactory(app.ketoImportManager)
@@ -308,6 +316,10 @@ fun EmberNavGraph(
                 viewModel = viewModel,
                 initialMetric = metric,
                 onNavigateBack = { navController.popBackStack() },
+                onNavigateToJsonImport = { domain ->
+                    val route = if (!domain.isNullOrBlank()) "${Screen.JsonImport.route}?domain=${domain}" else Screen.JsonImport.route
+                    navController.navigate(route)
+                },
             )
         }
 
@@ -410,7 +422,11 @@ fun EmberNavGraph(
             )
             WeightHistoryScreen(
                 viewModel = viewModel,
-                onNavigateBack = { navController.popBackStack() }
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToJsonImport = { domain ->
+                    val route = if (domain != null) "${Screen.JsonImport.route}?domain=${domain}" else Screen.JsonImport.route
+                    navController.navigate(route)
+                }
             )
         }
 
@@ -452,7 +468,11 @@ fun EmberNavGraph(
             HealthMetricTrendsScreen(
                 metric = metric,
                 viewModel = viewModel,
-                onNavigateBack = { navController.popBackStack() }
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToJsonImport = { domain ->
+                    val route = if (!domain.isNullOrBlank()) "${Screen.JsonImport.route}?domain=${domain}" else Screen.JsonImport.route
+                    navController.navigate(route)
+                }
             )
         }
 

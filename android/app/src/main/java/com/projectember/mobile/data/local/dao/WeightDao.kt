@@ -55,7 +55,7 @@ interface WeightDao {
     fun getAllEntries(): Flow<List<WeightEntry>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertAll(entries: List<WeightEntry>)
+    suspend fun insertAll(entries: List<WeightEntry>): List<Long>
 
     @Delete
     suspend fun delete(entry: WeightEntry)
