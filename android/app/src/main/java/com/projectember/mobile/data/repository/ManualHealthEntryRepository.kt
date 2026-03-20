@@ -23,6 +23,9 @@ class ManualHealthEntryRepository(private val dao: ManualHealthEntryDao) {
 
     suspend fun delete(entry: ManualHealthEntry) = dao.delete(entry)
 
+    suspend fun update(entry: ManualHealthEntry) = dao.update(entry)
+
+
     suspend fun getAllOnce(): List<ManualHealthEntry> = dao.getAllOnce()
 
     suspend fun replaceAll(entries: List<ManualHealthEntry>) {

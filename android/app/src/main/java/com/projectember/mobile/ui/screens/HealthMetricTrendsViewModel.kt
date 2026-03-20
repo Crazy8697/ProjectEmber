@@ -161,6 +161,32 @@ class HealthMetricTrendsViewModel(
         }
     }
 
+    /** Update an existing manual entry. By default preserve the original id unless a
+     * different date/time is explicitly provided. */
+    fun updateEntry(
+        original: ManualHealthEntry,
+        newValue1: Double,
+        newValue2: Double?,
+        newDate: String = original.entryDate,
+        newTime: String = original.entryTime,
+    ) {
+        if (original.source != ManualHealthEntry.SOURCE_MANUAL) return
+        viewModelScope.launch {
+            // Use insert with REPLACE conflict strategy to persist the updated entry.
+            repository.insert(
+                ManualHealthEntry(
+                    id = original.id,
+                    metricType = original.metricType,
+                    value1 = newValue1,
+                    value2 = newValue2,
+                    entryDate = newDate,
+                    entryTime = newTime,
+                    source = ManualHealthEntry.SOURCE_MANUAL,
+                )
+            )
+        }
+    }
+
     /** Deletes a manual Ember entry.  HC-imported entries are silently ignored. */
     fun deleteEntry(entry: ManualHealthEntry) {
         if (entry.source == ManualHealthEntry.SOURCE_MANUAL) {

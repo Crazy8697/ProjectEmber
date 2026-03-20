@@ -9,6 +9,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -64,6 +65,12 @@ fun HealthMetricTrendsScreen(
     var showFromPicker by remember { mutableStateOf(false) }
     var showToPicker by remember { mutableStateOf(false) }
 
+    // Lifted selection state so add/edit flows can prefill the currently-selected
+    // chart date and selection survives toggles between graph/history views.
+    var selectedChartIndex by remember { mutableStateOf<Int?>(null) }
+    // Entry being edited (null = not editing). When non-null we show the edit dialog.
+    var editingEntry by remember { mutableStateOf<ManualHealthEntry?>(null) }
+
     val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
 
     // Filter entries to the selected date range, oldest-first, for the chart.
@@ -72,6 +79,9 @@ fun HealthMetricTrendsScreen(
             .filter { it.entryDate >= fromDate && it.entryDate <= toDate }
             .reversed()
     }
+    // The plotted set (last 30) — used to resolve a selectedChartIndex into an entry
+    // for prefilling dialogs.
+    val plottedEntries = remember(graphEntries) { graphEntries.takeLast(30) }
 
     // ── Date pickers ──────────────────────────────────────────────────────────
     if (showFromPicker) {
@@ -120,12 +130,31 @@ fun HealthMetricTrendsScreen(
 
     // ── Add entry dialog ──────────────────────────────────────────────────────
     if (showAddDialog) {
+        val initialDate = selectedChartIndex?.let { plottedEntries.getOrNull(it)?.entryDate }
+            ?: LocalDate.now().toString()
         HealthMetricEntryDialog(
             metric = metric,
+            initialDate = initialDate,
             onDismiss = { showAddDialog = false },
             onSave = { v1, v2, date, time ->
                 viewModel.saveEntry(v1, v2, date, time)
                 showAddDialog = false
+            }
+        )
+    }
+
+    // ── Edit entry dialog (for manual entries) ────────────────────────────────
+    editingEntry?.let { entry ->
+        HealthMetricEntryDialog(
+            metric = metric,
+            initialValue1 = entry.value1.toString(),
+            initialValue2 = entry.value2?.toString() ?: "",
+            initialDate = entry.entryDate,
+            onDismiss = { editingEntry = null },
+            onSave = { v1, v2, date, time ->
+                // Delegate to ViewModel which will preserve ids/date/time appropriately
+                viewModel.updateEntry(original = entry, newValue1 = v1, newValue2 = v2, newDate = date, newTime = time)
+                editingEntry = null
             }
         )
     }
@@ -194,27 +223,32 @@ fun HealthMetricTrendsScreen(
             }
         }
     ) { paddingValues ->
-        if (showHistory) {
-            HealthMetricHistoryContent(
-                metric = metric,
-                entries = entries,
-                hcLoadState = hcLoadState,
-                paddingValues = paddingValues,
-                onDeleteRequest = { entryToDelete = it }
-            )
-        } else {
-            HealthMetricGraphContent(
-                metric = metric,
-                latestEntry = entries.firstOrNull(),
-                graphEntries = graphEntries,
-                fromDate = fromDate,
-                toDate = toDate,
-                hcLoadState = hcLoadState,
-                paddingValues = paddingValues,
-                onShowFromPicker = { showFromPicker = true },
-                onShowToPicker = { showToPicker = true },
-            )
-        }
+            if (showHistory) {
+                HealthMetricHistoryContent(
+                    metric = metric,
+                    entries = entries,
+                    hcLoadState = hcLoadState,
+                    paddingValues = paddingValues,
+                    onDeleteRequest = { entryToDelete = it },
+                    onEditRequest = { editingEntry = it }
+                )
+            } else {
+                HealthMetricGraphContent(
+                    metric = metric,
+                    latestEntry = entries.firstOrNull(),
+                    graphEntries = graphEntries,
+                    fromDate = fromDate,
+                    toDate = toDate,
+                    hcLoadState = hcLoadState,
+                    paddingValues = paddingValues,
+                    onShowFromPicker = { showFromPicker = true },
+                    onShowToPicker = { showToPicker = true },
+                    selectedIndex = selectedChartIndex,
+                    onIndexSelected = { tappedIdx ->
+                        selectedChartIndex = if (tappedIdx != null && tappedIdx == selectedChartIndex) null else tappedIdx
+                    },
+                )
+            }
     }
 }
 
@@ -231,13 +265,14 @@ private fun HealthMetricGraphContent(
     paddingValues: PaddingValues,
     onShowFromPicker: () -> Unit,
     onShowToPicker: () -> Unit,
+    selectedIndex: Int? = null,
+    onIndexSelected: ((Int?) -> Unit)? = null,
 ) {
     // displayEntries is the actual list plotted by MetricTrendChart (last 30 entries).
-    // selectedChartIndex keys on displayEntries so it resets whenever the plotted set changes,
-    // preventing a stale index from pointing to the wrong data point.
+    // selectedIndex is provided by the caller (screen-level state) so it survives
+    // toggles between graph and history. Resolve the selected entry from that index.
     val displayEntries = remember(graphEntries) { graphEntries.takeLast(30) }
-    var selectedChartIndex by remember(displayEntries) { mutableStateOf<Int?>(null) }
-    val selectedEntry: ManualHealthEntry? = selectedChartIndex?.let { displayEntries.getOrNull(it) }
+    val selectedEntry: ManualHealthEntry? = selectedIndex?.let { displayEntries.getOrNull(it) }
     // The entry shown as the headline: selected point when active, latest otherwise
     val displayedEntry: ManualHealthEntry? = selectedEntry ?: latestEntry
 
@@ -319,13 +354,8 @@ private fun HealthMetricGraphContent(
                 isSelected = selectedEntry != null,
                 graphEntries = graphEntries,
                 hcLoadState = hcLoadState,
-                selectedIndex = selectedChartIndex,
-                onIndexSelected = { tappedIdx ->
-                    // Toggle: tapping the already-selected point deselects it
-                    selectedChartIndex =
-                        if (tappedIdx != null && tappedIdx == selectedChartIndex) null
-                        else tappedIdx
-                },
+                selectedIndex = selectedIndex,
+                onIndexSelected = onIndexSelected,
             )
         }
 
@@ -485,6 +515,7 @@ private fun HealthMetricHistoryContent(
     hcLoadState: HcLoadState,
     paddingValues: PaddingValues,
     onDeleteRequest: (ManualHealthEntry) -> Unit,
+    onEditRequest: (ManualHealthEntry) -> Unit,
 ) {
     val hasManual = entries.any { it.source == ManualHealthEntry.SOURCE_MANUAL }
     val hasHc = entries.any { it.source == ManualHealthEntry.SOURCE_HEALTH_CONNECT }
@@ -555,6 +586,9 @@ private fun HealthMetricHistoryContent(
                     entry = entry,
                     onDelete = if (entry.source == ManualHealthEntry.SOURCE_MANUAL) {
                         { onDeleteRequest(entry) }
+                    } else null,
+                    onEdit = if (entry.source == ManualHealthEntry.SOURCE_MANUAL) {
+                        { onEditRequest(entry) }
                     } else null
                 )
             }
@@ -572,6 +606,8 @@ private fun HealthMetricEntryRow(
     entry: ManualHealthEntry,
     /** Non-null only for manual entries; null = read-only HC entry (no delete button). */
     onDelete: (() -> Unit)?,
+    /** Edit callback for manual entries; null for HC entries. */
+    onEdit: (() -> Unit)? = null,
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -605,13 +641,25 @@ private fun HealthMetricEntryRow(
                 )
             }
             if (onDelete != null) {
-                IconButton(onClick = onDelete) {
-                    Icon(
-                        Icons.Default.Delete,
-                        contentDescription = "Delete",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(20.dp)
-                    )
+                Row {
+                    if (onEdit != null) {
+                        IconButton(onClick = onEdit) {
+                            Icon(
+                                Icons.Default.Edit,
+                                contentDescription = "Edit",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
+                    IconButton(onClick = onDelete) {
+                        Icon(
+                            Icons.Default.Delete,
+                            contentDescription = "Delete",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
                 }
             } else {
                 // Spacer to keep card height consistent
