@@ -11,8 +11,15 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface WeightDao {
 
-    /** Latest entry by insertion order — used for the dashboard weight card. */
-    @Query("SELECT * FROM weight_entries ORDER BY id DESC LIMIT 1")
+    /**
+     * Latest entry by date/time ordering — used for the dashboard weight card.
+     *
+     * This selects the newest row by `entryDate` (descending). When multiple
+     * rows share the same date, `id DESC` is used as a deterministic
+     * tiebreaker (most-recently-inserted wins). This avoids relying solely on
+     * insertion order when newer dates exist in the table.
+     */
+    @Query("SELECT * FROM weight_entries ORDER BY entryDate DESC, id DESC LIMIT 1")
     fun getLatestEntry(): Flow<WeightEntry?>
 
     /** All entries with an entryDate on or after [fromDate], sorted oldest → newest. */
