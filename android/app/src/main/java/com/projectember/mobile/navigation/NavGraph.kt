@@ -104,10 +104,13 @@ fun EmberNavGraph(
                 factory = KetoViewModelFactory(
                     app.ketoRepository,
                     app.ketoTargetsStore,
+                    app.calorieAllocationStore,
                     app.weightRepository,
                     app.exerciseRepository,
                     app.exerciseCategoryRepository,
                     app.unitsPreferencesStore,
+                    app.dailyRhythmStore,
+                    app.mealTimingStore,
                     app.healthMetricPreferencesStore,
                     app.manualHealthEntryRepository
                 )
@@ -308,10 +311,13 @@ fun EmberNavGraph(
                 factory = KetoViewModelFactory(
                     app.ketoRepository,
                     app.ketoTargetsStore,
+                    app.calorieAllocationStore,
                     app.weightRepository,
                     app.exerciseRepository,
                     app.exerciseCategoryRepository,
                     app.unitsPreferencesStore,
+                    app.dailyRhythmStore,
+                    app.mealTimingStore,
                     app.healthMetricPreferencesStore,
                     app.manualHealthEntryRepository
                 )

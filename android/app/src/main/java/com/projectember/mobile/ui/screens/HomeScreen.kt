@@ -44,10 +44,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.projectember.mobile.data.local.WeightUnit
-import com.projectember.mobile.ui.theme.ErrorRed
 import com.projectember.mobile.ui.theme.KetoAccent
-import com.projectember.mobile.ui.theme.SuccessGreen
-import com.projectember.mobile.ui.theme.WarningYellow
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -178,7 +175,8 @@ private fun TodaySummaryCard(
     // windowOpen = true once at least one pacing result is available (eating window started).
     val windowOpen = pacing.calories != null || pacing.protein != null
     val calColor = pacingStatusColor(pacing.calories)
-    val calTextColor = calColor.accessible()
+    val calTextColor = (if (calColor != Color.Unspecified) calColor
+                        else MaterialTheme.colorScheme.onSurface).accessible()
     // Progress bar must not receive Color.Unspecified — fall back to primary for neutral.
     val calBarColor = (if (calColor != Color.Unspecified) calColor
                        else MaterialTheme.colorScheme.primary).accessible()
@@ -266,6 +264,19 @@ private fun TodaySummaryCard(
                     )
                 }
                 pacing.calorieDayState?.let { dayState ->
+                    Text(
+                        text = "Pacing: ${pacingStatusDisplayLabel(dayState.status)}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = (pacingStatusAccentColor(dayState.status)
+                            .takeIf { it != Color.Unspecified }
+                            ?: MaterialTheme.colorScheme.onSurfaceVariant).accessible()
+                    )
+                    Text(
+                        text = "By now: expected %.0f kcal, actual %.0f kcal"
+                            .format(dayState.expectedCaloriesByNow, dayState.actualCaloriesByNow),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                     val nextMeal = dayState.nextAnchorMeal
                     val practical = dayState.nextMealPracticalRemainingCalories
                     val planned = dayState.nextMealPlannedCalories
@@ -317,14 +328,8 @@ private fun TodaySummaryCard(
 
             // Hydration row — shown only when a water target is set
             if (waterTarget > 0) {
-                // Water is not pacing-tracked, but use neutral before window opens
-                val waterRawColor = if (windowOpen)
-                    goalStatusColor(summary.waterMl, waterTarget)
-                        .takeIf { it != Color.Unspecified } ?: SuccessGreen
-                else Color.Unspecified
-                val waterBarColor = (if (waterRawColor != Color.Unspecified) waterRawColor
-                                     else MaterialTheme.colorScheme.primary).accessible()
-                val waterTextColor = waterRawColor.accessible()
+                val waterBarColor = KetoAccent.accessible()
+                val waterTextColor = KetoAccent.accessible()
                 val waterPct = (summary.waterMl / waterTarget).toFloat().coerceIn(0f, 1f)
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Row(
@@ -411,22 +416,20 @@ private fun MacroChip(
 
 /**
  * Small pill-shaped chip that displays the smart pacing status label.
- * Color mirrors the metric-status palette: green = on track, yellow = ahead, red = behind.
+ * Color mirrors pacing severity: neutral = on track, yellow = ahead, red = over/off track.
  */
 @Composable
 private fun PacingChip(result: PacingResult) {
-    val chipColor = when (result.status) {
-        PacingStatus.ON_TRACK -> SuccessGreen
-        PacingStatus.AHEAD    -> WarningYellow
-        PacingStatus.OVER_PACE -> ErrorRed
-        PacingStatus.BEHIND   -> ErrorRed
-    }.accessible()
+    val accent = pacingStatusAccentColor(result.status)
+    val chipColor = (accent.takeIf { it != Color.Unspecified }
+        ?: MaterialTheme.colorScheme.onSurfaceVariant).accessible()
     Surface(
         shape = MaterialTheme.shapes.small,
-        color = chipColor.copy(alpha = 0.15f)
+        color = if (accent != Color.Unspecified) chipColor.copy(alpha = 0.15f)
+        else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
     ) {
         Text(
-            text = result.status.label,
+            text = pacingStatusDisplayLabel(result.status),
             style = MaterialTheme.typography.labelSmall,
             color = chipColor,
             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
