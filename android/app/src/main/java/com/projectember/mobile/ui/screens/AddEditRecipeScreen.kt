@@ -53,7 +53,7 @@ import androidx.compose.ui.unit.dp
 import com.projectember.mobile.ui.theme.KetoAccent
 import kotlinx.coroutines.launch
 
-private val CATEGORIES = AddEditRecipeViewModel.CATEGORIES
+// categories are provided by the ViewModel (may be customized by user)
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -193,19 +193,20 @@ fun AddEditRecipeScreen(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    CATEGORIES.forEach { cat ->
-                        val isSelected = viewModel.category == cat
-                        AssistChip(
-                            onClick = { viewModel.onCategoryChange(cat) },
-                            label = { Text(cat) },
-                            colors = AssistChipDefaults.assistChipColors(
-                                containerColor = if (isSelected) KetoAccent
-                                    else MaterialTheme.colorScheme.surfaceVariant,
-                                labelColor = if (isSelected) MaterialTheme.colorScheme.onPrimary
-                                    else MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        )
-                    }
+                            val cats by viewModel.categories.collectAsState()
+                            cats.forEach { cat ->
+                                val isSelected = viewModel.category == cat
+                                AssistChip(
+                                    onClick = { viewModel.onCategoryChange(cat) },
+                                    label = { Text(cat) },
+                                    colors = AssistChipDefaults.assistChipColors(
+                                        containerColor = if (isSelected) KetoAccent
+                                            else MaterialTheme.colorScheme.surfaceVariant,
+                                        labelColor = if (isSelected) MaterialTheme.colorScheme.onPrimary
+                                            else MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                )
+                            }
                 }
             }
 
