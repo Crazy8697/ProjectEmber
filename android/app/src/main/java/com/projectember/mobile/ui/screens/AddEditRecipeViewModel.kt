@@ -10,6 +10,7 @@ import com.projectember.mobile.data.local.FoodWeightUnit
 import com.projectember.mobile.data.local.UnitPreferences
 import com.projectember.mobile.data.local.UnitsPreferencesStore
 import com.projectember.mobile.data.local.VolumeUnit
+import com.projectember.mobile.data.local.RecipeCategoryStore
 import com.projectember.mobile.data.local.entities.Recipe
 import com.projectember.mobile.data.local.entities.RecipeIngredient
 import com.projectember.mobile.data.local.entities.decodeIngredients
@@ -23,7 +24,7 @@ class AddEditRecipeViewModel(
     private val recipeRepository: RecipeRepository,
     private val editRecipeId: Int? = null,
     private val unitsPreferencesStore: UnitsPreferencesStore? = null,
-    private val recipeCategoryStore: com.projectember.mobile.data.local.RecipeCategoryStore? = null
+    private val recipeCategoryStore: RecipeCategoryStore? = null
 ) : ViewModel() {
 
     companion object {
@@ -240,9 +241,15 @@ class AddEditRecipeViewModel(
 class AddEditRecipeViewModelFactory(
     private val recipeRepository: RecipeRepository,
     private val editRecipeId: Int? = null,
-    private val unitsPreferencesStore: UnitsPreferencesStore? = null
+    private val unitsPreferencesStore: UnitsPreferencesStore? = null,
+    private val recipeCategoryStore: RecipeCategoryStore? = null
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T =
-        AddEditRecipeViewModel(recipeRepository, editRecipeId, unitsPreferencesStore) as T
+        AddEditRecipeViewModel(
+            recipeRepository,
+            editRecipeId,
+            unitsPreferencesStore,
+            recipeCategoryStore
+        ) as T
 }

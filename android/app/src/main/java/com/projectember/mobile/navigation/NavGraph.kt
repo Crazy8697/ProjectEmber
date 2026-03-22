@@ -121,7 +121,6 @@ fun EmberNavGraph(
                 onNavigateToTrends = { metric -> navController.navigate(Screen.KetoTrends.createRoute(metric)) },
                 onNavigateToLogExercise = { date -> navController.navigate(Screen.ExerciseAddEntry.createRoute(date)) },
                 onNavigateToWeightHistory = { navController.navigate(Screen.WeightHistory.route) },
-                onNavigateToAdvancedTools = { navController.navigate(Screen.KetoNerdMode.route) }
             )
         }
 
@@ -193,7 +192,11 @@ fun EmberNavGraph(
 
         composable(Screen.RecipeNerdMode.route) {
             val viewModel: RecipeNerdModeViewModel = viewModel(
-                factory = RecipeNerdModeViewModelFactory(app.recipeImportExportManager)
+                factory = RecipeNerdModeViewModelFactory(
+                    app.recipeImportExportManager,
+                    app.recipeRepository,
+                    app.recipeCategoryStore
+                )
             )
             RecipeNerdModeScreen(
                 viewModel = viewModel,
@@ -226,7 +229,8 @@ fun EmberNavGraph(
             val viewModel: AddEditRecipeViewModel = viewModel(
                 factory = AddEditRecipeViewModelFactory(
                     app.recipeRepository,
-                    unitsPreferencesStore = app.unitsPreferencesStore
+                    unitsPreferencesStore = app.unitsPreferencesStore,
+                    recipeCategoryStore = app.recipeCategoryStore
                 )
             )
             AddEditRecipeScreen(
@@ -250,7 +254,8 @@ fun EmberNavGraph(
                 factory = AddEditRecipeViewModelFactory(
                     app.recipeRepository,
                     recipeId,
-                    app.unitsPreferencesStore
+                    app.unitsPreferencesStore,
+                    app.recipeCategoryStore
                 )
             )
             AddEditRecipeScreen(
@@ -267,10 +272,30 @@ fun EmberNavGraph(
 
         // Keto settings / trends
         composable(Screen.KetoTargets.route) {
-            KetoSettingsScreen(onNavigateBack = { navController.popBackStack() })
+            KetoSettingsScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToJsonImport = { domain ->
+                    val route = if (!domain.isNullOrBlank()) {
+                        "${Screen.JsonImport.route}?domain=$domain"
+                    } else {
+                        Screen.JsonImport.route
+                    }
+                    navController.navigate(route)
+                }
+            )
         }
         composable(Screen.KetoSettings.route) {
-            KetoSettingsScreen(onNavigateBack = { navController.popBackStack() })
+            KetoSettingsScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToJsonImport = { domain ->
+                    val route = if (!domain.isNullOrBlank()) {
+                        "${Screen.JsonImport.route}?domain=$domain"
+                    } else {
+                        Screen.JsonImport.route
+                    }
+                    navController.navigate(route)
+                }
+            )
         }
 
         composable(

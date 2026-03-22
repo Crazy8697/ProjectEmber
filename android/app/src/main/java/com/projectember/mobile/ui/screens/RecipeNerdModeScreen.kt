@@ -18,6 +18,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.FileUpload
@@ -104,6 +105,8 @@ fun RecipeNerdModeScreen(
 ) {
     val exportState by viewModel.exportState.collectAsState()
     val importState by viewModel.importState.collectAsState()
+    val clearRecipesState by viewModel.clearRecipesState.collectAsState()
+    val categories by viewModel.categories.collectAsState()
     val preview by viewModel.preview.collectAsState()
     val duplicateHandling by viewModel.duplicateHandling.collectAsState()
     val pendingShareBytes by viewModel.pendingShareBytes.collectAsState()
@@ -114,6 +117,12 @@ fun RecipeNerdModeScreen(
     var importMethod by remember { mutableStateOf(ImportMethod.FILE) }
     var pasteText by remember { mutableStateOf("") }
     var showTemplateReplaceDialog by remember { mutableStateOf(false) }
+    var newCategoryName by remember { mutableStateOf("") }
+    var categoryToEdit by remember { mutableStateOf<String?>(null) }
+    var editCategoryName by remember { mutableStateOf("") }
+    var categoryToDelete by remember { mutableStateOf<String?>(null) }
+    var showClearRecipesConfirm1 by remember { mutableStateOf(false) }
+    var showClearRecipesConfirm2 by remember { mutableStateOf(false) }
 
     // ── Template replace confirmation dialog ──────────────────────────────────
     if (showTemplateReplaceDialog) {
@@ -210,15 +219,120 @@ fun RecipeNerdModeScreen(
         }
     }
 
+    // ── Clear recipes feedback ────────────────────────────────────────────────
+    LaunchedEffect(clearRecipesState) {
+        when (val s = clearRecipesState) {
+            is NerdModeOpState.Success -> {
+                snackbarHostState.showSnackbar(s.message)
+                viewModel.clearClearRecipesState()
+            }
+            is NerdModeOpState.Error -> {
+                snackbarHostState.showSnackbar("Clear failed: ${s.message}")
+                viewModel.clearClearRecipesState()
+            }
+            else -> Unit
+        }
+    }
+
     val isBusy = exportState is NerdModeOpState.InProgress ||
-        importState is NerdModeOpState.InProgress
+        importState is NerdModeOpState.InProgress ||
+        clearRecipesState is NerdModeOpState.InProgress
+
+    if (categoryToEdit != null) {
+        AlertDialog(
+            onDismissRequest = { categoryToEdit = null },
+            title = { Text("Edit Category") },
+            text = {
+                OutlinedTextField(
+                    value = editCategoryName,
+                    onValueChange = { editCategoryName = it },
+                    label = { Text("Category name") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    val oldName = categoryToEdit ?: return@TextButton
+                    if (editCategoryName.isNotBlank()) {
+                        viewModel.renameCategory(oldName, editCategoryName)
+                        categoryToEdit = null
+                    }
+                }) { Text("Save") }
+            },
+            dismissButton = {
+                TextButton(onClick = { categoryToEdit = null }) { Text("Cancel") }
+            }
+        )
+    }
+
+    if (categoryToDelete != null) {
+        AlertDialog(
+            onDismissRequest = { categoryToDelete = null },
+            title = { Text("Delete Category?") },
+            text = {
+                Text("This deletes the category \"${categoryToDelete ?: ""}\" from category management.")
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    val name = categoryToDelete ?: return@TextButton
+                    viewModel.deleteCategory(name)
+                    categoryToDelete = null
+                }) { Text("Delete", color = MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = {
+                TextButton(onClick = { categoryToDelete = null }) { Text("Cancel") }
+            }
+        )
+    }
+
+    if (showClearRecipesConfirm1) {
+        AlertDialog(
+            onDismissRequest = { showClearRecipesConfirm1 = false },
+            title = { Text("Warning: Delete Recipe Book?") },
+            text = {
+                Text(
+                    "This will erase your recipe book.\n\n" +
+                        "What will be erased:\n- All saved recipes in the recipe library.\n\n" +
+                        "What will NOT be erased:\n- Keto log entries and other app settings.\n\n" +
+                        "This is destructive and cannot be undone."
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    showClearRecipesConfirm1 = false
+                    showClearRecipesConfirm2 = true
+                }) { Text("Continue", color = MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showClearRecipesConfirm1 = false }) { Text("Cancel") }
+            }
+        )
+    }
+
+    if (showClearRecipesConfirm2) {
+        AlertDialog(
+            onDismissRequest = { showClearRecipesConfirm2 = false },
+            title = { Text("Final confirmation") },
+            text = { Text("Delete all recipes from the recipe book now?") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showClearRecipesConfirm2 = false
+                    viewModel.clearRecipes()
+                }) { Text("Delete Recipe Book", color = MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showClearRecipesConfirm2 = false }) { Text("Cancel") }
+            }
+        )
+    }
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
                     Text(
-                        text = "Advanced Tools",
+                        text = "Recipe Settings",
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold
                     )
@@ -257,12 +371,56 @@ fun RecipeNerdModeScreen(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(
-                    text = "Recipe JSON import/export for power users. " +
-                        "Normal recipe add/edit is available from the Recipes screen.",
+                    text = "Manage recipe categories and recipe import/export tools.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSecondaryContainer,
                     modifier = Modifier.padding(12.dp)
                 )
+            }
+
+            // ── Category management ──────────────────────────────────────────
+            NerdModeSection(title = "Category Management") {
+                Text(
+                    text = "Create, edit, and delete categories used by recipe add/edit screens.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+
+                categories.forEach { category ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(category, modifier = Modifier.weight(1f))
+                        TextButton(onClick = {
+                            categoryToEdit = category
+                            editCategoryName = category
+                        }) { Text("Edit") }
+                        TextButton(onClick = { categoryToDelete = category }) {
+                            Text("Delete", color = MaterialTheme.colorScheme.error)
+                        }
+                    }
+                    HorizontalDivider()
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = newCategoryName,
+                    onValueChange = { newCategoryName = it },
+                    label = { Text("New category") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Button(
+                    onClick = {
+                        viewModel.addCategory(newCategoryName)
+                        newCategoryName = ""
+                    },
+                    enabled = newCategoryName.isNotBlank() && !isBusy,
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text("Add Category") }
             }
 
             // ── Export section ────────────────────────────────────────────────
@@ -430,6 +588,30 @@ fun RecipeNerdModeScreen(
                             }
                         }
                     }
+                }
+            }
+
+            // ── Clear recipes (destructive) ─────────────────────────────────
+            NerdModeSection(title = "Clear Recipes") {
+                Text(
+                    text = "Warning: this deletes the recipe book (all saved recipes).",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.error
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedButton(
+                    onClick = { showClearRecipesConfirm1 = true },
+                    enabled = !isBusy,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    if (clearRecipesState is NerdModeOpState.InProgress) {
+                        CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                        Spacer(modifier = Modifier.width(8.dp))
+                    } else {
+                        Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                    }
+                    Text("Delete Recipe Book")
                 }
             }
 

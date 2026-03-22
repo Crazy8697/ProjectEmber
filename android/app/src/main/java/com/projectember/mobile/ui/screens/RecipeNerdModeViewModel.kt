@@ -4,9 +4,11 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.projectember.mobile.data.local.RecipeCategoryStore
 import com.projectember.mobile.data.recipe.DuplicateHandling
 import com.projectember.mobile.data.recipe.RecipeImportExportManager
 import com.projectember.mobile.data.recipe.RecipeImportPreview
+import com.projectember.mobile.data.repository.RecipeRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -21,7 +23,9 @@ sealed class NerdModeOpState {
 }
 
 class RecipeNerdModeViewModel(
-    private val manager: RecipeImportExportManager
+    private val manager: RecipeImportExportManager,
+    private val recipeRepository: RecipeRepository,
+    private val recipeCategoryStore: RecipeCategoryStore
 ) : ViewModel() {
 
     // ── Export state ──────────────────────────────────────────────────────────
@@ -48,6 +52,13 @@ class RecipeNerdModeViewModel(
     /** How the user wants to handle duplicate recipes during the pending import. */
     private val _duplicateHandling = MutableStateFlow(DuplicateHandling.SKIP)
     val duplicateHandling: StateFlow<DuplicateHandling> = _duplicateHandling.asStateFlow()
+
+    // ── Recipe settings (categories + clear) ────────────────────────────────
+
+    val categories: StateFlow<List<String>> = recipeCategoryStore.categories
+
+    private val _clearRecipesState = MutableStateFlow<NerdModeOpState>(NerdModeOpState.Idle)
+    val clearRecipesState: StateFlow<NerdModeOpState> = _clearRecipesState.asStateFlow()
 
     // ── Export actions ────────────────────────────────────────────────────────
 
@@ -176,12 +187,48 @@ class RecipeNerdModeViewModel(
     fun clearImportState() {
         _importState.value = NerdModeOpState.Idle
     }
+
+    fun addCategory(name: String) {
+        recipeCategoryStore.addCategory(name)
+    }
+
+    fun renameCategory(oldName: String, newName: String) {
+        recipeCategoryStore.renameCategory(oldName, newName)
+    }
+
+    fun deleteCategory(name: String) {
+        recipeCategoryStore.deleteCategory(name)
+    }
+
+    fun clearRecipes() {
+        _clearRecipesState.value = NerdModeOpState.InProgress
+        viewModelScope.launch {
+            runCatching { recipeRepository.replaceAll(emptyList()) }.fold(
+                onSuccess = {
+                    _clearRecipesState.value = NerdModeOpState.Success(
+                        "Recipe book cleared. Keto logs were not changed."
+                    )
+                },
+                onFailure = {
+                    _clearRecipesState.value = NerdModeOpState.Error(
+                        it.message ?: "Failed to clear recipes"
+                    )
+                }
+            )
+        }
+    }
+
+    fun clearClearRecipesState() {
+        _clearRecipesState.value = NerdModeOpState.Idle
+    }
 }
 
 class RecipeNerdModeViewModelFactory(
-    private val manager: RecipeImportExportManager
+    private val manager: RecipeImportExportManager,
+    private val recipeRepository: RecipeRepository,
+    private val recipeCategoryStore: RecipeCategoryStore
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T =
-        RecipeNerdModeViewModel(manager) as T
+        RecipeNerdModeViewModel(manager, recipeRepository, recipeCategoryStore) as T
 }

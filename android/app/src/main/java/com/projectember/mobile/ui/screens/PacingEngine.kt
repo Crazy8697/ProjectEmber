@@ -35,7 +35,7 @@ data class PacingResult(
  *    configured [MealTiming] windows (advanced) or the [DailyRhythm] eating-style
  *    preset (default).
  * 2. Compute the expected fraction of daily targets that should be consumed by
- *    [currentMinuteOfDay] using a linear ramp over that eating window.
+ *    the current minute-of-day using a linear ramp over that eating window.
  * 3. Compare the actual fraction against the expected fraction to produce a
  *    [PacingStatus] label.
  *
@@ -101,7 +101,6 @@ object PacingEngine {
                 mealTiming.breakfastWindow,
                 mealTiming.lunchWindow,
                 mealTiming.dinnerWindow,
-                mealTiming.snackWindow
             )
             val first = windows.minOf { it.startMinuteOfDay }
             val last  = windows.maxOf { it.endMinuteOfDay }
