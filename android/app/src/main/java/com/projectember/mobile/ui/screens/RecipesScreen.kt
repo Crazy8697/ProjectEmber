@@ -22,7 +22,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
@@ -172,8 +172,8 @@ fun RecipesScreen(
                     } else {
                         IconButton(onClick = onNavigateToNerdMode) {
                             Icon(
-                                Icons.Default.Tune,
-                                contentDescription = "Advanced Tools"
+                                Icons.Default.Settings,
+                                contentDescription = "Recipe Settings"
                             )
                         }
                     }

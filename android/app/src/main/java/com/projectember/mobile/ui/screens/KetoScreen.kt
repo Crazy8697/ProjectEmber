@@ -16,7 +16,6 @@ import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.Help
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.ShowChart
-import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -60,7 +59,6 @@ fun KetoScreen(
     onNavigateToTrends: (String) -> Unit,
     onNavigateToLogExercise: (String) -> Unit,
     onNavigateToWeightHistory: () -> Unit,
-    onNavigateToAdvancedTools: () -> Unit
 ) {
     val selectedDateEntries by viewModel.selectedDateEntries.collectAsState()
     val selectedDate by viewModel.selectedDate.collectAsState()
@@ -211,9 +209,6 @@ fun KetoScreen(
                     }
                     IconButton(onClick = onNavigateToTargets) {
                         Icon(Icons.Default.Settings, contentDescription = "Targets")
-                    }
-                    IconButton(onClick = onNavigateToAdvancedTools) {
-                        Icon(Icons.Default.Tune, contentDescription = "Advanced Tools")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(

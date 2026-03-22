@@ -3,23 +3,26 @@ package com.projectember.mobile.ui.screens
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.ui.platform.LocalContext
 import com.projectember.mobile.data.local.*
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.ui.text.input.KeyboardType
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun KetoSettingsScreen(
     onNavigateBack: () -> Unit,
+    onNavigateToJsonImport: (String?) -> Unit = {},
     vm: KetoSettingsViewModel? = null
 ) {
     val app = LocalContext.current.applicationContext as com.projectember.mobile.EmberApplication
@@ -29,7 +32,6 @@ fun KetoSettingsScreen(
             app.calorieAllocationStore,
             app.mealTimingStore,
             app.dailyRhythmStore,
-            app.recipeCategoryStore
         )
     )
 
@@ -61,80 +63,199 @@ fun KetoSettingsScreen(
         ) {
             Spacer(modifier = Modifier.height(8.dp))
 
-            // JSON Import section (links to existing JsonImportScreen)
-            Text("JSON Import", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-            Text("Advanced: import/export keto settings and other data. Normal logging happens on the tracker screen.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = { /* navigate to JsonImport - Nav handled by parent */ }) { Text("Import JSON") }
-                OutlinedButton(onClick = { /* TODO: paste JSON dialog */ }) { Text("Paste JSON") }
+            SettingsCardSection(title = "JSON Import") {
+                Text(
+                    text = "Import keto JSON data for this domain.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Button(
+                    onClick = { onNavigateToJsonImport("keto") },
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text("Open JSON Import") }
             }
 
-            // Daily Structure / Calorie Allocation
-            Text("Daily Structure / Calorie Allocation", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-            Text("Allocate your daily calories across meals. Total must equal 100%.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            SettingsCardSection(title = "Daily Structure / Calorie Allocation") {
+                Text(
+                    text = "Allocate daily calories across meals. Save is enabled only when total is exactly 100%.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                AllocationSliderRow(
+                    label = "Breakfast",
+                    value = allocation.breakfastPct,
+                    enabled = mealTiming.breakfastWindow != null,
+                    onChange = { pct -> viewModel.updateAllocation(allocation.copy(breakfastPct = pct)) }
+                )
+                AllocationSliderRow(
+                    label = "Lunch",
+                    value = allocation.lunchPct,
+                    enabled = mealTiming.lunchWindow != null,
+                    onChange = { pct -> viewModel.updateAllocation(allocation.copy(lunchPct = pct)) }
+                )
+                AllocationSliderRow(
+                    label = "Dinner",
+                    value = allocation.dinnerPct,
+                    enabled = mealTiming.dinnerWindow != null,
+                    onChange = { pct -> viewModel.updateAllocation(allocation.copy(dinnerPct = pct)) }
+                )
+                AllocationSliderRow(
+                    label = "Snack",
+                    value = allocation.snackPct,
+                    enabled = true,
+                    onChange = { pct -> viewModel.updateAllocation(allocation.copy(snackPct = pct)) }
+                )
 
-            AllocationRow(label = "Breakfast", value = allocation.breakfastPct) { newPct ->
-                viewModel.updateAllocation(allocation.copy(breakfastPct = newPct))
+                val total = allocation.totalPct()
+                val totalColor = if (total == 100) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.error
+                }
+                Text(
+                    text = "Total: $total%",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = totalColor,
+                    fontWeight = FontWeight.SemiBold
+                )
+
+                val perMeal = allocation.perMealCalories(targets.caloriesKcal)
+                Text(
+                    text = "Preview (${targets.caloriesKcal.toInt()} kcal): " +
+                        "Breakfast ${perMeal["breakfast"]?.toInt() ?: 0} kcal • " +
+                        "Lunch ${perMeal["lunch"]?.toInt() ?: 0} kcal • " +
+                        "Dinner ${perMeal["dinner"]?.toInt() ?: 0} kcal • " +
+                        "Snack ${perMeal["snack"]?.toInt() ?: 0} kcal",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Button(
+                    onClick = { viewModel.saveAllocationIfValid() },
+                    enabled = total == 100,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Save Allocation")
+                }
             }
-            AllocationRow(label = "Lunch", value = allocation.lunchPct) { newPct ->
-                viewModel.updateAllocation(allocation.copy(lunchPct = newPct))
-            }
-            AllocationRow(label = "Dinner", value = allocation.dinnerPct) { newPct ->
-                viewModel.updateAllocation(allocation.copy(dinnerPct = newPct))
-            }
-            AllocationRow(label = "Snack", value = allocation.snackPct) { newPct ->
-                viewModel.updateAllocation(allocation.copy(snackPct = newPct))
+
+            SettingsCardSection(title = "Daily Targets") {
+                TargetsGrid(targets = targets) { newTargets -> viewModel.saveTargets(newTargets) }
             }
 
-            Text("Total: ${allocation.totalPct()}%", style = MaterialTheme.typography.bodyMedium)
-            val perMeal = allocation.perMealCalories(targets.caloriesKcal)
-            Text("Preview: Breakfast ${perMeal["breakfast"]?.toInt()} kcal • Lunch ${perMeal["lunch"]?.toInt()} kcal • Dinner ${perMeal["dinner"]?.toInt()} kcal • Snack ${perMeal["snack"]?.toInt()} kcal", style = MaterialTheme.typography.bodySmall)
-
-            val allocationValid = allocation.totalPct() == 100 &&
-                (mealTiming.breakfastWindow != null || allocation.breakfastPct == 0) &&
-                (mealTiming.lunchWindow != null || allocation.lunchPct == 0) &&
-                (mealTiming.dinnerWindow != null || allocation.dinnerPct == 0)
-
-            Button(onClick = { viewModel.saveAllocationIfValid() }, enabled = allocationValid, modifier = Modifier.fillMaxWidth()) {
-                Text("Save Allocation")
+            SettingsCardSection(title = "Meal Timing") {
+                Text(
+                    text = "Breakfast, lunch, and dinner only. Disabled meals are excluded from pacing checkpoints.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                MealTimingEditorRow(
+                    mealName = "Breakfast",
+                    window = mealTiming.breakfastWindow,
+                    defaultStartHour = 7,
+                    defaultEndHour = 9,
+                    onWindowChange = viewModel::setBreakfastWindow
+                )
+                HorizontalDivider()
+                MealTimingEditorRow(
+                    mealName = "Lunch",
+                    window = mealTiming.lunchWindow,
+                    defaultStartHour = 12,
+                    defaultEndHour = 13,
+                    onWindowChange = viewModel::setLunchWindow
+                )
+                HorizontalDivider()
+                MealTimingEditorRow(
+                    mealName = "Dinner",
+                    window = mealTiming.dinnerWindow,
+                    defaultStartHour = 18,
+                    defaultEndHour = 20,
+                    onWindowChange = viewModel::setDinnerWindow
+                )
             }
 
-            // Daily Targets (dense layout)
-            Text("Daily Targets", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-            TargetsGrid(targets = targets) { newTargets -> viewModel.saveTargets(newTargets) }
+            SettingsCardSection(title = "Daily Rhythm") {
+                Text(
+                    text = "Wake/sleep and eating style are used when meal timing is not configured.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(8.dp))
 
-            // Meal Timing (Breakfast/Lunch/Dinner only)
-            Text("Meal Timing", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-            Text("Optional: configure windows for anchor meals. Disabled meals do not participate in pacing.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            // Reuse existing MealTiming UI patterns from SettingsViewModel where possible
-            MealTimingRow("Breakfast", mealTiming.breakfastWindow) { viewModel.setBreakfastWindow(it) }
-            MealTimingRow("Lunch", mealTiming.lunchWindow) { viewModel.setLunchWindow(it) }
-            MealTimingRow("Dinner", mealTiming.dinnerWindow) { viewModel.setDinnerWindow(it) }
+                var showWakePicker by remember { mutableStateOf(false) }
+                var showSleepPicker by remember { mutableStateOf(false) }
 
-            // Daily Rhythm
-            Text("Daily Rhythm", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-            Text("Wake, sleep, and eating style used as a fallback when meal timing is not configured.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(value = "Wake ${dailyRhythm.wakeHour}:${dailyRhythm.wakeMinute}", onValueChange = {}, readOnly = true, modifier = Modifier.weight(1f))
-                OutlinedTextField(value = "Sleep ${dailyRhythm.sleepHour}:${dailyRhythm.sleepMinute}", onValueChange = {}, readOnly = true, modifier = Modifier.weight(1f))
-            }
+                TimeValueRow(
+                    label = "Wake time",
+                    value = formatTime(dailyRhythm.wakeHour, dailyRhythm.wakeMinute),
+                    onClick = { showWakePicker = true }
+                )
+                TimeValueRow(
+                    label = "Sleep time",
+                    value = formatTime(dailyRhythm.sleepHour, dailyRhythm.sleepMinute),
+                    onClick = { showSleepPicker = true }
+                )
 
-            // Recipe categories management
-            Text("Recipe Categories", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-            val recipeCats by viewModel.recipeCategories.collectAsState()
-            recipeCats.forEach { cat ->
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text(cat, modifier = Modifier.weight(1f))
-                    Row {
-                        TextButton(onClick = { /* TODO: rename dialog */ }) { Text("Edit") }
-                        TextButton(onClick = { viewModel.deleteRecipeCategory(cat) }) { Text("Delete") }
+                if (showWakePicker) {
+                    val tpState = rememberTimePickerState(
+                        initialHour = dailyRhythm.wakeHour,
+                        initialMinute = dailyRhythm.wakeMinute,
+                        is24Hour = true
+                    )
+                    AlertDialog(
+                        onDismissRequest = { showWakePicker = false },
+                        confirmButton = {
+                            TextButton(onClick = {
+                                showWakePicker = false
+                                viewModel.setWakeTime(tpState.hour, tpState.minute)
+                            }) { Text("OK") }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = { showWakePicker = false }) { Text("Cancel") }
+                        },
+                        text = { TimePicker(state = tpState) }
+                    )
+                }
+
+                if (showSleepPicker) {
+                    val tpState = rememberTimePickerState(
+                        initialHour = dailyRhythm.sleepHour,
+                        initialMinute = dailyRhythm.sleepMinute,
+                        is24Hour = true
+                    )
+                    AlertDialog(
+                        onDismissRequest = { showSleepPicker = false },
+                        confirmButton = {
+                            TextButton(onClick = {
+                                showSleepPicker = false
+                                viewModel.setSleepTime(tpState.hour, tpState.minute)
+                            }) { Text("OK") }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = { showSleepPicker = false }) { Text("Cancel") }
+                        },
+                        text = { TimePicker(state = tpState) }
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+                Text("Eating Style", style = MaterialTheme.typography.labelMedium)
+                EatingStyle.entries.forEach { style ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(style.displayName, modifier = Modifier.padding(vertical = 8.dp))
+                        RadioButton(
+                            selected = dailyRhythm.eatingStyle == style,
+                            onClick = { viewModel.setEatingStyle(style) }
+                        )
                     }
                 }
             }
-            OutlinedTextField(value = "", onValueChange = {}, label = { Text("Add category") }, singleLine = true)
-            Button(onClick = { /* TODO: add category action */ }, modifier = Modifier.fillMaxWidth()) { Text("Add Category") }
 
             Spacer(modifier = Modifier.height(32.dp))
         }
@@ -142,48 +263,194 @@ fun KetoSettingsScreen(
 }
 
 @Composable
-private fun AllocationRow(label: String, value: Int, onChange: (Int) -> Unit) {
-    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(label, modifier = Modifier.weight(1f))
-        OutlinedTextField(value = value.toString(), onValueChange = { v -> onChange(v.toIntOrNull() ?: 0) }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.width(100.dp), singleLine = true)
+private fun SettingsCardSection(title: String, content: @Composable ColumnScope.() -> Unit) {
+    Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            content = content
+        )
+    }
+}
+
+@Composable
+private fun AllocationSliderRow(
+    label: String,
+    value: Int,
+    enabled: Boolean,
+    onChange: (Int) -> Unit
+) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text(label)
+            Text(if (enabled) "$value%" else "0% (disabled)")
+        }
+        Slider(
+            value = if (enabled) value.toFloat() else 0f,
+            onValueChange = { onChange(it.toInt()) },
+            valueRange = 0f..100f,
+            steps = 99,
+            enabled = enabled,
+            modifier = Modifier.fillMaxWidth()
+        )
     }
 }
 
 @Composable
 private fun TargetsGrid(targets: KetoTargets, onSave: (KetoTargets) -> Unit) {
-    // Two-column dense layout
+    var calories by rememberSaveable(targets) { mutableStateOf(targets.caloriesKcal.toInt().toString()) }
+    var protein by rememberSaveable(targets) { mutableStateOf(targets.proteinG.toInt().toString()) }
+    var fat by rememberSaveable(targets) { mutableStateOf(targets.fatG.toInt().toString()) }
+    var netCarbs by rememberSaveable(targets) { mutableStateOf(targets.netCarbsG.toInt().toString()) }
+    var water by rememberSaveable(targets) { mutableStateOf(targets.waterMl.toInt().toString()) }
+    var sodium by rememberSaveable(targets) { mutableStateOf(targets.sodiumMg.toInt().toString()) }
+    var potassium by rememberSaveable(targets) { mutableStateOf(targets.potassiumMg.toInt().toString()) }
+    var magnesium by rememberSaveable(targets) { mutableStateOf(targets.magnesiumMg.toInt().toString()) }
+
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedTextField(value = targets.caloriesKcal.toInt().toString(), onValueChange = {}, label = { Text("Calories") }, modifier = Modifier.weight(1f), singleLine = true)
-            OutlinedTextField(value = targets.proteinG.toInt().toString(), onValueChange = {}, label = { Text("Protein (g)") }, modifier = Modifier.weight(1f), singleLine = true)
+            OutlinedTextField(value = calories, onValueChange = { calories = it }, label = { Text("Calories") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.weight(1f), singleLine = true)
+            OutlinedTextField(value = protein, onValueChange = { protein = it }, label = { Text("Protein (g)") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.weight(1f), singleLine = true)
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedTextField(value = targets.fatG.toInt().toString(), onValueChange = {}, label = { Text("Fat (g)") }, modifier = Modifier.weight(1f), singleLine = true)
-            OutlinedTextField(value = targets.netCarbsG.toInt().toString(), onValueChange = {}, label = { Text("Net Carbs (g)") }, modifier = Modifier.weight(1f), singleLine = true)
+            OutlinedTextField(value = fat, onValueChange = { fat = it }, label = { Text("Fat (g)") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.weight(1f), singleLine = true)
+            OutlinedTextField(value = netCarbs, onValueChange = { netCarbs = it }, label = { Text("Net Carbs (g)") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.weight(1f), singleLine = true)
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedTextField(value = targets.waterMl.toInt().toString(), onValueChange = {}, label = { Text("Water (ml)") }, modifier = Modifier.weight(1f), singleLine = true)
-            OutlinedTextField(value = targets.sodiumMg.toInt().toString(), onValueChange = {}, label = { Text("Sodium (mg)") }, modifier = Modifier.weight(1f), singleLine = true)
+            OutlinedTextField(value = water, onValueChange = { water = it }, label = { Text("Water (ml)") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.weight(1f), singleLine = true)
+            OutlinedTextField(value = sodium, onValueChange = { sodium = it }, label = { Text("Sodium (mg)") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.weight(1f), singleLine = true)
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedTextField(value = targets.potassiumMg.toInt().toString(), onValueChange = {}, label = { Text("Potassium (mg)") }, modifier = Modifier.weight(1f), singleLine = true)
-            OutlinedTextField(value = targets.magnesiumMg.toInt().toString(), onValueChange = {}, label = { Text("Magnesium (mg)") }, modifier = Modifier.weight(1f), singleLine = true)
+            OutlinedTextField(value = potassium, onValueChange = { potassium = it }, label = { Text("Potassium (mg)") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.weight(1f), singleLine = true)
+            OutlinedTextField(value = magnesium, onValueChange = { magnesium = it }, label = { Text("Magnesium (mg)") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.weight(1f), singleLine = true)
         }
-        Button(onClick = { onSave(targets) }, modifier = Modifier.fillMaxWidth()) { Text("Save Targets") }
+
+        Button(
+            onClick = {
+                onSave(
+                    targets.copy(
+                        caloriesKcal = calories.toDoubleOrNull() ?: targets.caloriesKcal,
+                        proteinG = protein.toDoubleOrNull() ?: targets.proteinG,
+                        fatG = fat.toDoubleOrNull() ?: targets.fatG,
+                        netCarbsG = netCarbs.toDoubleOrNull() ?: targets.netCarbsG,
+                        waterMl = water.toDoubleOrNull() ?: targets.waterMl,
+                        sodiumMg = sodium.toDoubleOrNull() ?: targets.sodiumMg,
+                        potassiumMg = potassium.toDoubleOrNull() ?: targets.potassiumMg,
+                        magnesiumMg = magnesium.toDoubleOrNull() ?: targets.magnesiumMg
+                    )
+                )
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) { Text("Save Targets") }
     }
 }
 
 @Composable
-private fun MealTimingRow(label: String, window: MealWindow?, onChange: (MealWindow?) -> Unit) {
-    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(label, modifier = Modifier.weight(1f))
-        if (window == null) {
-            Text("Disabled", modifier = Modifier.weight(1f))
-            TextButton(onClick = { onChange(MealWindow(8, 0, 9, 0)) }) { Text("Enable") }
-        } else {
-            Text("${window.startHour}:${window.startMinute} - ${window.endHour}:${window.endMinute}", modifier = Modifier.weight(1f))
-            TextButton(onClick = { onChange(null) }) { Text("Disable") }
-        }
+private fun TimeValueRow(label: String, value: String, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(label)
+        TextButton(onClick = onClick) { Text(value) }
     }
 }
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun MealTimingEditorRow(
+    mealName: String,
+    window: MealWindow?,
+    defaultStartHour: Int,
+    defaultEndHour: Int,
+    onWindowChange: (MealWindow?) -> Unit,
+) {
+    val isEnabled = window != null
+    val startHour = window?.startHour ?: defaultStartHour
+    val startMinute = window?.startMinute ?: 0
+    val endHour = window?.endHour ?: defaultEndHour
+    val endMinute = window?.endMinute ?: 0
+
+    var showStartPicker by remember { mutableStateOf(false) }
+    var showEndPicker by remember { mutableStateOf(false) }
+
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(mealName)
+            Switch(
+                checked = isEnabled,
+                onCheckedChange = { enabled ->
+                    if (enabled) {
+                        onWindowChange(MealWindow(startHour, startMinute, endHour, endMinute))
+                    } else {
+                        onWindowChange(null)
+                    }
+                }
+            )
+        }
+        if (isEnabled) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                TextButton(onClick = { showStartPicker = true }) {
+                    Text(formatTime(startHour, startMinute))
+                }
+                Text("-")
+                TextButton(onClick = { showEndPicker = true }) {
+                    Text(formatTime(endHour, endMinute))
+                }
+            }
+        }
+    }
+
+    if (showStartPicker) {
+        val tpState = rememberTimePickerState(
+            initialHour = startHour,
+            initialMinute = startMinute,
+            is24Hour = true
+        )
+        AlertDialog(
+            onDismissRequest = { showStartPicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    showStartPicker = false
+                    onWindowChange(MealWindow(tpState.hour, tpState.minute, endHour, endMinute))
+                }) { Text("OK") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showStartPicker = false }) { Text("Cancel") }
+            },
+            text = { TimePicker(state = tpState) }
+        )
+    }
+
+    if (showEndPicker) {
+        val tpState = rememberTimePickerState(
+            initialHour = endHour,
+            initialMinute = endMinute,
+            is24Hour = true
+        )
+        AlertDialog(
+            onDismissRequest = { showEndPicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    showEndPicker = false
+                    onWindowChange(MealWindow(startHour, startMinute, tpState.hour, tpState.minute))
+                }) { Text("OK") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showEndPicker = false }) { Text("Cancel") }
+            },
+            text = { TimePicker(state = tpState) }
+        )
+    }
+}
+
+private fun formatTime(hour: Int, minute: Int): String = "%02d:%02d".format(hour, minute)
 
