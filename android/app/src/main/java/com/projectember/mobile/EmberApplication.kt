@@ -60,6 +60,8 @@ class EmberApplication : Application() {
     val unitsPreferencesStore by lazy { UnitsPreferencesStore(this) }
     val dailyRhythmStore by lazy { DailyRhythmStore(this) }
     val mealTimingStore by lazy { MealTimingStore(this) }
+    val calorieAllocationStore by lazy { com.projectember.mobile.data.local.CalorieAllocationStore(this) }
+    val recipeCategoryStore by lazy { com.projectember.mobile.data.local.RecipeCategoryStore(this) }
     val healthMetricPreferencesStore by lazy { HealthMetricPreferencesStore(this) }
 
     val backupManager by lazy {

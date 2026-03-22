@@ -18,6 +18,7 @@ sealed class Screen(val route: String) {
     }
     data object Eira : Screen("eira")
     data object KetoTargets : Screen("keto_targets")
+    data object KetoSettings : Screen("keto_settings")
     data object Settings : Screen("settings")
     data object Exercise : Screen("exercise")
     data object ExerciseAddEntry : Screen("exercise_add_entry?initialDate={initialDate}") {

@@ -22,7 +22,8 @@ import kotlinx.coroutines.launch
 class AddEditRecipeViewModel(
     private val recipeRepository: RecipeRepository,
     private val editRecipeId: Int? = null,
-    private val unitsPreferencesStore: UnitsPreferencesStore? = null
+    private val unitsPreferencesStore: UnitsPreferencesStore? = null,
+    private val recipeCategoryStore: com.projectember.mobile.data.local.RecipeCategoryStore? = null
 ) : ViewModel() {
 
     companion object {
@@ -51,6 +52,8 @@ class AddEditRecipeViewModel(
 
     /** Exposed to the Screen so labels update correctly. */
     val unitPreferences: StateFlow<UnitPreferences> = MutableStateFlow(prefs)
+
+    val categories: StateFlow<List<String>> = recipeCategoryStore?.categories ?: MutableStateFlow(CATEGORIES)
 
     val isEditMode: Boolean get() = editRecipeId != null
 
