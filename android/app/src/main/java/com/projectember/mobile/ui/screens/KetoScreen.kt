@@ -69,6 +69,7 @@ fun KetoScreen(
     val foodUnit   = unitPrefs.foodWeightUnit
     val volUnit    = unitPrefs.volumeUnit
     val weightMetricEnabled by viewModel.weightMetricEnabled.collectAsState()
+    val pacing by viewModel.trackerPacing.collectAsState()
 
     var showHelp by remember { mutableStateOf(false) }
     var showDatePicker by remember { mutableStateOf(false) }
@@ -271,6 +272,11 @@ fun KetoScreen(
                     // clearly-labeled subtitle. When no exercise, food == net, so no change.
                     val netCalories = todayCalories - todayExerciseBurned
                     val displayCalories = if (todayExerciseBurned > 0) netCalories else todayCalories
+                    val calorieStatusColor = if (pacing.calories != null) {
+                        pacingStatusColor(pacing.calories)
+                    } else {
+                        targetRangeStatusColor(displayCalories, targets.caloriesKcal)
+                    }
                     MetricBlock(
                         modifier = Modifier.weight(1f),
                         label = if (todayExerciseBurned > 0) "CALORIES (net)" else "CALORIES",
@@ -278,7 +284,7 @@ fun KetoScreen(
                         unit = " kcal",
                         targetLabel = "target %.0f".format(targets.caloriesKcal),
                         diff = displayCalories - targets.caloriesKcal,
-                        statusColor = targetRangeStatusColor(displayCalories, targets.caloriesKcal),
+                        statusColor = calorieStatusColor,
                         onClick = { onNavigateToTrends("calories") },
                         burnedLabel = if (todayExerciseBurned > 0)
                             "food %.0f \u2212 %.0f burned".format(todayCalories, todayExerciseBurned)
@@ -567,7 +573,7 @@ private fun HydrationBlock(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontSize = 10.sp
             )
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(16.dp))
             LinearProgressIndicator(
                 progress = { progress },
                 modifier = Modifier
@@ -658,7 +664,8 @@ private fun NakRatioBlock(
             Spacer(modifier = Modifier.height(2.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
             ) {
                 // Show contextual hint and simple per-nutrient progress references
                 Text(
@@ -671,7 +678,10 @@ private fun NakRatioBlock(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 10.sp
                 )
-                Column(horizontalAlignment = Alignment.End) {
+                Column(
+                    horizontalAlignment = Alignment.End,
+                    modifier = Modifier.offset(y = (-10).dp)
+                ) {
                     Text(
                         text = "Na: %.0f/%.0f mg".format(todaySodium, sodiumTarget),
                         style = MaterialTheme.typography.labelSmall,

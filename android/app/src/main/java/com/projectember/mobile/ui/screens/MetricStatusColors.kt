@@ -45,9 +45,9 @@ internal fun goalStatusColor(value: Double, target: Double): Color {
  *
  * - null result (eating window not yet open) → [Color.Unspecified] so the caller can
  *   fall back to a neutral/muted style (e.g. [MaterialTheme.colorScheme.onSurface]).
- * - ON_TRACK  → green
+ * - ON_TRACK  → neutral/default (no warning color)
  * - AHEAD     → yellow
- * - BEHIND    → red
+ * - OVER/BEHIND → red
  *
  * This replaces full-day-deficit colors in the Home Today card so that the app never
  * shows a deep red number for calories at 7 AM just because the daily target hasn't
@@ -55,12 +55,23 @@ internal fun goalStatusColor(value: Double, target: Double): Color {
  */
 internal fun pacingStatusColor(result: PacingResult?): Color {
     if (result == null) return Color.Unspecified
-    return when (result.status) {
-        PacingStatus.ON_TRACK -> SuccessGreen
-        PacingStatus.AHEAD    -> WarningYellow
-        PacingStatus.OVER_PACE -> ErrorRed
-        PacingStatus.BEHIND   -> ErrorRed
-    }
+    return pacingStatusAccentColor(result.status)
+}
+
+/** Accent color for pacing state badges/text. ON_TRACK intentionally stays neutral. */
+internal fun pacingStatusAccentColor(status: PacingStatus): Color = when (status) {
+    PacingStatus.ON_TRACK  -> Color.Unspecified
+    PacingStatus.AHEAD     -> WarningYellow
+    PacingStatus.OVER_PACE,
+    PacingStatus.BEHIND    -> ErrorRed
+}
+
+/** Product-safe pacing labels used across Home and Keto tracker cards. */
+internal fun pacingStatusDisplayLabel(status: PacingStatus): String = when (status) {
+    PacingStatus.ON_TRACK  -> "On Track"
+    PacingStatus.AHEAD     -> "Ahead of Pace"
+    PacingStatus.OVER_PACE,
+    PacingStatus.BEHIND    -> "Over Pace / Off Track"
 }
 
 /**

@@ -3,10 +3,15 @@ package com.projectember.mobile.ui.screens
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.projectember.mobile.data.local.CalorieAllocationStore
+import com.projectember.mobile.data.local.DailyRhythm
+import com.projectember.mobile.data.local.DailyRhythmStore
 import com.projectember.mobile.data.local.HealthMetric
 import com.projectember.mobile.data.local.HealthMetricPreferencesStore
 import com.projectember.mobile.data.local.KetoTargets
 import com.projectember.mobile.data.local.KetoTargetsStore
+import com.projectember.mobile.data.local.MealTiming
+import com.projectember.mobile.data.local.MealTimingStore
 import com.projectember.mobile.data.local.UnitPreferences
 import com.projectember.mobile.data.local.UnitsPreferencesStore
 import com.projectember.mobile.data.local.entities.KetoEntry
@@ -60,10 +65,13 @@ data class DayTotals(
 class KetoViewModel(
     private val ketoRepository: KetoRepository,
     val targetsStore: KetoTargetsStore,
+    calorieAllocationStore: CalorieAllocationStore,
     private val weightRepository: WeightRepository,
     private val exerciseRepository: ExerciseRepository,
     private val exerciseCategoryRepository: ExerciseCategoryRepository,
     private val unitsPreferencesStore: UnitsPreferencesStore,
+    dailyRhythmStore: DailyRhythmStore,
+    mealTimingStore: MealTimingStore,
     private val healthMetricPreferencesStore: HealthMetricPreferencesStore,
     private val manualHealthEntryRepository: ManualHealthEntryRepository,
 ) : ViewModel() {
@@ -122,6 +130,81 @@ class KetoViewModel(
         )
 
     val targets: StateFlow<KetoTargets> = targetsStore.targets
+
+    private val calorieAllocation = calorieAllocationStore
+        .allocation
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = calorieAllocationStore.allocation.value
+        )
+
+    private val dailyRhythm: StateFlow<DailyRhythm> = dailyRhythmStore
+        .rhythmFlow
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = dailyRhythmStore.getRhythm()
+        )
+
+    private val mealTiming: StateFlow<MealTiming> = mealTimingStore
+        .mealTimingFlow
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = mealTimingStore.getMealTiming()
+        )
+
+    private data class TrackerPacingInputs(
+        val date: String,
+        val entries: List<KetoEntry>,
+        val targets: KetoTargets,
+        val rhythm: DailyRhythm,
+        val timing: MealTiming
+    )
+
+    /** Smart pacing state for the Keto tracker card (today only). */
+    val trackerPacing: StateFlow<TodayPacing> = combine(
+        combine(selectedDate, selectedDateEntries, targets, dailyRhythm, mealTiming) { date, entries, tgts, rhythm, timing ->
+            TrackerPacingInputs(date, entries, tgts, rhythm, timing)
+        },
+        calorieAllocation
+    ) { base, allocation ->
+        if (base.date != today) {
+            return@combine TodayPacing(null, null, null, null)
+        }
+        val foodEntries = base.entries.filter { !it.eventType.equals("exercise", ignoreCase = true) }
+        val calorieState = CaloriePacingCalculator.evaluateDayState(
+            entries = foodEntries,
+            targetCalories = base.targets.caloriesKcal,
+            allocation = allocation,
+            rhythm = base.rhythm,
+            mealTiming = base.timing
+        )
+        TodayPacing(
+            calories = calorieState?.toPacingResult(),
+            protein = PacingEngine.evaluate(
+                actual = foodEntries.sumOf { it.effectiveProtein() },
+                target = base.targets.proteinG,
+                rhythm = base.rhythm,
+                mealTiming = base.timing
+            ),
+            netCarbs = if (base.targets.netCarbsG > 0.0) {
+                PacingEngine.evaluate(
+                    actual = foodEntries.sumOf { it.effectiveNetCarbs() },
+                    target = base.targets.netCarbsG,
+                    rhythm = base.rhythm,
+                    mealTiming = base.timing
+                )
+            } else null,
+            calorieDayState = calorieState
+        )
+    }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = TodayPacing(null, null, null, null)
+        )
 
     /** Latest logged body weight entry from Room. */
     val lastWeightEntry: StateFlow<WeightEntry?> = weightRepository
@@ -372,18 +455,22 @@ class KetoViewModel(
 class KetoViewModelFactory(
     private val ketoRepository: KetoRepository,
     private val targetsStore: KetoTargetsStore,
+    private val calorieAllocationStore: CalorieAllocationStore,
     private val weightRepository: WeightRepository,
     private val exerciseRepository: ExerciseRepository,
     private val exerciseCategoryRepository: ExerciseCategoryRepository,
     private val unitsPreferencesStore: UnitsPreferencesStore,
+    private val dailyRhythmStore: DailyRhythmStore,
+    private val mealTimingStore: MealTimingStore,
     private val healthMetricPreferencesStore: HealthMetricPreferencesStore,
     private val manualHealthEntryRepository: ManualHealthEntryRepository,
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T =
         KetoViewModel(
-            ketoRepository, targetsStore, weightRepository,
+            ketoRepository, targetsStore, calorieAllocationStore, weightRepository,
             exerciseRepository, exerciseCategoryRepository, unitsPreferencesStore,
+            dailyRhythmStore, mealTimingStore,
             healthMetricPreferencesStore, manualHealthEntryRepository,
         ) as T
 }
