@@ -78,6 +78,7 @@ fun EmberNavGraph(
                     app.syncManager,
                     app.ketoRepository,
                     app.ketoTargetsStore,
+                    app.calorieAllocationStore,
                     app.weightRepository,
                     app.unitsPreferencesStore,
                     app.exerciseRepository,

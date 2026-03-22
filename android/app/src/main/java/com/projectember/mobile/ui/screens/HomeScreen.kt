@@ -265,6 +265,19 @@ private fun TodaySummaryCard(
                         trackColor = MaterialTheme.colorScheme.surfaceVariant
                     )
                 }
+                pacing.calorieDayState?.let { dayState ->
+                    val nextMeal = dayState.nextAnchorMeal
+                    val practical = dayState.nextMealPracticalRemainingCalories
+                    val planned = dayState.nextMealPlannedCalories
+                    if (nextMeal != null && practical != null && planned != null) {
+                        Text(
+                            text = "%s practical remaining: %.0f kcal (planned %.0f)"
+                                .format(nextMeal.displayName, practical, planned),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
             }
 
             // Macro row
@@ -405,6 +418,7 @@ private fun PacingChip(result: PacingResult) {
     val chipColor = when (result.status) {
         PacingStatus.ON_TRACK -> SuccessGreen
         PacingStatus.AHEAD    -> WarningYellow
+        PacingStatus.OVER_PACE -> ErrorRed
         PacingStatus.BEHIND   -> ErrorRed
     }.accessible()
     Surface(

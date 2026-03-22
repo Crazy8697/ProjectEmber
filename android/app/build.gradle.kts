@@ -12,8 +12,8 @@ android {
         applicationId = "com.projectember.mobile"
         minSdk = 26
         targetSdk = 34
-        // PR57: bump versionCode for build 57
-        versionCode = 57
+        // PR58: bump versionCode for build 58
+        versionCode = 58
         versionName = "0.3"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
