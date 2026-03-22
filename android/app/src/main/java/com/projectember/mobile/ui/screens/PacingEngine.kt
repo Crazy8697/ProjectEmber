@@ -11,7 +11,8 @@ import java.time.LocalTime
 enum class PacingStatus(val label: String) {
     BEHIND("behind"),
     ON_TRACK("on track"),
-    AHEAD("ahead")
+    AHEAD("ahead of pace"),
+    OVER_PACE("over pace")
 }
 
 /**

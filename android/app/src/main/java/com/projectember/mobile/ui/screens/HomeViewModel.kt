@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.projectember.mobile.data.local.DailyRhythm
 import com.projectember.mobile.data.local.DailyRhythmStore
+import com.projectember.mobile.data.local.CalorieAllocationStore
 import com.projectember.mobile.data.local.KetoTargets
 import com.projectember.mobile.data.local.KetoTargetsStore
 import com.projectember.mobile.data.local.MealTiming
@@ -12,6 +13,7 @@ import com.projectember.mobile.data.local.MealTimingStore
 import com.projectember.mobile.data.local.UnitPreferences
 import com.projectember.mobile.data.local.UnitsPreferencesStore
 import com.projectember.mobile.data.local.entities.SyncStatus
+import com.projectember.mobile.data.local.entities.KetoEntry
 import com.projectember.mobile.data.local.entities.WeightEntry
 import com.projectember.mobile.data.local.entities.effectiveCalories
 import com.projectember.mobile.data.local.entities.effectiveFat
@@ -50,7 +52,8 @@ data class TodaySummary(
 data class TodayPacing(
     val calories: PacingResult?,
     val protein: PacingResult?,
-    val netCarbs: PacingResult?
+    val netCarbs: PacingResult?,
+    val calorieDayState: CalorieDayState?
 )
 
 class HomeViewModel(
@@ -58,6 +61,7 @@ class HomeViewModel(
     private val syncManager: SyncManager,
     ketoRepository: KetoRepository,
     targetsStore: KetoTargetsStore,
+    calorieAllocationStore: CalorieAllocationStore,
     weightRepository: WeightRepository,
     private val unitsPreferencesStore: UnitsPreferencesStore,
     exerciseRepository: ExerciseRepository,
@@ -94,12 +98,28 @@ class HomeViewModel(
 
     val targets: StateFlow<KetoTargets> = targetsStore.targets
 
+    private val calorieAllocation = calorieAllocationStore
+        .allocation
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = calorieAllocationStore.allocation.value
+        )
+
+    private val todayEntries = ketoRepository
+        .getEntriesForDate(today)
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = emptyList()
+        )
+
     /** Aggregate of all keto (food) entries for today — exercise excluded.
      *  When exercise is logged, [TodaySummary.exerciseBurnedKcal] is populated so the
      *  Home screen can display net calories (food − burned), matching the Keto screen's
      *  PR29 calorie model. */
     val todaySummary: StateFlow<TodaySummary> = combine(
-        ketoRepository.getEntriesForDate(today),
+        todayEntries,
         exerciseRepository.getEntriesForDate(today)
     ) { entries, exerciseEntries ->
         // Only food entries count toward macro totals.
@@ -143,25 +163,41 @@ class HomeViewModel(
      * Meal Timing configuration.  Null entries mean pacing is not applicable for
      * that metric right now (no target, or eating window has not opened yet).
      */
+    private data class BasePacingInputs(
+        val entries: List<KetoEntry>,
+        val summary: TodaySummary,
+        val targets: KetoTargets,
+        val rhythm: DailyRhythm,
+        val timing: MealTiming
+    )
+
     val todayPacing: StateFlow<TodayPacing> = combine(
-        todaySummary,
-        targets,
-        dailyRhythm,
-        mealTiming
-    ) { summary, tgts, rhythm, timing ->
-        val netCal = (summary.calories - summary.exerciseBurnedKcal).coerceAtLeast(0.0)
+        combine(todayEntries, todaySummary, targets, dailyRhythm, mealTiming) { entries, summary, tgts, rhythm, timing ->
+            BasePacingInputs(entries, summary, tgts, rhythm, timing)
+        },
+        calorieAllocation
+    ) { base, allocation ->
+        val foodEntries = base.entries.filter { !it.eventType.equals("exercise", ignoreCase = true) }
+        val calorieState = CaloriePacingCalculator.evaluateDayState(
+            entries = foodEntries,
+            targetCalories = base.targets.caloriesKcal,
+            allocation = allocation,
+            rhythm = base.rhythm,
+            mealTiming = base.timing
+        )
         TodayPacing(
-            calories = PacingEngine.evaluate(netCal, tgts.caloriesKcal, rhythm, timing),
-            protein  = PacingEngine.evaluate(summary.proteinG, tgts.proteinG, rhythm, timing),
-            netCarbs = if (tgts.netCarbsG > 0)
-                PacingEngine.evaluate(summary.netCarbsG, tgts.netCarbsG, rhythm, timing)
-            else null
+            calories = calorieState?.toPacingResult(),
+            protein = PacingEngine.evaluate(base.summary.proteinG, base.targets.proteinG, base.rhythm, base.timing),
+            netCarbs = if (base.targets.netCarbsG > 0)
+                PacingEngine.evaluate(base.summary.netCarbsG, base.targets.netCarbsG, base.rhythm, base.timing)
+            else null,
+            calorieDayState = calorieState
         )
     }
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
-            initialValue = TodayPacing(null, null, null)
+            initialValue = TodayPacing(null, null, null, null)
         )
 
     // ── Weight & units ────────────────────────────────────────────────────────
@@ -190,6 +226,7 @@ class HomeViewModelFactory(
     private val syncManager: SyncManager,
     private val ketoRepository: KetoRepository,
     private val targetsStore: KetoTargetsStore,
+    private val calorieAllocationStore: CalorieAllocationStore,
     private val weightRepository: WeightRepository,
     private val unitsPreferencesStore: UnitsPreferencesStore,
     private val exerciseRepository: ExerciseRepository,
@@ -200,6 +237,7 @@ class HomeViewModelFactory(
     override fun <T : ViewModel> create(modelClass: Class<T>): T =
         HomeViewModel(
             syncRepository, syncManager, ketoRepository, targetsStore,
+            calorieAllocationStore,
             weightRepository, unitsPreferencesStore, exerciseRepository,
             dailyRhythmStore, mealTimingStore
         ) as T

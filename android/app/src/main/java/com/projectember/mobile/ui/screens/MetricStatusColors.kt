@@ -58,6 +58,7 @@ internal fun pacingStatusColor(result: PacingResult?): Color {
     return when (result.status) {
         PacingStatus.ON_TRACK -> SuccessGreen
         PacingStatus.AHEAD    -> WarningYellow
+        PacingStatus.OVER_PACE -> ErrorRed
         PacingStatus.BEHIND   -> ErrorRed
     }
 }
