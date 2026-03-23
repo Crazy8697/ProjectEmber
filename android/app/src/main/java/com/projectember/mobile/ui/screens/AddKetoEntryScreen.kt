@@ -67,6 +67,30 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
 private val EVENT_TYPES = AddKetoEntryViewModel.EVENT_TYPES
+private val KETO_JSON_TEMPLATE = """
+    {
+      "schemaVersion": 1,
+      "exportedAt": "2026-03-18T12:00:00Z",
+      "ketoEntries": [
+        {
+          "label": "Scrambled Eggs",
+          "eventType": "meal",
+          "calories": 320,
+          "proteinG": 22,
+          "fatG": 24,
+          "netCarbsG": 2,
+          "waterMl": 0,
+          "sodiumMg": 380,
+          "potassiumMg": 200,
+          "magnesiumMg": 20,
+          "entryDate": "2026-03-18",
+          "eventTimestamp": "2026-03-18 08:15",
+          "notes": "Optional notes",
+          "servings": 1.0
+        }
+      ]
+    }
+""".trimIndent()
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -374,6 +398,57 @@ fun AddKetoEntryScreen(
                     "exercise"   -> ExerciseFields(viewModel)
                     "supplement" -> SupplementFields(viewModel)
                     else -> if (viewModel.eventType.isNotBlank()) NutritionFields(viewModel, unitPrefs)
+                }
+            }
+
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = "JSON Import (optional)",
+                        style = MaterialTheme.typography.labelLarge
+                    )
+                    OutlinedTextField(
+                        value = viewModel.jsonImportText,
+                        onValueChange = viewModel::onJsonImportTextChange,
+                        label = { Text("Paste keto JSON") },
+                        isError = viewModel.jsonImportError != null,
+                        supportingText = {
+                            viewModel.jsonImportError?.let {
+                                Text(text = it, color = MaterialTheme.colorScheme.error)
+                            }
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(150.dp)
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "If JSON is provided, Save Entry imports JSON and ignores manual fields.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.weight(1f)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            TextButton(onClick = { viewModel.onJsonImportTextChange(KETO_JSON_TEMPLATE) }) {
+                                Text("Template")
+                            }
+                            TextButton(onClick = viewModel::clearJsonImportText) {
+                                Text("Clear")
+                            }
+                        }
+                    }
                 }
             }
 

@@ -134,7 +134,8 @@ fun EmberNavGraph(
                 factory = AddKetoEntryViewModelFactory(
                     app.ketoRepository,
                     unitsPreferencesStore = app.unitsPreferencesStore,
-                    recipeRepository = app.recipeRepository
+                    recipeRepository = app.recipeRepository,
+                    ketoImportManager = app.ketoImportManager
                 )
             )
             AddKetoEntryScreen(
@@ -160,7 +161,8 @@ fun EmberNavGraph(
                     app.ketoRepository,
                     entryId,
                     app.unitsPreferencesStore,
-                    app.recipeRepository
+                    app.recipeRepository,
+                    app.ketoImportManager
                 )
             )
             AddKetoEntryScreen(
@@ -277,28 +279,12 @@ fun EmberNavGraph(
         // Keto settings / trends
         composable(Screen.KetoTargets.route) {
             KetoSettingsScreen(
-                onNavigateBack = { navController.popBackStack() },
-                onNavigateToJsonImport = { domain ->
-                    val route = if (!domain.isNullOrBlank()) {
-                        "${Screen.JsonImport.route}?domain=$domain"
-                    } else {
-                        Screen.JsonImport.route
-                    }
-                    navController.navigate(route)
-                }
+                onNavigateBack = { navController.popBackStack() }
             )
         }
         composable(Screen.KetoSettings.route) {
             KetoSettingsScreen(
-                onNavigateBack = { navController.popBackStack() },
-                onNavigateToJsonImport = { domain ->
-                    val route = if (!domain.isNullOrBlank()) {
-                        "${Screen.JsonImport.route}?domain=$domain"
-                    } else {
-                        Screen.JsonImport.route
-                    }
-                    navController.navigate(route)
-                }
+                onNavigateBack = { navController.popBackStack() }
             )
         }
 

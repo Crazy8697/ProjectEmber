@@ -22,7 +22,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 @Composable
 fun KetoSettingsScreen(
     onNavigateBack: () -> Unit,
-    onNavigateToJsonImport: (String?) -> Unit = {},
     vm: KetoSettingsViewModel? = null
 ) {
     val app = LocalContext.current.applicationContext as com.projectember.mobile.EmberApplication
@@ -63,18 +62,6 @@ fun KetoSettingsScreen(
         ) {
             Spacer(modifier = Modifier.height(8.dp))
 
-            SettingsCardSection(title = "JSON Import") {
-                Text(
-                    text = "Import keto JSON data for this domain.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Button(
-                    onClick = { onNavigateToJsonImport("keto") },
-                    modifier = Modifier.fillMaxWidth()
-                ) { Text("Open JSON Import") }
-            }
 
             SettingsCardSection(title = "Daily Structure / Calorie Allocation") {
                 Text(

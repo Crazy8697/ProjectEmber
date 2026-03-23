@@ -6,6 +6,8 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.projectember.mobile.data.keto.KetoDuplicateHandling
+import com.projectember.mobile.data.keto.KetoImportManager
 import com.projectember.mobile.data.local.FoodWeightUnit
 import com.projectember.mobile.data.local.UnitPreferences
 import com.projectember.mobile.data.local.UnitsPreferencesStore
@@ -25,7 +27,8 @@ class AddKetoEntryViewModel(
     private val ketoRepository: KetoRepository,
     private val editEntryId: Int? = null,
     private val unitsPreferencesStore: UnitsPreferencesStore? = null,
-    private val recipeRepository: RecipeRepository? = null
+    private val recipeRepository: RecipeRepository? = null,
+    private val ketoImportManager: KetoImportManager? = null
 ) : ViewModel() {
 
     companion object {
@@ -112,6 +115,10 @@ class AddKetoEntryViewModel(
         private set
     var eventTypeError by mutableStateOf<String?>(null)
         private set
+    var jsonImportText by mutableStateOf("")
+        private set
+    var jsonImportError by mutableStateOf<String?>(null)
+        private set
 
     init {
         if (editEntryId != null) {
@@ -166,6 +173,14 @@ class AddKetoEntryViewModel(
     fun onDateChange(value: String) { entryDate = value }
     fun onTimeChange(value: String) { entryTime = value }
     fun onServingsChange(value: String) { servings = value }
+    fun onJsonImportTextChange(value: String) {
+        jsonImportText = value
+        if (jsonImportError != null) jsonImportError = null
+    }
+    fun clearJsonImportText() {
+        jsonImportText = ""
+        jsonImportError = null
+    }
 
     // Exercise-specific handlers
     fun onDistanceKmChange(value: String) { distanceKm = value }
@@ -174,6 +189,48 @@ class AddKetoEntryViewModel(
     fun onActivitySubtypeChange(value: String) { activitySubtype = value }
 
     fun save(onSuccess: () -> Unit) {
+        val jsonPayload = jsonImportText.trim()
+        if (jsonPayload.isNotEmpty()) {
+            labelError = null
+            eventTypeError = null
+            jsonImportError = null
+            val manager = ketoImportManager
+            if (manager == null) {
+                jsonImportError = "JSON import is unavailable right now."
+                return
+            }
+            viewModelScope.launch {
+                manager.parseAndValidate(jsonPayload).fold(
+                    onSuccess = { preview ->
+                        if (preview.valid.isEmpty()) {
+                            jsonImportError = preview.invalid.firstOrNull()?.reason
+                                ?: "No valid entries found in JSON."
+                            return@fold
+                        }
+                        runCatching {
+                            manager.commitImport(preview, KetoDuplicateHandling.SKIP)
+                        }.fold(
+                            onSuccess = { importedCount ->
+                                if (importedCount <= 0) {
+                                    jsonImportError = "All entries were duplicates. Nothing imported."
+                                } else {
+                                    onSuccess()
+                                }
+                            },
+                            onFailure = {
+                                jsonImportError = it.message ?: "Import failed"
+                            }
+                        )
+                    },
+                    onFailure = {
+                        jsonImportError = it.message ?: "Invalid JSON. Please review and try again."
+                    }
+                )
+            }
+            return
+        }
+
+        jsonImportError = null
         var valid = true
         if (label.isBlank()) {
             labelError = "Label is required"
@@ -329,9 +386,16 @@ class AddKetoEntryViewModelFactory(
     private val ketoRepository: KetoRepository,
     private val editEntryId: Int? = null,
     private val unitsPreferencesStore: UnitsPreferencesStore? = null,
-    private val recipeRepository: RecipeRepository? = null
+    private val recipeRepository: RecipeRepository? = null,
+    private val ketoImportManager: KetoImportManager? = null
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T =
-        AddKetoEntryViewModel(ketoRepository, editEntryId, unitsPreferencesStore, recipeRepository) as T
+        AddKetoEntryViewModel(
+            ketoRepository,
+            editEntryId,
+            unitsPreferencesStore,
+            recipeRepository,
+            ketoImportManager
+        ) as T
 }
