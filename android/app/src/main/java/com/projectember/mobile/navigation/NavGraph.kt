@@ -236,7 +236,8 @@ fun EmberNavGraph(
                 factory = AddEditRecipeViewModelFactory(
                     app.recipeRepository,
                     unitsPreferencesStore = app.unitsPreferencesStore,
-                    recipeCategoryStore = app.recipeCategoryStore
+                    recipeCategoryStore = app.recipeCategoryStore,
+                    recipeImportExportManager = app.recipeImportExportManager
                 )
             )
             AddEditRecipeScreen(
@@ -261,7 +262,8 @@ fun EmberNavGraph(
                     app.recipeRepository,
                     recipeId,
                     app.unitsPreferencesStore,
-                    app.recipeCategoryStore
+                    app.recipeCategoryStore,
+                    app.recipeImportExportManager
                 )
             )
             AddEditRecipeScreen(
