@@ -6,11 +6,15 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import android.net.Uri
 import com.projectember.mobile.data.local.FoodWeightUnit
 import com.projectember.mobile.data.local.UnitPreferences
 import com.projectember.mobile.data.local.UnitsPreferencesStore
 import com.projectember.mobile.data.local.VolumeUnit
 import com.projectember.mobile.data.local.RecipeCategoryStore
+import com.projectember.mobile.data.recipe.DuplicateHandling
+import com.projectember.mobile.data.recipe.RecipeImportExportManager
+import com.projectember.mobile.data.recipe.RecipeImportPreview
 import com.projectember.mobile.data.local.entities.Recipe
 import com.projectember.mobile.data.local.entities.RecipeIngredient
 import com.projectember.mobile.data.local.entities.decodeIngredients
@@ -24,7 +28,8 @@ class AddEditRecipeViewModel(
     private val recipeRepository: RecipeRepository,
     private val editRecipeId: Int? = null,
     private val unitsPreferencesStore: UnitsPreferencesStore? = null,
-    private val recipeCategoryStore: RecipeCategoryStore? = null
+    private val recipeCategoryStore: RecipeCategoryStore? = null,
+    private val recipeImportExportManager: RecipeImportExportManager? = null
 ) : ViewModel() {
 
     companion object {
@@ -55,6 +60,21 @@ class AddEditRecipeViewModel(
     val unitPreferences: StateFlow<UnitPreferences> = MutableStateFlow(prefs)
 
     val categories: StateFlow<List<String>> = recipeCategoryStore?.categories ?: MutableStateFlow(CATEGORIES)
+
+    private val _exportState = MutableStateFlow<NerdModeOpState>(NerdModeOpState.Idle)
+    val exportState: StateFlow<NerdModeOpState> = _exportState
+
+    private val _pendingShareBytes = MutableStateFlow<ByteArray?>(null)
+    val pendingShareBytes: StateFlow<ByteArray?> = _pendingShareBytes
+
+    private val _importState = MutableStateFlow<NerdModeOpState>(NerdModeOpState.Idle)
+    val importState: StateFlow<NerdModeOpState> = _importState
+
+    private val _preview = MutableStateFlow<RecipeImportPreview?>(null)
+    val preview: StateFlow<RecipeImportPreview?> = _preview
+
+    private val _duplicateHandling = MutableStateFlow(DuplicateHandling.SKIP)
+    val duplicateHandling: StateFlow<DuplicateHandling> = _duplicateHandling
 
     val isEditMode: Boolean get() = editRecipeId != null
 
@@ -145,6 +165,115 @@ class AddEditRecipeViewModel(
     fun onMagnesiumMgChange(value: String) { magnesiumMg = value }
     fun onWaterMlChange(value: String) { waterMl = value }
     fun onServingsChange(value: String) { servings = value }
+
+    fun exportToUri(uri: Uri) {
+        val manager = recipeImportExportManager ?: return
+        _exportState.value = NerdModeOpState.InProgress
+        viewModelScope.launch {
+            manager.exportToUri(uri).fold(
+                onSuccess = {
+                    _exportState.value = NerdModeOpState.Success("Recipes exported successfully")
+                },
+                onFailure = {
+                    _exportState.value = NerdModeOpState.Error(it.message ?: "Export failed")
+                }
+            )
+        }
+    }
+
+    fun buildShareExport() {
+        val manager = recipeImportExportManager ?: return
+        _exportState.value = NerdModeOpState.InProgress
+        viewModelScope.launch {
+            manager.buildExportBytes().fold(
+                onSuccess = { bytes ->
+                    _pendingShareBytes.value = bytes
+                    _exportState.value = NerdModeOpState.Idle
+                },
+                onFailure = {
+                    _exportState.value = NerdModeOpState.Error(it.message ?: "Export failed")
+                }
+            )
+        }
+    }
+
+    fun clearPendingShareBytes() {
+        _pendingShareBytes.value = null
+    }
+
+    fun loadImportFromUri(uri: Uri) {
+        val manager = recipeImportExportManager ?: return
+        _importState.value = NerdModeOpState.InProgress
+        viewModelScope.launch {
+            manager.parseAndValidateFromUri(uri).fold(
+                onSuccess = { p ->
+                    _preview.value = p
+                    _importState.value = NerdModeOpState.Idle
+                },
+                onFailure = {
+                    _importState.value = NerdModeOpState.Error(
+                        it.message ?: "Could not read or validate file"
+                    )
+                }
+            )
+        }
+    }
+
+    fun validatePasteImport(json: String) {
+        val manager = recipeImportExportManager ?: return
+        if (json.isBlank()) {
+            _importState.value = NerdModeOpState.Error("Please paste JSON before validating")
+            return
+        }
+        _importState.value = NerdModeOpState.InProgress
+        viewModelScope.launch {
+            manager.parseAndValidate(json).fold(
+                onSuccess = { p ->
+                    _preview.value = p
+                    _importState.value = NerdModeOpState.Idle
+                },
+                onFailure = {
+                    _importState.value = NerdModeOpState.Error(it.message ?: "Validation failed")
+                }
+            )
+        }
+    }
+
+    fun setDuplicateHandling(handling: DuplicateHandling) {
+        _duplicateHandling.value = handling
+    }
+
+    fun commitImport() {
+        val manager = recipeImportExportManager ?: return
+        val p = _preview.value ?: return
+        _importState.value = NerdModeOpState.InProgress
+        viewModelScope.launch {
+            runCatching { manager.commitImport(p, _duplicateHandling.value) }.fold(
+                onSuccess = { count ->
+                    _preview.value = null
+                    _importState.value = NerdModeOpState.Success(
+                        "Imported $count recipe${if (count != 1) "s" else ""}"
+                    )
+                },
+                onFailure = {
+                    _importState.value = NerdModeOpState.Error(it.message ?: "Import failed")
+                }
+            )
+        }
+    }
+
+    fun cancelImport() {
+        _preview.value = null
+        _importState.value = NerdModeOpState.Idle
+    }
+
+    fun clearExportState() {
+        _exportState.value = NerdModeOpState.Idle
+    }
+
+    fun clearImportState() {
+        _importState.value = NerdModeOpState.Idle
+    }
 
     fun addIngredient() {
         ingredients = ingredients + RecipeIngredient("", "")
@@ -242,7 +371,8 @@ class AddEditRecipeViewModelFactory(
     private val recipeRepository: RecipeRepository,
     private val editRecipeId: Int? = null,
     private val unitsPreferencesStore: UnitsPreferencesStore? = null,
-    private val recipeCategoryStore: RecipeCategoryStore? = null
+    private val recipeCategoryStore: RecipeCategoryStore? = null,
+    private val recipeImportExportManager: RecipeImportExportManager? = null
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T =
@@ -250,6 +380,7 @@ class AddEditRecipeViewModelFactory(
             recipeRepository,
             editRecipeId,
             unitsPreferencesStore,
-            recipeCategoryStore
+            recipeCategoryStore,
+            recipeImportExportManager
         ) as T
 }
