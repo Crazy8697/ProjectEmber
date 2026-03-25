@@ -1,6 +1,6 @@
 # Project Ember Mobile Worklist
 
-_Date: 2026-03-19_
+_Date: 2026-03-25_
 
 ## Short version
 
@@ -9,33 +9,43 @@ _Date: 2026-03-19_
 2. **Smart Daily Pacing:** rhythm/timing settings and pacing-aware Home feedback are working.
 3. **Unified trends/charts:** Keto and Health now share a much more consistent trend/history/chart system.
 4. **Health metric support:** manual entry, visibility toggles, imported history, and trend/detail flows are working.
-5. **Recipe system:** categories, add/edit/detail, servings, and core recipe logging/reset flows are in place.
+5. **Recipe system:** categories, add/edit/detail, servings, quick-add/use flow, and core recipe logging/reset flows are in place.
 6. **Nerd Mode recipe JSON tools:** recipe import/export, validation, preview, duplicate handling, and clean-library-import workflow are done.
 7. **Recipe/entry UX unification:** Add Entry was aligned more closely with Add Recipe and contextual actions were cleaned up.
-8. **Core app shell:** dashboard sections, Settings, themes, units, export/import, daily targets, date switching, and live version/build display are in place.
-9. **Supplement tracking foundation:** dedicated supplement/stacks flow exists and the working log-to-keto path is in place.
-10. **Settings polish + backup coverage:** destructive flow clarity and backup/restore coverage for newer settings are now in place.
-11. **Form polish foundation:** editable event time and scroll-to-error behavior are in place.
-12. **Day accuracy + activity polish:** calorie truth, exercise burn behavior, electrolyte reference clarity, and exercise/trend polish are done.
-13. **History / trend editing cleanup:** manual backfill and editing of historical entries for specific days are done.
+8. **Recipe category management:** bulk category assignment is in place, and recipe category filtering now uses a cleaner dropdown-based flow instead of the bulky chip grid.
+9. **Core app shell:** dashboard sections, Settings, themes, units, export/import, daily targets, date switching, and live version/build display are in place.
+10. **Supplement tracking foundation:** dedicated supplement/stacks flow exists and the working log-to-keto path is in place.
+11. **Settings polish + backup coverage:** destructive flow clarity and backup/restore coverage for newer settings are now in place.
+12. **Form polish foundation:** editable event time and scroll-to-error behavior are in place.
+13. **Day accuracy + activity polish:** calorie truth, exercise burn behavior, electrolyte reference clarity, and exercise/trend polish are done.
+14. **History / trend editing cleanup:** manual backfill and editing of historical entries for specific days are done.
+15. **Today widget foundation:** the widget now mirrors the app card much more closely, including theme-aware styling, Na:K ratio, visible Calories and Water bars, compact layout cleanup, and working refresh behavior.
+16. **Master backup system:** nightly full-state backup is in place with manual backup support, local phone backup storage, and rotating retention.
 
 ### Future work
 1. **Recipe Library Usefulness Pass**
    - seed more real recipes
-   - improve browsing/filter usefulness
+   - improve browsing/filter usefulness where it still feels clunky
    - validate real-device recipe library flow
    - clean up remaining servings/category friction
-   - add recipe image support using local file paths (`imagePath`)
+   - add a Recipe Builder for ingredient-based recipe creation
+   - evaluate barcode scanner support for packaged food/product entry
+   - recipe image support remains optional/later
 
-2. **UX cleanup / settings hygiene follow-through**
-   - keep settings organized as new pacing/health/supplement options are added
+2. **Backup / recovery confidence follow-through**
+   - validate real restore behavior from nightly/manual backups on-device
+   - make sure backup history/status stays trustworthy in real use
+   - only expand backup location/folder flexibility if real pain appears
+
+3. **UX cleanup / settings hygiene follow-through**
+   - keep settings organized as new pacing/health/supplement/backup options are added
    - avoid turning Settings into a junk drawer
    - continue visual cleanup to match intended dashboard style
    - keep destructive actions clearly separated and understandable
    - keep version/build info trustworthy
    - only promote this work if real friction appears, not out of compulsive tinkering
 
-3. **Later reassessment**
+4. **Later reassessment**
    - reprioritize after more real-device use
 
 ---
@@ -49,18 +59,37 @@ Focus now:
 - validate real-device browsing/filter flow now that the underlying structure is stronger
 - improve category/filter behavior only where it still feels clunky
 - identify any remaining friction in servings-based recipe logging
-- support recipe images using local file paths rather than embedding images in JSON
-- preferred schema field:
-  - `"imagePath": "/storage/emulated/0/ProjectEmber/recipes/crimson_nak.jpg"`
+- add a **Recipe Builder** so recipes can be created from ingredients instead of only manual top-level nutrition entry
+- support:
+  - ingredient rows
+  - editable quantities/units
+  - recipe total nutrition
+  - servings
+  - per-serving nutrition
+  - save into the existing recipe system cleanly
+- evaluate a **Barcode Scanner** for packaged food/product entry
+- preferred barcode direction:
+  - scan barcode
+  - capture barcode value
+  - support lookup/manual confirmation flow
+  - keep it extensible for later local/remote product data integration
+- recipe image support remains optional and lower priority than Builder/Scanner
 
-### 2. UX cleanup / settings hygiene follow-through
+### 2. Backup / recovery confidence follow-through
 Focus now:
-- keep settings organized as new pacing/health/supplement options are added
+- validate real restore behavior from the new master backup system on-device
+- confirm nightly backup timing and retention behave correctly in real use
+- confirm recovery is practical after reinstall/test churn
+- only add custom backup location support if the default path becomes a real limitation
+
+### 3. UX cleanup / settings hygiene follow-through
+Focus now:
+- keep settings organized as new pacing/health/supplement/backup options are added
 - avoid turning Settings into a junk drawer
 - continue visual cleanup to match intended dashboard style
 - keep destructive actions clearly separated and understandable
 - keep version/build info trustworthy
 - only promote this work if real friction appears, not out of compulsive tinkering
 
-### 3. Later reassessment
+### 4. Later reassessment
 After more real-device usage, re-evaluate the order and decide what deserves to stay, split, or die.
