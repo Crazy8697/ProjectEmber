@@ -189,65 +189,69 @@ fun TodayWidgetContent(data: TodayWidgetData) {
                 MacroBox("Na:K", data.naKRatio, "", GlanceModifier.defaultWeight(), decimalPlaces = 2)
             }
 
-            // Water
+            // Water (wrapped in sub-Column to stay within Glance's 10-child Column limit)
             if (data.waterTarget > 0) {
-                Spacer(modifier = GlanceModifier.height(6.dp))
-                Row(
-                    modifier = GlanceModifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Water",
-                        style = TextStyle(
-                            color = GlanceTheme.colors.onSurfaceVariant,
-                            fontSize = 13.sp
+                Column(modifier = GlanceModifier.fillMaxWidth()) {
+                    Spacer(modifier = GlanceModifier.height(6.dp))
+                    Row(
+                        modifier = GlanceModifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Water",
+                            style = TextStyle(
+                                color = GlanceTheme.colors.onSurfaceVariant,
+                                fontSize = 13.sp
+                            )
                         )
-                    )
-                    Spacer(modifier = GlanceModifier.defaultWeight())
-                    Text(
-                        text = "%.0f / %.0f mL".format(data.waterMl, data.waterTarget),
-                        style = TextStyle(
-                            color = GlanceTheme.colors.onSurface,
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Bold
+                        Spacer(modifier = GlanceModifier.defaultWeight())
+                        Text(
+                            text = "%.0f / %.0f mL".format(data.waterMl, data.waterTarget),
+                            style = TextStyle(
+                                color = GlanceTheme.colors.onSurface,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold
+                            )
                         )
+                    }
+                    Spacer(modifier = GlanceModifier.height(4.dp))
+                    LinearProgressIndicator(
+                        progress = waterPct,
+                        modifier = GlanceModifier.fillMaxWidth(),
+                        color = GlanceTheme.colors.primary,
+                        backgroundColor = GlanceTheme.colors.surfaceVariant
                     )
                 }
-                Spacer(modifier = GlanceModifier.height(4.dp))
-                LinearProgressIndicator(
-                    progress = waterPct,
-                    modifier = GlanceModifier.fillMaxWidth(),
-                    color = GlanceTheme.colors.primary,
-                    backgroundColor = GlanceTheme.colors.surfaceVariant
-                )
             }
 
-            // Weight
+            // Weight (wrapped in sub-Column to stay within Glance's 10-child Column limit)
             if (data.weightKg != null) {
-                Spacer(modifier = GlanceModifier.height(6.dp))
-                Row(
-                    modifier = GlanceModifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Weight",
-                        style = TextStyle(
-                            color = GlanceTheme.colors.onSurfaceVariant,
-                            fontSize = 13.sp
+                Column(modifier = GlanceModifier.fillMaxWidth()) {
+                    Spacer(modifier = GlanceModifier.height(6.dp))
+                    Row(
+                        modifier = GlanceModifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Weight",
+                            style = TextStyle(
+                                color = GlanceTheme.colors.onSurfaceVariant,
+                                fontSize = 13.sp
+                            )
                         )
-                    )
-                    Spacer(modifier = GlanceModifier.defaultWeight())
-                    Text(
-                        text = if (data.weightDate != null)
-                            "%.1f %s  ·  %s".format(data.displayWeight, data.weightUnit.symbol, data.weightDate)
-                        else
-                            "%.1f %s".format(data.displayWeight, data.weightUnit.symbol),
-                        style = TextStyle(
-                            color = GlanceTheme.colors.onSurface,
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Bold
+                        Spacer(modifier = GlanceModifier.defaultWeight())
+                        Text(
+                            text = if (data.weightDate != null)
+                                "%.1f %s  ·  %s".format(data.displayWeight, data.weightUnit.symbol, data.weightDate)
+                            else
+                                "%.1f %s".format(data.displayWeight, data.weightUnit.symbol),
+                            style = TextStyle(
+                                color = GlanceTheme.colors.onSurface,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold
+                            )
                         )
-                    )
+                    }
                 }
             }
         }
