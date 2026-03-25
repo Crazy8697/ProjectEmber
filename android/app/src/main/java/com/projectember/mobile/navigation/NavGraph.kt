@@ -44,6 +44,9 @@ import com.projectember.mobile.ui.screens.KetoSettingsScreen
 import com.projectember.mobile.ui.screens.KetoTrendsScreen
 import com.projectember.mobile.ui.screens.KetoViewModel
 import com.projectember.mobile.ui.screens.KetoViewModelFactory
+import com.projectember.mobile.ui.screens.BulkCategoryScreen
+import com.projectember.mobile.ui.screens.BulkCategoryViewModel
+import com.projectember.mobile.ui.screens.BulkCategoryViewModelFactory
 import com.projectember.mobile.ui.screens.RecipeNerdModeScreen
 import com.projectember.mobile.ui.screens.RecipeNerdModeViewModel
 import com.projectember.mobile.ui.screens.RecipeNerdModeViewModelFactory
@@ -192,7 +195,21 @@ fun EmberNavGraph(
                 onNavigateBack = { navController.popBackStack() },
                 onNavigateToAddRecipe = { navController.navigate(Screen.RecipeAdd.route) },
                 onNavigateToEditRecipe = { recipeId -> navController.navigate(Screen.RecipeEdit.createRoute(recipeId)) },
-                onNavigateToNerdMode = { navController.navigate(Screen.RecipeNerdMode.route) }
+                onNavigateToNerdMode = { navController.navigate(Screen.RecipeNerdMode.route) },
+                onNavigateToBulkCategory = { navController.navigate(Screen.RecipeBulkCategory.route) }
+            )
+        }
+
+        composable(Screen.RecipeBulkCategory.route) {
+            val viewModel: BulkCategoryViewModel = viewModel(
+                factory = BulkCategoryViewModelFactory(
+                    app.recipeRepository,
+                    app.recipeCategoryStore
+                )
+            )
+            BulkCategoryScreen(
+                viewModel = viewModel,
+                onNavigateBack = { navController.popBackStack() }
             )
         }
 
