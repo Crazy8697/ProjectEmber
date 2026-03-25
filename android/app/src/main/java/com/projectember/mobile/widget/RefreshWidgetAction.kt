@@ -16,6 +16,7 @@ class RefreshWidgetAction : ActionCallback {
         glanceId: GlanceId,
         parameters: ActionParameters
     ) {
+        TodayWidget.isRefreshing = true
         TodayWidgetUpdater.updateWidgets(context)
     }
 }

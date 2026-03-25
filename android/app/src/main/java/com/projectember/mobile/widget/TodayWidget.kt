@@ -38,11 +38,9 @@ import com.projectember.mobile.data.local.DailyRhythmStore
 import com.projectember.mobile.data.local.KetoTargetsStore
 import com.projectember.mobile.data.local.MealTimingStore
 import com.projectember.mobile.data.local.ThemePreferencesStore
-import com.projectember.mobile.data.local.UnitsPreferencesStore
 import com.projectember.mobile.data.local.db.AppDatabase
 import com.projectember.mobile.data.repository.ExerciseRepository
 import com.projectember.mobile.data.repository.KetoRepository
-import com.projectember.mobile.data.repository.WeightRepository
 import com.projectember.mobile.ui.theme.colorSchemeForTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -53,13 +51,36 @@ import kotlinx.coroutines.withContext
  */
 class TodayWidget : GlanceAppWidget() {
 
+    companion object {
+        /** Set to true by RefreshWidgetAction before triggering updateAll. */
+        @Volatile internal var isRefreshing = false
+        /** Last successfully rendered data; used to show stale data during the loading phase. */
+        @Volatile internal var lastData: TodayWidgetData? = null
+    }
+
     override suspend fun provideGlance(context: Context, id: GlanceId) {
+        // Phase 1: if a refresh was requested and we have cached data, render immediately
+        // with the loading indicator so the user sees feedback before the IO completes.
+        if (isRefreshing) {
+            lastData?.let { cached ->
+                val cachedScheme = colorSchemeForTheme(cached.themeOption)
+                provideContent {
+                    GlanceTheme(colors = ColorProviders(light = cachedScheme, dark = cachedScheme)) {
+                        TodayWidgetContent(cached, isRefreshing = true)
+                    }
+                }
+            }
+        }
+
+        // Phase 2: fetch fresh data and render the final state.
         val data = fetchWidgetData(context)
+        lastData = data
+        isRefreshing = false
         val scheme = colorSchemeForTheme(data.themeOption)
 
         provideContent {
             GlanceTheme(colors = ColorProviders(light = scheme, dark = scheme)) {
-                TodayWidgetContent(data)
+                TodayWidgetContent(data, isRefreshing = false)
             }
         }
     }
@@ -70,9 +91,7 @@ class TodayWidget : GlanceAppWidget() {
                 val database = AppDatabase.getInstance(context)
                 val ketoRepository = KetoRepository(database.ketoDao())
                 val exerciseRepository = ExerciseRepository(database.exerciseEntryDao())
-                val weightRepository = WeightRepository(database.weightDao())
                 val targetsStore = KetoTargetsStore(context)
-                val unitsPreferencesStore = UnitsPreferencesStore(context)
                 val dailyRhythmStore = DailyRhythmStore(context)
                 val mealTimingStore = MealTimingStore(context)
 
@@ -80,9 +99,7 @@ class TodayWidget : GlanceAppWidget() {
                     context = context,
                     ketoRepository = ketoRepository,
                     exerciseRepository = exerciseRepository,
-                    weightRepository = weightRepository,
                     targetsStore = targetsStore,
-                    unitsPreferencesStore = unitsPreferencesStore,
                     dailyRhythmStore = dailyRhythmStore,
                     mealTimingStore = mealTimingStore
                 )
@@ -98,7 +115,7 @@ class TodayWidget : GlanceAppWidget() {
 }
 
 @Composable
-fun TodayWidgetContent(data: TodayWidgetData) {
+fun TodayWidgetContent(data: TodayWidgetData, isRefreshing: Boolean = false) {
     val calPct = if (data.caloriesTarget > 0)
         (data.displayCalories / data.caloriesTarget).toFloat().coerceIn(0f, 1f) else 0f
     val waterPct = if (data.waterTarget > 0)
@@ -140,14 +157,24 @@ fun TodayWidgetContent(data: TodayWidgetData) {
                     )
                 }
                 Spacer(modifier = GlanceModifier.defaultWeight())
-                Image(
-                    provider = ImageProvider(R.drawable.ic_widget_refresh),
-                    contentDescription = "Refresh widget",
-                    modifier = GlanceModifier
-                        .size(18.dp)
-                        .clickable(actionRunCallback<RefreshWidgetAction>()),
-                    colorFilter = ColorFilter.tint(GlanceTheme.colors.onSurfaceVariant)
-                )
+                if (isRefreshing) {
+                    Text(
+                        text = "···",
+                        style = TextStyle(
+                            color = GlanceTheme.colors.onSurfaceVariant,
+                            fontSize = 13.sp
+                        )
+                    )
+                } else {
+                    Image(
+                        provider = ImageProvider(R.drawable.ic_widget_refresh),
+                        contentDescription = "Refresh widget",
+                        modifier = GlanceModifier
+                            .size(18.dp)
+                            .clickable(actionRunCallback<RefreshWidgetAction>()),
+                        colorFilter = ColorFilter.tint(GlanceTheme.colors.onSurfaceVariant)
+                    )
+                }
             }
 
             Spacer(modifier = GlanceModifier.height(6.dp))
@@ -237,36 +264,6 @@ fun TodayWidgetContent(data: TodayWidgetData) {
                 }
             }
 
-            // Weight (wrapped in sub-Column to stay within Glance's 10-child Column limit)
-            if (data.weightKg != null) {
-                Column(modifier = GlanceModifier.fillMaxWidth()) {
-                    Spacer(modifier = GlanceModifier.height(6.dp))
-                    Row(
-                        modifier = GlanceModifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "Weight",
-                            style = TextStyle(
-                                color = GlanceTheme.colors.onSurfaceVariant,
-                                fontSize = 13.sp
-                            )
-                        )
-                        Spacer(modifier = GlanceModifier.defaultWeight())
-                        Text(
-                            text = if (data.weightDate != null)
-                                "%.1f %s  ·  %s".format(data.displayWeight, data.weightUnit.symbol, data.weightDate)
-                            else
-                                "%.1f %s".format(data.displayWeight, data.weightUnit.symbol),
-                            style = TextStyle(
-                                color = GlanceTheme.colors.onSurface,
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                        )
-                    }
-                }
-            }
         }
     }
 }

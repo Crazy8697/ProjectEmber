@@ -1,6 +1,5 @@
 package com.projectember.mobile.widget
 
-import com.projectember.mobile.data.local.WeightUnit
 import com.projectember.mobile.ui.theme.ThemeOption
 
 /**
@@ -34,11 +33,6 @@ data class TodayWidgetData(
     val waterMl: Double = 0.0,
     val waterTarget: Double = 0.0,
 
-    // Weight
-    val weightKg: Double? = null,
-    val weightDate: String? = null,
-    val weightUnit: WeightUnit = WeightUnit.KG,
-
     // Theme
     val themeOption: ThemeOption = ThemeOption.EMBER_DARK,
 
@@ -47,7 +41,4 @@ data class TodayWidgetData(
 ) {
     val displayCalories: Double
         get() = if (caloriesBurned > 0) (caloriesCurrent - caloriesBurned).coerceAtLeast(0.0) else caloriesCurrent
-
-    val displayWeight: Double?
-        get() = weightKg?.let { weightUnit.fromKg(it) }
 }

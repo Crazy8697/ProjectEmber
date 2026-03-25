@@ -4,7 +4,6 @@ import android.content.Context
 import com.projectember.mobile.data.local.DailyRhythmStore
 import com.projectember.mobile.data.local.KetoTargetsStore
 import com.projectember.mobile.data.local.MealTimingStore
-import com.projectember.mobile.data.local.UnitsPreferencesStore
 import com.projectember.mobile.data.local.entities.effectiveCalories
 import com.projectember.mobile.data.local.entities.effectiveFat
 import com.projectember.mobile.data.local.entities.effectiveNetCarbs
@@ -14,7 +13,6 @@ import com.projectember.mobile.data.local.entities.effectiveSodium
 import com.projectember.mobile.data.local.entities.effectiveWater
 import com.projectember.mobile.data.repository.ExerciseRepository
 import com.projectember.mobile.data.repository.KetoRepository
-import com.projectember.mobile.data.repository.WeightRepository
 import com.projectember.mobile.ui.screens.PacingEngine
 import kotlinx.coroutines.flow.first
 import java.time.LocalDate
@@ -29,9 +27,7 @@ class TodayWidgetDataRepository(
     private val context: Context,
     private val ketoRepository: KetoRepository,
     private val exerciseRepository: ExerciseRepository,
-    private val weightRepository: WeightRepository,
     private val targetsStore: KetoTargetsStore,
-    private val unitsPreferencesStore: UnitsPreferencesStore,
     private val dailyRhythmStore: DailyRhythmStore,
     private val mealTimingStore: MealTimingStore
 ) {
@@ -46,8 +42,6 @@ class TodayWidgetDataRepository(
         val entries = ketoRepository.getEntriesForDate(today).first()
         val exerciseEntries = exerciseRepository.getEntriesForDate(today).first()
         val targets = targetsStore.targets.first()
-        val unitPrefs = unitsPreferencesStore.preferencesFlow.first()
-        val lastWeight = weightRepository.getLatestEntry().first()
         val dailyRhythm = dailyRhythmStore.rhythmFlow.first()
         val mealTiming = mealTimingStore.mealTimingFlow.first()
 
@@ -90,9 +84,6 @@ class TodayWidgetDataRepository(
             naKRatio = naKRatio,
             waterMl = waterMl,
             waterTarget = targets.waterMl,
-            weightKg = lastWeight?.weightKg,
-            weightDate = lastWeight?.entryDate,
-            weightUnit = unitPrefs.weightUnit,
             lastUpdated = System.currentTimeMillis()
         )
     }
