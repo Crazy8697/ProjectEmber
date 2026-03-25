@@ -40,9 +40,9 @@ import com.projectember.mobile.data.repository.ExerciseRepository
 import com.projectember.mobile.data.repository.KetoRepository
 import com.projectember.mobile.data.repository.WeightRepository
 import com.projectember.mobile.ui.theme.colorSchemeForTheme
+import androidx.glance.unit.ColorProvider
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import kotlin.math.roundToInt
 
 /**
  * The Today summary widget that mirrors the main app's Today card.
@@ -138,7 +138,7 @@ fun TodayWidgetContent(data: TodayWidgetData) {
                 }
             }
 
-            Spacer(modifier = GlanceModifier.height(8.dp))
+            Spacer(modifier = GlanceModifier.height(6.dp))
 
             // Calories label + value
             Row(
@@ -172,7 +172,7 @@ fun TodayWidgetContent(data: TodayWidgetData) {
                 WidgetProgressBar(progress = calPct)
             }
 
-            Spacer(modifier = GlanceModifier.height(8.dp))
+            Spacer(modifier = GlanceModifier.height(6.dp))
 
             // Macro row: P · NC · F · Na:K
             Row(
@@ -187,7 +187,7 @@ fun TodayWidgetContent(data: TodayWidgetData) {
 
             // Water
             if (data.waterTarget > 0) {
-                Spacer(modifier = GlanceModifier.height(8.dp))
+                Spacer(modifier = GlanceModifier.height(6.dp))
                 Row(
                     modifier = GlanceModifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
@@ -215,7 +215,7 @@ fun TodayWidgetContent(data: TodayWidgetData) {
 
             // Weight
             if (data.weightKg != null) {
-                Spacer(modifier = GlanceModifier.height(8.dp))
+                Spacer(modifier = GlanceModifier.height(6.dp))
                 Row(
                     modifier = GlanceModifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
@@ -246,24 +246,45 @@ fun TodayWidgetContent(data: TodayWidgetData) {
 }
 
 /**
- * Simple 10-segment progress bar for Glance widgets.
- * Each segment uses defaultWeight() so the fill/track ratio is always correct
- * regardless of widget size.
+ * Progress bar for Glance widgets using a Box overlay (track + fill layers).
+ *
+ * The repeat()-based segment approach is unreliable in Glance: when filled==0
+ * all 10 track segments have identical modifiers and Glance's RemoteViews
+ * serializer may collapse or zero-size them.  Two layered Box elements are
+ * always stable regardless of progress value.
+ *
+ * Fill width is calculated against WIDGET_CONTENT_WIDTH_DP, which matches the
+ * minimum widget size (250 dp) minus 2 × 12 dp padding = 226 dp.  The bar
+ * scales correctly at the default widget size; wider placements show a
+ * proportionally shorter fill, which is a known Glance limitation.
  */
+private const val WIDGET_CONTENT_WIDTH_DP = 226f
+
 @Composable
 private fun WidgetProgressBar(
     progress: Float,
+    barColor: ColorProvider = GlanceTheme.colors.primary,
     modifier: GlanceModifier = GlanceModifier
 ) {
-    val filled = (progress.coerceIn(0f, 1f) * 10).roundToInt()
-    Row(modifier = modifier.fillMaxWidth().height(4.dp)) {
-        repeat(filled) {
-            Box(modifier = GlanceModifier.defaultWeight().height(4.dp)
-                .background(GlanceTheme.colors.primary)) {}
-        }
-        repeat(10 - filled) {
-            Box(modifier = GlanceModifier.defaultWeight().height(4.dp)
-                .background(GlanceTheme.colors.surfaceVariant)) {}
+    val pct = progress.coerceIn(0f, 1f)
+    Box(
+        modifier = modifier.fillMaxWidth().height(5.dp),
+        contentAlignment = Alignment.CenterStart
+    ) {
+        // Track — full width, drawn first (bottom layer)
+        Box(
+            modifier = GlanceModifier
+                .fillMaxSize()
+                .background(GlanceTheme.colors.surfaceVariant)
+        ) {}
+        // Fill — partial width, drawn on top (top layer); omitted when empty
+        if (pct > 0f) {
+            Box(
+                modifier = GlanceModifier
+                    .width((pct * WIDGET_CONTENT_WIDTH_DP).dp)
+                    .height(5.dp)
+                    .background(barColor)
+            ) {}
         }
     }
 }
