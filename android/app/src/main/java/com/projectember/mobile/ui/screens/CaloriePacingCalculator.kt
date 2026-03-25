@@ -38,6 +38,7 @@ data class CalorieDayState(
 object CaloriePacingCalculator {
 
     private const val AHEAD_DELTA_FRACTION = 0.08
+    private const val BEHIND_DELTA_FRACTION = 0.08
     private const val OVER_DELTA_FRACTION = 0.18
 
     private val anchorOrder = listOf(AnchorMeal.BREAKFAST, AnchorMeal.LUNCH, AnchorMeal.DINNER)
@@ -328,10 +329,12 @@ object CaloriePacingCalculator {
     private fun classify(actual: Double, expected: Double, target: Double): PacingStatus {
         val delta = actual - expected
         val aheadDelta = target * AHEAD_DELTA_FRACTION
+        val behindDelta = target * BEHIND_DELTA_FRACTION
         val overDelta = target * OVER_DELTA_FRACTION
         return when {
             delta >= overDelta -> PacingStatus.OVER_PACE
             delta >= aheadDelta -> PacingStatus.AHEAD
+            delta <= -behindDelta -> PacingStatus.BEHIND
             else -> PacingStatus.ON_TRACK
         }
     }
@@ -357,4 +360,3 @@ internal fun CalorieDayState.toPacingResult(): PacingResult = PacingResult(
     actualFraction = if (targetCalories > 0) (actualCaloriesByNow / targetCalories).toFloat() else 0f,
     expectedFraction = if (targetCalories > 0) (expectedCaloriesByNow / targetCalories).toFloat() else 0f
 )
-

@@ -30,9 +30,14 @@ internal fun targetRangeStatusColor(value: Double, target: Double): Color {
  * Goal-direction color for "higher is better" metrics (protein, water, magnesium, potassium).
  * ≥ 85 % of target → green; 60–85 % → yellow; < 60 % → red.
  */
-internal fun goalStatusColor(value: Double, target: Double): Color {
+internal fun goalStatusColor(
+    value: Double,
+    target: Double,
+    allowLowWarning: Boolean = true
+): Color {
     if (target <= 0) return Color.Unspecified
     val pct = value / target
+    if (!allowLowWarning && pct < 0.60) return Color.Unspecified
     return when {
         pct >= 0.85 -> SuccessGreen
         pct >= 0.60 -> WarningYellow
@@ -46,8 +51,9 @@ internal fun goalStatusColor(value: Double, target: Double): Color {
  * - null result (eating window not yet open) → [Color.Unspecified] so the caller can
  *   fall back to a neutral/muted style (e.g. [MaterialTheme.colorScheme.onSurface]).
  * - ON_TRACK  → neutral/default (no warning color)
+ * - BEHIND    → yellow
  * - AHEAD     → yellow
- * - OVER/BEHIND → red
+ * - OVER      → red
  *
  * This replaces full-day-deficit colors in the Home Today card so that the app never
  * shows a deep red number for calories at 7 AM just because the daily target hasn't
@@ -61,17 +67,17 @@ internal fun pacingStatusColor(result: PacingResult?): Color {
 /** Accent color for pacing state badges/text. ON_TRACK intentionally stays neutral. */
 internal fun pacingStatusAccentColor(status: PacingStatus): Color = when (status) {
     PacingStatus.ON_TRACK  -> Color.Unspecified
+    PacingStatus.BEHIND    -> WarningYellow
     PacingStatus.AHEAD     -> WarningYellow
-    PacingStatus.OVER_PACE,
-    PacingStatus.BEHIND    -> ErrorRed
+    PacingStatus.OVER_PACE -> ErrorRed
 }
 
 /** Product-safe pacing labels used across Home and Keto tracker cards. */
 internal fun pacingStatusDisplayLabel(status: PacingStatus): String = when (status) {
+    PacingStatus.BEHIND    -> "Behind Pace"
     PacingStatus.ON_TRACK  -> "On Track"
     PacingStatus.AHEAD     -> "Ahead of Pace"
-    PacingStatus.OVER_PACE,
-    PacingStatus.BEHIND    -> "Over Pace / Off Track"
+    PacingStatus.OVER_PACE -> "Over Pace / Off Track"
 }
 
 /**
