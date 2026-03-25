@@ -41,7 +41,9 @@ data class TodaySummary(
     val netCarbsG: Double,
     val waterMl: Double = 0.0,
     /** Calories burned via exercise today; 0 when no exercise logged. */
-    val exerciseBurnedKcal: Double = 0.0
+    val exerciseBurnedKcal: Double = 0.0,
+    val sodiumMg: Double = 0.0,
+    val potassiumMg: Double = 0.0
 )
 
 /**
@@ -131,7 +133,9 @@ class HomeViewModel(
             fatG              = food.sumOf { it.effectiveFat() },
             netCarbsG         = food.sumOf { it.effectiveNetCarbs() },
             waterMl           = food.sumOf { it.effectiveWater() },
-            exerciseBurnedKcal = burned.coerceAtLeast(0.0)
+            exerciseBurnedKcal = burned.coerceAtLeast(0.0),
+            sodiumMg          = food.sumOf { it.effectiveSodium() },
+            potassiumMg       = food.sumOf { it.effectivePotassium() }
         )
     }
         .stateIn(
