@@ -1,6 +1,7 @@
 package com.projectember.mobile.widget
 
 import com.projectember.mobile.data.local.WeightUnit
+import com.projectember.mobile.ui.theme.ThemeOption
 
 /**
  * Shared data model for the Today summary widget.
@@ -37,6 +38,9 @@ data class TodayWidgetData(
     val weightKg: Double? = null,
     val weightDate: String? = null,
     val weightUnit: WeightUnit = WeightUnit.KG,
+
+    // Theme
+    val themeOption: ThemeOption = ThemeOption.EMBER_DARK,
 
     // Timestamp
     val lastUpdated: Long = System.currentTimeMillis()

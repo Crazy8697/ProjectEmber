@@ -28,15 +28,18 @@ import androidx.glance.layout.width
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
+import androidx.glance.material3.ColorProviders
 import com.projectember.mobile.MainActivity
 import com.projectember.mobile.data.local.DailyRhythmStore
 import com.projectember.mobile.data.local.KetoTargetsStore
 import com.projectember.mobile.data.local.MealTimingStore
+import com.projectember.mobile.data.local.ThemePreferencesStore
 import com.projectember.mobile.data.local.UnitsPreferencesStore
 import com.projectember.mobile.data.local.db.AppDatabase
 import com.projectember.mobile.data.repository.ExerciseRepository
 import com.projectember.mobile.data.repository.KetoRepository
 import com.projectember.mobile.data.repository.WeightRepository
+import com.projectember.mobile.ui.theme.colorSchemeForTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlin.math.roundToInt
@@ -49,9 +52,10 @@ class TodayWidget : GlanceAppWidget() {
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val data = fetchWidgetData(context)
+        val scheme = colorSchemeForTheme(data.themeOption)
 
         provideContent {
-            GlanceTheme {
+            GlanceTheme(colors = ColorProviders(light = scheme, dark = scheme)) {
                 TodayWidgetContent(data)
             }
         }
@@ -80,7 +84,8 @@ class TodayWidget : GlanceAppWidget() {
                     mealTimingStore = mealTimingStore
                 )
 
-                widgetRepo.getTodayData()
+                val themeOption = ThemePreferencesStore(context).getTheme()
+                widgetRepo.getTodayData().copy(themeOption = themeOption)
             } catch (e: Exception) {
                 // Return default data on error
                 TodayWidgetData()
@@ -115,6 +120,7 @@ fun TodayWidgetContent(data: TodayWidgetData) {
                 Text(
                     text = "Today",
                     style = TextStyle(
+                        color = GlanceTheme.colors.onSurface,
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -124,6 +130,7 @@ fun TodayWidgetContent(data: TodayWidgetData) {
                     Text(
                         text = formatPacingStatus(data.pacingStatus),
                         style = TextStyle(
+                            color = GlanceTheme.colors.primary,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Medium
                         )
@@ -140,7 +147,10 @@ fun TodayWidgetContent(data: TodayWidgetData) {
             ) {
                 Text(
                     text = if (data.caloriesBurned > 0) "Cal (net)" else "Calories",
-                    style = TextStyle(fontSize = 13.sp)
+                    style = TextStyle(
+                        color = GlanceTheme.colors.onSurfaceVariant,
+                        fontSize = 13.sp
+                    )
                 )
                 Spacer(modifier = GlanceModifier.defaultWeight())
                 Text(
@@ -149,6 +159,7 @@ fun TodayWidgetContent(data: TodayWidgetData) {
                     else
                         "%.0f kcal".format(data.displayCalories),
                     style = TextStyle(
+                        color = GlanceTheme.colors.onSurface,
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -183,12 +194,16 @@ fun TodayWidgetContent(data: TodayWidgetData) {
                 ) {
                     Text(
                         text = "Water",
-                        style = TextStyle(fontSize = 13.sp)
+                        style = TextStyle(
+                            color = GlanceTheme.colors.onSurfaceVariant,
+                            fontSize = 13.sp
+                        )
                     )
                     Spacer(modifier = GlanceModifier.defaultWeight())
                     Text(
                         text = "%.0f / %.0f mL".format(data.waterMl, data.waterTarget),
                         style = TextStyle(
+                            color = GlanceTheme.colors.onSurface,
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Bold
                         )
@@ -207,7 +222,10 @@ fun TodayWidgetContent(data: TodayWidgetData) {
                 ) {
                     Text(
                         text = "Weight",
-                        style = TextStyle(fontSize = 13.sp)
+                        style = TextStyle(
+                            color = GlanceTheme.colors.onSurfaceVariant,
+                            fontSize = 13.sp
+                        )
                     )
                     Spacer(modifier = GlanceModifier.defaultWeight())
                     Text(
@@ -216,6 +234,7 @@ fun TodayWidgetContent(data: TodayWidgetData) {
                         else
                             "%.1f %s".format(data.displayWeight, data.weightUnit.symbol),
                         style = TextStyle(
+                            color = GlanceTheme.colors.onSurface,
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Bold
                         )
@@ -263,7 +282,10 @@ fun MacroBox(
     ) {
         Text(
             text = label,
-            style = TextStyle(fontSize = 12.sp)
+            style = TextStyle(
+                color = GlanceTheme.colors.onSurfaceVariant,
+                fontSize = 12.sp
+            )
         )
         Spacer(modifier = GlanceModifier.height(2.dp))
         val formattedValue = if (decimalPlaces > 0) {
@@ -274,6 +296,7 @@ fun MacroBox(
         Text(
             text = formattedValue,
             style = TextStyle(
+                color = GlanceTheme.colors.onSurface,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold
             )
