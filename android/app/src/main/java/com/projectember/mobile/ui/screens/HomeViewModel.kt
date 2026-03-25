@@ -141,7 +141,16 @@ class HomeViewModel(
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
-            initialValue = TodaySummary(0.0, 0.0, 0.0, 0.0, 0.0)
+            initialValue = TodaySummary(
+                calories = 0.0,
+                proteinG = 0.0,
+                fatG = 0.0,
+                netCarbsG = 0.0,
+                waterMl = 0.0,
+                exerciseBurnedKcal = 0.0,
+                sodiumMg = 0.0,
+                potassiumMg = 0.0
+            )
         )
 
     // ── Smart pacing ──────────────────────────────────────────────────────────
