@@ -1,5 +1,6 @@
 package com.projectember.mobile.ui.theme
 
+import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
@@ -215,6 +216,23 @@ private val AbyssColorScheme = darkColorScheme(
     error = ErrorRed,
     onError = OnSurface
 )
+
+// ── Public accessor for widget / non-Compose consumers ───────────────────────
+
+/**
+ * Returns the Material3 [ColorScheme] for [option].
+ * Intended for use by the home-screen widget, which cannot use CompositionLocals.
+ */
+fun colorSchemeForTheme(option: ThemeOption): ColorScheme = when (option) {
+    ThemeOption.EMBER_DARK -> EmberDarkColorScheme
+    ThemeOption.MIDNIGHT   -> MidnightColorScheme
+    ThemeOption.FOREST     -> ForestColorScheme
+    ThemeOption.SLATE      -> SlateColorScheme
+    ThemeOption.CRIMSON    -> CrimsonColorScheme
+    ThemeOption.DUSK       -> DuskColorScheme
+    ThemeOption.ARCTIC     -> ArcticColorScheme
+    ThemeOption.ABYSS      -> AbyssColorScheme
+}
 
 // ── CompositionLocal for active theme option ──────────────────────────────────
 

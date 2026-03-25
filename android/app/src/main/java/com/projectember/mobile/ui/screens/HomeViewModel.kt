@@ -19,6 +19,8 @@ import com.projectember.mobile.data.local.entities.effectiveCalories
 import com.projectember.mobile.data.local.entities.effectiveFat
 import com.projectember.mobile.data.local.entities.effectiveNetCarbs
 import com.projectember.mobile.data.local.entities.effectiveProtein
+import com.projectember.mobile.data.local.entities.effectivePotassium
+import com.projectember.mobile.data.local.entities.effectiveSodium
 import com.projectember.mobile.data.local.entities.effectiveWater
 import com.projectember.mobile.data.repository.ExerciseRepository
 import com.projectember.mobile.data.repository.KetoRepository
@@ -41,7 +43,9 @@ data class TodaySummary(
     val netCarbsG: Double,
     val waterMl: Double = 0.0,
     /** Calories burned via exercise today; 0 when no exercise logged. */
-    val exerciseBurnedKcal: Double = 0.0
+    val exerciseBurnedKcal: Double = 0.0,
+    val sodiumMg: Double = 0.0,
+    val potassiumMg: Double = 0.0
 )
 
 /**
@@ -131,13 +135,24 @@ class HomeViewModel(
             fatG              = food.sumOf { it.effectiveFat() },
             netCarbsG         = food.sumOf { it.effectiveNetCarbs() },
             waterMl           = food.sumOf { it.effectiveWater() },
-            exerciseBurnedKcal = burned.coerceAtLeast(0.0)
+            exerciseBurnedKcal = burned.coerceAtLeast(0.0),
+            sodiumMg          = food.sumOf { it.effectiveSodium() },
+            potassiumMg       = food.sumOf { it.effectivePotassium() }
         )
     }
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
-            initialValue = TodaySummary(0.0, 0.0, 0.0, 0.0, 0.0)
+            initialValue = TodaySummary(
+                calories = 0.0,
+                proteinG = 0.0,
+                fatG = 0.0,
+                netCarbsG = 0.0,
+                waterMl = 0.0,
+                exerciseBurnedKcal = 0.0,
+                sodiumMg = 0.0,
+                potassiumMg = 0.0
+            )
         )
 
     // ── Smart pacing ──────────────────────────────────────────────────────────

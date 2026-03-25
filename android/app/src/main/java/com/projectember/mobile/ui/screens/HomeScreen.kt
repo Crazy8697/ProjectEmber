@@ -291,20 +291,18 @@ private fun TodaySummaryCard(
                 }
             }
 
-            // Macro row
+            // Macro row: P · NC · F · Na:K on one evenly-spaced line
+            val naKRatio = if (summary.potassiumMg > 0) summary.sodiumMg / summary.potassiumMg else 0.0
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
+                horizontalArrangement = Arrangement.SpaceEvenly
             ) {
-                // Protein: pacing-aware (null → neutral before window opens)
                 MacroChip(
                     label = "P",
                     value = summary.proteinG,
                     unit = "g",
-                    statusColor = pacingStatusColor(pacing.protein),
-                    modifier = Modifier.weight(1f)
+                    statusColor = pacingStatusColor(pacing.protein)
                 )
-                // Net carbs: pacing-aware when available; strict-limit rule otherwise
                 MacroChip(
                     label = "NC",
                     value = summary.netCarbsG,
@@ -312,17 +310,21 @@ private fun TodaySummaryCard(
                     statusColor = pacingStatusColor(pacing.netCarbs)
                         .takeIf { it != Color.Unspecified }
                         ?: if (windowOpen) strictLimitStatusColor(summary.netCarbsG, netCarbsTarget)
-                           else Color.Unspecified,
-                    modifier = Modifier.weight(1f)
+                           else Color.Unspecified
                 )
-                // Fat: not pacing-tracked; neutral before window, target-range after
                 MacroChip(
                     label = "F",
                     value = summary.fatG,
                     unit = "g",
                     statusColor = if (windowOpen) targetRangeStatusColor(summary.fatG, fatTarget)
-                                  else Color.Unspecified,
-                    modifier = Modifier.weight(1f)
+                                  else Color.Unspecified
+                )
+                MacroChip(
+                    label = "Na:K",
+                    value = naKRatio,
+                    unit = "",
+                    statusColor = Color.Unspecified,
+                    decimalPlaces = 2
                 )
             }
 
@@ -392,10 +394,17 @@ private fun MacroChip(
     value: Double,
     unit: String,
     statusColor: Color,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    decimalPlaces: Int = 0
 ) {
     val color = (if (statusColor != Color.Unspecified) statusColor
                  else MaterialTheme.colorScheme.onSurface).accessible()
+
+    val formattedValue = if (decimalPlaces > 0) {
+        "%.${decimalPlaces}f%s".format(value, unit)
+    } else {
+        "%.0f%s".format(value, unit)
+    }
 
     Box(modifier = modifier) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -405,7 +414,7 @@ private fun MacroChip(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
-                text = "%.0f%s".format(value, unit),
+                text = formattedValue,
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = color

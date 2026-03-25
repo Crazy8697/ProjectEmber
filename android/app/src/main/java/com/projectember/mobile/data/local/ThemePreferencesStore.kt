@@ -2,6 +2,7 @@ package com.projectember.mobile.data.local
 
 import android.content.Context
 import com.projectember.mobile.ui.theme.ThemeOption
+import com.projectember.mobile.widget.TodayWidgetUpdater
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -15,7 +16,8 @@ private const val KEY_THEME = "selected_theme"
  */
 class ThemePreferencesStore(context: Context) {
 
-    private val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    private val appContext = context.applicationContext
+    private val prefs = appContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
     private val _themeFlow = MutableStateFlow(loadTheme())
     val themeFlow: Flow<ThemeOption> = _themeFlow.asStateFlow()
@@ -25,6 +27,7 @@ class ThemePreferencesStore(context: Context) {
     fun setTheme(theme: ThemeOption) {
         prefs.edit().putString(KEY_THEME, theme.name).apply()
         _themeFlow.value = theme
+        TodayWidgetUpdater.updateWidgets(appContext)
     }
 
     private fun loadTheme(): ThemeOption =
