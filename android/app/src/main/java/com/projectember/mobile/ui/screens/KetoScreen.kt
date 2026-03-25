@@ -70,6 +70,8 @@ fun KetoScreen(
     val volUnit    = unitPrefs.volumeUnit
     val weightMetricEnabled by viewModel.weightMetricEnabled.collectAsState()
     val pacing by viewModel.trackerPacing.collectAsState()
+    val windowOpen = pacing.calories != null || pacing.protein != null
+    val isEarlyToday = selectedDate == viewModel.today && !windowOpen
 
     var showHelp by remember { mutableStateOf(false) }
     var showDatePicker by remember { mutableStateOf(false) }
@@ -275,7 +277,8 @@ fun KetoScreen(
                     val calorieStatusColor = if (pacing.calories != null) {
                         pacingStatusColor(pacing.calories)
                     } else {
-                        targetRangeStatusColor(displayCalories, targets.caloriesKcal)
+                        if (isEarlyToday) Color.Unspecified
+                        else targetRangeStatusColor(displayCalories, targets.caloriesKcal)
                     }
                     MetricBlock(
                         modifier = Modifier.weight(1f),
@@ -297,7 +300,11 @@ fun KetoScreen(
                         unit = "g",
                         targetLabel = "target %.0f".format(targets.proteinG),
                         diff = todayProtein - targets.proteinG,
-                        statusColor = goalStatusColor(todayProtein, targets.proteinG),
+                        statusColor = goalStatusColor(
+                            value = todayProtein,
+                            target = targets.proteinG,
+                            allowLowWarning = !isEarlyToday
+                        ),
                         onClick = { onNavigateToTrends("protein") }
                     )
                 }
@@ -316,7 +323,8 @@ fun KetoScreen(
                         unit = "g",
                         targetLabel = "target %.0f".format(targets.fatG),
                         diff = todayFat - targets.fatG,
-                        statusColor = targetRangeStatusColor(todayFat, targets.fatG),
+                        statusColor = if (isEarlyToday) Color.Unspecified
+                        else targetRangeStatusColor(todayFat, targets.fatG),
                         onClick = { onNavigateToTrends("fat") }
                     )
                     MetricBlock(
@@ -343,6 +351,7 @@ fun KetoScreen(
                         todayWater = todayWater,
                         targetWater = targets.waterMl,
                         hydrationPct = hydrationPct,
+                        allowLowWarning = !isEarlyToday,
                         volUnit = volUnit,
                         onClick = { onNavigateToTrends("hydration") }
                     )
@@ -371,7 +380,11 @@ fun KetoScreen(
                         unit = "mg",
                         targetLabel = "target %.0f".format(targets.magnesiumMg),
                         diff = todayMagnesium - targets.magnesiumMg,
-                        statusColor = goalStatusColor(todayMagnesium, targets.magnesiumMg),
+                        statusColor = goalStatusColor(
+                            value = todayMagnesium,
+                            target = targets.magnesiumMg,
+                            allowLowWarning = !isEarlyToday
+                        ),
                         onClick = { onNavigateToTrends("magnesium") }
                     )
                     if (weightMetricEnabled) {
@@ -536,10 +549,15 @@ private fun HydrationBlock(
     todayWater: Double,
     targetWater: Double,
     hydrationPct: Int,
+    allowLowWarning: Boolean,
     volUnit: com.projectember.mobile.data.local.VolumeUnit = com.projectember.mobile.data.local.VolumeUnit.ML,
     onClick: () -> Unit
 ) {
-    val statusColor = goalStatusColor(todayWater, targetWater)
+    val statusColor = goalStatusColor(
+        value = todayWater,
+        target = targetWater,
+        allowLowWarning = allowLowWarning
+    )
     val barColor = if (statusColor != Color.Unspecified) statusColor else KetoAccent
     val progress = if (targetWater > 0)
         (todayWater / targetWater).coerceIn(0.0, 1.0).toFloat() else 0f

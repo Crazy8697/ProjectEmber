@@ -416,7 +416,7 @@ private fun MacroChip(
 
 /**
  * Small pill-shaped chip that displays the smart pacing status label.
- * Color mirrors pacing severity: neutral = on track, yellow = ahead, red = over/off track.
+ * Color mirrors pacing severity: neutral = on track, yellow = behind/ahead, red = over/off track.
  */
 @Composable
 private fun PacingChip(result: PacingResult) {
