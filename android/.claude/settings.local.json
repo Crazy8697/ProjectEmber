@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(./gradlew assembleDebug)",
+      "Bash(GRADLE=/home/daddy/.gradle/wrapper/dists/gradle-8.11.1-bin/bpt9gzteqjrbo1mjrsomdt32c/gradle-8.11.1/bin/gradle)",
+      "Bash($GRADLE assembleDebug --project-dir /var/home/daddy/StudioProjects/ProjectEmber/android)",
+      "Bash(git checkout:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git:*)",
+      "Bash(jar tf:*)",
+      "Bash(unzip -l /home/daddy/.gradle/caches/8.11.1/transforms/e3c72d5461f07be1433b484412588723/transformed/glance-appwidget-1.1.0-api.jar)",
+      "Bash(unzip -p /home/daddy/.gradle/caches/modules-2/files-2.1/androidx.glance/glance-appwidget/1.1.0/74e42a0f4b9eee561fd838ebb156fd7898cf5694/glance-appwidget-1.1.0-sources.jar androidx/glance/appwidget/LinearProgressIndicator.kt)",
+      "Bash(unzip:*)",
+      "Bash(xargs -I{} sh -c \"unzip -l \"\"{}\"\" 2>/dev/null | grep -q \"\"linear_progress\"\" && echo \"\"{}\"\"\")",
+      "Read(//tmp/glance_aar/extracted/res/drawable/**)",
+      "Read(//tmp/glance_aar/extracted/res/values/**)",
+      "Bash(./gradlew :app:compileDebugKotlin)",
+      "Bash(gradle --version)",
+      "Bash(xargs cat:*)",
+      "Bash(grep -v \"/$\")"
+    ]
+  }
+}
