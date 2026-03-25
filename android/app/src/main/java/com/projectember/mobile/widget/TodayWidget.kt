@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.glance.ColorFilter
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
 import androidx.glance.GlanceTheme
@@ -13,6 +14,7 @@ import androidx.glance.action.actionStartActivity
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.LinearProgressIndicator
+import androidx.glance.appwidget.action.actionRunCallback
 import androidx.glance.appwidget.provideContent
 import androidx.glance.background
 import androidx.glance.layout.Alignment
@@ -24,7 +26,9 @@ import androidx.glance.layout.fillMaxSize
 import androidx.glance.layout.fillMaxWidth
 import androidx.glance.layout.height
 import androidx.glance.layout.padding
+import androidx.glance.layout.size
 import androidx.glance.layout.width
+import com.projectember.mobile.R
 import androidx.glance.material3.ColorProviders
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
@@ -111,7 +115,7 @@ fun TodayWidgetContent(data: TodayWidgetData) {
         Column(
             modifier = GlanceModifier.fillMaxWidth()
         ) {
-            // Header with pacing badge
+            // Header with pacing badge and refresh button
             Row(
                 modifier = GlanceModifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
@@ -135,6 +139,15 @@ fun TodayWidgetContent(data: TodayWidgetData) {
                         )
                     )
                 }
+                Spacer(modifier = GlanceModifier.defaultWeight())
+                Image(
+                    provider = ImageProvider(R.drawable.ic_widget_refresh),
+                    contentDescription = "Refresh widget",
+                    modifier = GlanceModifier
+                        .size(18.dp)
+                        .clickable(actionRunCallback<RefreshWidgetAction>()),
+                    colorFilter = ColorFilter.tint(GlanceTheme.colors.onSurfaceVariant)
+                )
             }
 
             Spacer(modifier = GlanceModifier.height(6.dp))
