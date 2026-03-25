@@ -145,8 +145,17 @@ fun TodayWidgetContent(data: TodayWidgetData, isRefreshing: Boolean = false) {
                         fontWeight = FontWeight.Bold
                     )
                 )
-                if (data.pacingStatus != null) {
-                    Spacer(modifier = GlanceModifier.width(8.dp))
+                Spacer(modifier = GlanceModifier.width(8.dp))
+                // While refreshing show "···" in the badge slot; otherwise show pacing status.
+                if (isRefreshing) {
+                    Text(
+                        text = "···",
+                        style = TextStyle(
+                            color = GlanceTheme.colors.onSurfaceVariant,
+                            fontSize = 11.sp
+                        )
+                    )
+                } else if (data.pacingStatus != null) {
                     Text(
                         text = formatPacingStatus(data.pacingStatus),
                         style = TextStyle(
@@ -157,24 +166,15 @@ fun TodayWidgetContent(data: TodayWidgetData, isRefreshing: Boolean = false) {
                     )
                 }
                 Spacer(modifier = GlanceModifier.defaultWeight())
-                if (isRefreshing) {
-                    Text(
-                        text = "···",
-                        style = TextStyle(
-                            color = GlanceTheme.colors.onSurfaceVariant,
-                            fontSize = 13.sp
-                        )
-                    )
-                } else {
-                    Image(
-                        provider = ImageProvider(R.drawable.ic_widget_refresh),
-                        contentDescription = "Refresh widget",
-                        modifier = GlanceModifier
-                            .size(18.dp)
-                            .clickable(actionRunCallback<RefreshWidgetAction>()),
-                        colorFilter = ColorFilter.tint(GlanceTheme.colors.onSurfaceVariant)
-                    )
-                }
+                // Refresh icon is always present and tappable.
+                Image(
+                    provider = ImageProvider(R.drawable.ic_widget_refresh),
+                    contentDescription = "Refresh widget",
+                    modifier = GlanceModifier
+                        .size(18.dp)
+                        .clickable(actionRunCallback<RefreshWidgetAction>()),
+                    colorFilter = ColorFilter.tint(GlanceTheme.colors.onSurfaceVariant)
+                )
             }
 
             Spacer(modifier = GlanceModifier.height(6.dp))
