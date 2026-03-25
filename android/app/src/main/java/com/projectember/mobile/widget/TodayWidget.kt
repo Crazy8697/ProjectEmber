@@ -2,7 +2,6 @@ package com.projectember.mobile.widget
 
 import android.content.Context
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.glance.GlanceId
@@ -13,6 +12,7 @@ import androidx.glance.ImageProvider
 import androidx.glance.action.actionStartActivity
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
+import androidx.glance.appwidget.LinearProgressIndicator
 import androidx.glance.appwidget.provideContent
 import androidx.glance.background
 import androidx.glance.layout.Alignment
@@ -25,10 +25,10 @@ import androidx.glance.layout.fillMaxWidth
 import androidx.glance.layout.height
 import androidx.glance.layout.padding
 import androidx.glance.layout.width
+import androidx.glance.material3.ColorProviders
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
-import androidx.glance.material3.ColorProviders
 import com.projectember.mobile.MainActivity
 import com.projectember.mobile.data.local.DailyRhythmStore
 import com.projectember.mobile.data.local.KetoTargetsStore
@@ -40,7 +40,6 @@ import com.projectember.mobile.data.repository.ExerciseRepository
 import com.projectember.mobile.data.repository.KetoRepository
 import com.projectember.mobile.data.repository.WeightRepository
 import com.projectember.mobile.ui.theme.colorSchemeForTheme
-import androidx.glance.unit.ColorProvider
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -169,7 +168,12 @@ fun TodayWidgetContent(data: TodayWidgetData) {
             // Calories progress bar
             if (data.caloriesTarget > 0) {
                 Spacer(modifier = GlanceModifier.height(4.dp))
-                WidgetProgressBar(progress = calPct)
+                LinearProgressIndicator(
+                    progress = calPct,
+                    modifier = GlanceModifier.fillMaxWidth(),
+                    color = GlanceTheme.colors.primary,
+                    backgroundColor = GlanceTheme.colors.surfaceVariant
+                )
             }
 
             Spacer(modifier = GlanceModifier.height(6.dp))
@@ -210,7 +214,12 @@ fun TodayWidgetContent(data: TodayWidgetData) {
                     )
                 }
                 Spacer(modifier = GlanceModifier.height(4.dp))
-                WidgetProgressBar(progress = waterPct)
+                LinearProgressIndicator(
+                    progress = waterPct,
+                    modifier = GlanceModifier.fillMaxWidth(),
+                    color = GlanceTheme.colors.primary,
+                    backgroundColor = GlanceTheme.colors.surfaceVariant
+                )
             }
 
             // Weight
@@ -245,49 +254,6 @@ fun TodayWidgetContent(data: TodayWidgetData) {
     }
 }
 
-/**
- * Progress bar for Glance widgets using a Box overlay (track + fill layers).
- *
- * The repeat()-based segment approach is unreliable in Glance: when filled==0
- * all 10 track segments have identical modifiers and Glance's RemoteViews
- * serializer may collapse or zero-size them.  Two layered Box elements are
- * always stable regardless of progress value.
- *
- * Fill width is calculated against WIDGET_CONTENT_WIDTH_DP, which matches the
- * minimum widget size (250 dp) minus 2 × 12 dp padding = 226 dp.  The bar
- * scales correctly at the default widget size; wider placements show a
- * proportionally shorter fill, which is a known Glance limitation.
- */
-private const val WIDGET_CONTENT_WIDTH_DP = 226f
-
-@Composable
-private fun WidgetProgressBar(
-    progress: Float,
-    barColor: ColorProvider = GlanceTheme.colors.primary,
-    modifier: GlanceModifier = GlanceModifier
-) {
-    val pct = progress.coerceIn(0f, 1f)
-    Box(
-        modifier = modifier.fillMaxWidth().height(5.dp),
-        contentAlignment = Alignment.CenterStart
-    ) {
-        // Track — full width, drawn first (bottom layer)
-        Box(
-            modifier = GlanceModifier
-                .fillMaxSize()
-                .background(GlanceTheme.colors.surfaceVariant)
-        ) {}
-        // Fill — partial width, drawn on top (top layer); omitted when empty
-        if (pct > 0f) {
-            Box(
-                modifier = GlanceModifier
-                    .width((pct * WIDGET_CONTENT_WIDTH_DP).dp)
-                    .height(5.dp)
-                    .background(barColor)
-            ) {}
-        }
-    }
-}
 
 @Composable
 fun MacroBox(
