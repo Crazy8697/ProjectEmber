@@ -60,6 +60,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import androidx.health.connect.client.PermissionController
 import com.projectember.mobile.BuildConfig
+import com.projectember.mobile.data.backup.NightlyBackupStore
 import com.projectember.mobile.data.local.FoodWeightUnit
 import com.projectember.mobile.data.local.HealthMetric
 import com.projectember.mobile.data.local.VolumeUnit
@@ -67,6 +68,9 @@ import com.projectember.mobile.data.local.WeightUnit
 import com.projectember.mobile.sync.HealthConnectUiState
 import com.projectember.mobile.ui.theme.ThemeOption
 import java.io.File
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -85,6 +89,10 @@ fun SettingsScreen(
     val unitPrefs by viewModel.unitPreferences.collectAsState()
     val enabledMetrics by viewModel.enabledMetrics.collectAsState()
     val graphEnabledMetrics by viewModel.graphEnabledMetrics.collectAsState()
+    val autoBackupEnabled by viewModel.autoBackupEnabled.collectAsState()
+    val retentionCount by viewModel.retentionCount.collectAsState()
+    val lastBackupMs by viewModel.lastBackupMs.collectAsState()
+    val manualBackupState by viewModel.manualBackupState.collectAsState()
 
     val context = LocalContext.current
 
@@ -137,6 +145,21 @@ fun SettingsScreen(
             is BackupOpState.Error -> {
                 snackbarHostState.showSnackbar("Reset error: ${s.message}")
                 viewModel.clearResetState()
+            }
+            else -> Unit
+        }
+    }
+
+    // ── Snackbar feedback for manual backup ──────────────────────────────────
+    LaunchedEffect(manualBackupState) {
+        when (val s = manualBackupState) {
+            is BackupOpState.Success -> {
+                snackbarHostState.showSnackbar(s.message)
+                viewModel.clearManualBackupState()
+            }
+            is BackupOpState.Error -> {
+                snackbarHostState.showSnackbar("Backup error: ${s.message}")
+                viewModel.clearManualBackupState()
             }
             else -> Unit
         }
@@ -198,7 +221,8 @@ fun SettingsScreen(
 
     val isBusy = exportState is BackupOpState.InProgress ||
         importState is BackupOpState.InProgress ||
-        resetState is BackupOpState.InProgress
+        resetState is BackupOpState.InProgress ||
+        manualBackupState is BackupOpState.InProgress
 
     Scaffold(
         topBar = {
@@ -717,6 +741,95 @@ fun SettingsScreen(
                             color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
                             thickness = 0.5.dp
                         )
+                    }
+                }
+            }
+
+            // ── Nightly Backup ───────────────────────────────────────────────
+            SettingsSection(title = "Nightly Backup") {
+                // Auto-backup toggle
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Auto Backup",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(start = 12.dp)
+                    )
+                    Switch(
+                        checked = autoBackupEnabled,
+                        onCheckedChange = { viewModel.setAutoBackupEnabled(it) }
+                    )
+                }
+                HorizontalDivider(
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                    thickness = 0.5.dp
+                )
+
+                SettingsRow(
+                    label = "Backup Time",
+                    value = "%02d:%02d local".format(
+                        NightlyBackupStore.BACKUP_HOUR,
+                        NightlyBackupStore.BACKUP_MINUTE
+                    )
+                )
+                SettingsRow(label = "Location", value = "Documents/Ember/Backups/")
+
+                // Retention count (2 or 3)
+                SettingsSubLabel(text = "Keep backups")
+                listOf(2, 3).forEachIndexed { index, count ->
+                    SettingsRadioRow(
+                        label = "$count most recent",
+                        selected = retentionCount == count,
+                        onClick = { viewModel.setRetentionCount(count) }
+                    )
+                    if (index < 1) {
+                        HorizontalDivider(
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                            thickness = 0.5.dp
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+                HorizontalDivider(
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                    thickness = 0.5.dp
+                )
+
+                // Last backup timestamp
+                val lastBackupLabel = if (lastBackupMs == 0L) {
+                    "Never"
+                } else {
+                    runCatching {
+                        Instant.ofEpochMilli(lastBackupMs)
+                            .atZone(ZoneId.systemDefault())
+                            .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))
+                    }.getOrElse { "Unknown" }
+                }
+                SettingsRow(label = "Last Backup", value = lastBackupLabel)
+
+                // Backup Now button
+                Spacer(modifier = Modifier.height(4.dp))
+                Button(
+                    onClick = { viewModel.runManualBackup() },
+                    enabled = !isBusy,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    if (manualBackupState is BackupOpState.InProgress) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
+                        Text("  Backing up…")
+                    } else {
+                        Text("Backup Now")
                     }
                 }
             }

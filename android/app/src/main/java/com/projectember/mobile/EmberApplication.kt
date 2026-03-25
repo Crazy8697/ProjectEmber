@@ -2,6 +2,9 @@ package com.projectember.mobile
 
 import android.app.Application
 import com.projectember.mobile.data.backup.BackupManager
+import com.projectember.mobile.data.backup.NightlyBackupEngine
+import com.projectember.mobile.data.backup.NightlyBackupScheduler
+import com.projectember.mobile.data.backup.NightlyBackupStore
 import com.projectember.mobile.data.keto.KetoImportManager
 import com.projectember.mobile.data.recipe.RecipeImportExportManager
 import com.projectember.mobile.data.local.db.AppDatabase
@@ -76,6 +79,7 @@ class EmberApplication : Application() {
             weightRepository = weightRepository,
             supplementRepository = supplementRepository,
             stackDefinitionRepository = stackDefinitionRepository,
+            manualHealthEntryRepository = manualHealthEntryRepository,
             ketoTargetsStore = ketoTargetsStore,
             themePreferencesStore = themePreferencesStore,
             unitsPreferencesStore = unitsPreferencesStore,
@@ -83,6 +87,16 @@ class EmberApplication : Application() {
             mealTimingStore = mealTimingStore,
             healthMetricPreferencesStore = healthMetricPreferencesStore,
             appVersion = BuildConfig.VERSION_NAME
+        )
+    }
+
+    val nightlyBackupStore by lazy { NightlyBackupStore(this) }
+
+    val nightlyBackupEngine by lazy {
+        NightlyBackupEngine(
+            context = applicationContext,
+            backupManager = backupManager,
+            store = nightlyBackupStore
         )
     }
 
@@ -117,6 +131,8 @@ class EmberApplication : Application() {
             HealthSyncReceiver.scheduleDaily(applicationContext)
             // Schedule periodic widget updates for day rollover
             WidgetUpdateWorker.schedule(applicationContext)
+            // Schedule nightly master backup at 23:59 local time
+            NightlyBackupScheduler.schedule(applicationContext)
         }
     }
 

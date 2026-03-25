@@ -338,7 +338,9 @@ fun EmberNavGraph(
                     app.unitsPreferencesStore,
                     app.dailyRhythmStore,
                     app.mealTimingStore,
-                    app.healthMetricPreferencesStore
+                    app.healthMetricPreferencesStore,
+                    app.nightlyBackupStore,
+                    app.nightlyBackupEngine
                 )
             )
             SettingsScreen(

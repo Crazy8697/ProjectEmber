@@ -20,6 +20,7 @@ data class BackupPayloadV1(
     val weightEntries: List<WeightEntryDto>,
     val supplementEntries: List<SupplementEntryDto> = emptyList(),
     val stackDefinitions: List<StackDefinitionDto> = emptyList(),
+    val manualHealthEntries: List<ManualHealthEntryDto> = emptyList(),
     val ketoTargets: KetoTargetsDto,
     // Newly added preference coverage
     val theme: ThemeDto = ThemeDto(),
@@ -153,6 +154,16 @@ data class SupplementEntryDto(
     val notes: String? = null,
     val stackDefinitionId: Int? = null,
     val ketoEntryId: Int? = null
+)
+
+data class ManualHealthEntryDto(
+    val id: Int = 0,
+    val metricType: String,
+    val value1: Double,
+    val value2: Double? = null,
+    val entryDate: String,
+    val entryTime: String,
+    val source: String = "manual"
 )
 
 data class StackDefinitionDto(
