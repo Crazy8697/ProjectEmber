@@ -78,5 +78,8 @@ dependencies {
 
     implementation(libs.health.connect)
 
+    implementation(libs.androidx.glance.appwidget)
+    implementation(libs.androidx.glance.material3)
+
     debugImplementation(libs.androidx.ui.tooling)
 }
