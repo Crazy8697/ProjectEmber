@@ -6,8 +6,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -24,14 +22,14 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -71,7 +69,8 @@ fun RecipesScreen(
     onNavigateBack: () -> Unit,
     onNavigateToAddRecipe: () -> Unit,
     onNavigateToEditRecipe: (Int) -> Unit,
-    onNavigateToNerdMode: () -> Unit
+    onNavigateToNerdMode: () -> Unit,
+    onNavigateToBulkCategory: () -> Unit = {}
 ) {
     val recipes by viewModel.recipes.collectAsState()
     val selectedRecipe by viewModel.selectedRecipe.collectAsState()
@@ -82,6 +81,7 @@ fun RecipesScreen(
     val coroutineScope = rememberCoroutineScope()
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showRecipeMenu by remember { mutableStateOf(false) }
+    var showMainMenu by remember { mutableStateOf(false) }
 
     if (showDeleteDialog) {
         val recipeName = selectedRecipe?.name ?: ""
@@ -170,11 +170,35 @@ fun RecipesScreen(
                             }
                         }
                     } else {
-                        IconButton(onClick = onNavigateToNerdMode) {
-                            Icon(
-                                Icons.Default.Settings,
-                                contentDescription = "Recipe Settings"
-                            )
+                        Box {
+                            IconButton(onClick = { showMainMenu = true }) {
+                                Icon(Icons.Default.MoreVert, contentDescription = "More options")
+                            }
+                            DropdownMenu(
+                                expanded = showMainMenu,
+                                onDismissRequest = { showMainMenu = false }
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text("Category Manager") },
+                                    leadingIcon = {
+                                        Icon(Icons.Default.Edit, contentDescription = null)
+                                    },
+                                    onClick = {
+                                        showMainMenu = false
+                                        onNavigateToBulkCategory()
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Recipe Settings") },
+                                    leadingIcon = {
+                                        Icon(Icons.Default.Settings, contentDescription = null)
+                                    },
+                                    onClick = {
+                                        showMainMenu = false
+                                        onNavigateToNerdMode()
+                                    }
+                                )
+                            }
                         }
                     }
                 },
@@ -251,7 +275,7 @@ fun RecipesScreen(
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun RecipeListView(
     recipes: List<Recipe>,
@@ -283,22 +307,37 @@ private fun RecipeListView(
 
         if (availableCategories.size > 1) {
             item {
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                var dropdownExpanded by remember { mutableStateOf(false) }
+                ExposedDropdownMenuBox(
+                    expanded = dropdownExpanded,
+                    onExpandedChange = { dropdownExpanded = it },
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    availableCategories.forEach { cat ->
-                        val isSelected = selectedCategory == cat
-                        AssistChip(
-                            onClick = { onCategorySelected(cat) },
-                            label = { Text(cat) },
-                            colors = AssistChipDefaults.assistChipColors(
-                                containerColor = if (isSelected) KetoAccent
-                                    else MaterialTheme.colorScheme.surfaceVariant,
-                                labelColor = if (isSelected) MaterialTheme.colorScheme.onPrimary
-                                    else MaterialTheme.colorScheme.onSurfaceVariant
+                    OutlinedTextField(
+                        value = selectedCategory,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Category") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = dropdownExpanded) },
+                        colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .menuAnchor()
+                    )
+                    ExposedDropdownMenu(
+                        expanded = dropdownExpanded,
+                        onDismissRequest = { dropdownExpanded = false }
+                    ) {
+                        availableCategories.forEach { cat ->
+                            DropdownMenuItem(
+                                text = { Text(cat) },
+                                onClick = {
+                                    onCategorySelected(cat)
+                                    dropdownExpanded = false
+                                },
+                                contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
                             )
-                        )
+                        }
                     }
                 }
             }
