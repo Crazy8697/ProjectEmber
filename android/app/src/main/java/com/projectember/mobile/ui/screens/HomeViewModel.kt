@@ -19,6 +19,8 @@ import com.projectember.mobile.data.local.entities.effectiveCalories
 import com.projectember.mobile.data.local.entities.effectiveFat
 import com.projectember.mobile.data.local.entities.effectiveNetCarbs
 import com.projectember.mobile.data.local.entities.effectiveProtein
+import com.projectember.mobile.data.local.entities.effectivePotassium
+import com.projectember.mobile.data.local.entities.effectiveSodium
 import com.projectember.mobile.data.local.entities.effectiveWater
 import com.projectember.mobile.data.repository.ExerciseRepository
 import com.projectember.mobile.data.repository.KetoRepository

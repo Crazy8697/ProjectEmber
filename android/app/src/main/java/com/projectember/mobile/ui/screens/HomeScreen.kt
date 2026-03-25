@@ -291,58 +291,41 @@ private fun TodaySummaryCard(
                 }
             }
 
-            // Macro grid (2x2)
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                // Row 1: Protein and Net Carbs
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    // Protein: pacing-aware (null → neutral before window opens)
-                    MacroChip(
-                        label = "P",
-                        value = summary.proteinG,
-                        unit = "g",
-                        statusColor = pacingStatusColor(pacing.protein),
-                        modifier = Modifier.weight(1f)
-                    )
-                    // Net carbs: pacing-aware when available; strict-limit rule otherwise
-                    MacroChip(
-                        label = "NC",
-                        value = summary.netCarbsG,
-                        unit = "g",
-                        statusColor = pacingStatusColor(pacing.netCarbs)
-                            .takeIf { it != Color.Unspecified }
-                            ?: if (windowOpen) strictLimitStatusColor(summary.netCarbsG, netCarbsTarget)
-                               else Color.Unspecified,
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-                // Row 2: Fat and Na:K Ratio
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    // Fat: not pacing-tracked; neutral before window, target-range after
-                    MacroChip(
-                        label = "F",
-                        value = summary.fatG,
-                        unit = "g",
-                        statusColor = if (windowOpen) targetRangeStatusColor(summary.fatG, fatTarget)
-                                      else Color.Unspecified,
-                        modifier = Modifier.weight(1f)
-                    )
-                    // Na:K Ratio
-                    val naKRatio = if (summary.potassiumMg > 0) summary.sodiumMg / summary.potassiumMg else 0.0
-                    MacroChip(
-                        label = "Na:K",
-                        value = naKRatio,
-                        unit = "",
-                        statusColor = Color.Unspecified,
-                        modifier = Modifier.weight(1f),
-                        decimalPlaces = 2
-                    )
-                }
+            // Macro row: P · NC · F · Na:K on one evenly-spaced line
+            val naKRatio = if (summary.potassiumMg > 0) summary.sodiumMg / summary.potassiumMg else 0.0
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                MacroChip(
+                    label = "P",
+                    value = summary.proteinG,
+                    unit = "g",
+                    statusColor = pacingStatusColor(pacing.protein)
+                )
+                MacroChip(
+                    label = "NC",
+                    value = summary.netCarbsG,
+                    unit = "g",
+                    statusColor = pacingStatusColor(pacing.netCarbs)
+                        .takeIf { it != Color.Unspecified }
+                        ?: if (windowOpen) strictLimitStatusColor(summary.netCarbsG, netCarbsTarget)
+                           else Color.Unspecified
+                )
+                MacroChip(
+                    label = "F",
+                    value = summary.fatG,
+                    unit = "g",
+                    statusColor = if (windowOpen) targetRangeStatusColor(summary.fatG, fatTarget)
+                                  else Color.Unspecified
+                )
+                MacroChip(
+                    label = "Na:K",
+                    value = naKRatio,
+                    unit = "",
+                    statusColor = Color.Unspecified,
+                    decimalPlaces = 2
+                )
             }
 
             // Hydration row — shown only when a water target is set

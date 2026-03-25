@@ -66,7 +66,7 @@ class TodayWidgetDataRepository(
         val caloriePacingResult = PacingEngine.evaluate(
             actual = calories,
             target = targets.caloriesKcal,
-            dailyRhythm = dailyRhythm,
+            rhythm = dailyRhythm,
             mealTiming = mealTiming
         )
         val pacingStatus = caloriePacingResult?.status?.name

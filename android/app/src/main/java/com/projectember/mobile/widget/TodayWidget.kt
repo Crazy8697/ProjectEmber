@@ -39,6 +39,7 @@ import com.projectember.mobile.data.repository.KetoRepository
 import com.projectember.mobile.data.repository.WeightRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlin.math.roundToInt
 
 /**
  * The Today summary widget that mirrors the main app's Today card.
@@ -90,11 +91,16 @@ class TodayWidget : GlanceAppWidget() {
 
 @Composable
 fun TodayWidgetContent(data: TodayWidgetData) {
+    val calPct = if (data.caloriesTarget > 0)
+        (data.displayCalories / data.caloriesTarget).toFloat().coerceIn(0f, 1f) else 0f
+    val waterPct = if (data.waterTarget > 0)
+        (data.waterMl / data.waterTarget).toFloat().coerceIn(0f, 1f) else 0f
+
     Box(
         modifier = GlanceModifier
             .fillMaxSize()
             .background(GlanceTheme.colors.surface)
-            .padding(16.dp)
+            .padding(12.dp)
             .clickable(actionStartActivity<MainActivity>()),
         contentAlignment = Alignment.TopStart
     ) {
@@ -109,7 +115,7 @@ fun TodayWidgetContent(data: TodayWidgetData) {
                 Text(
                     text = "Today",
                     style = TextStyle(
-                        fontSize = 18.sp,
+                        fontSize = 16.sp,
                         fontWeight = FontWeight.Bold
                     )
                 )
@@ -118,105 +124,90 @@ fun TodayWidgetContent(data: TodayWidgetData) {
                     Text(
                         text = formatPacingStatus(data.pacingStatus),
                         style = TextStyle(
-                            fontSize = 12.sp,
+                            fontSize = 11.sp,
                             fontWeight = FontWeight.Medium
                         )
                     )
                 }
             }
 
-            Spacer(modifier = GlanceModifier.height(12.dp))
+            Spacer(modifier = GlanceModifier.height(8.dp))
 
-            // Calories
+            // Calories label + value
             Row(
                 modifier = GlanceModifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = if (data.caloriesBurned > 0) "Calories (net)" else "Calories",
-                    style = TextStyle(fontSize = 14.sp)
+                    text = if (data.caloriesBurned > 0) "Cal (net)" else "Calories",
+                    style = TextStyle(fontSize = 13.sp)
                 )
                 Spacer(modifier = GlanceModifier.defaultWeight())
                 Text(
                     text = if (data.caloriesTarget > 0)
-                        "%.0f / %.0f kcal".format(data.displayCalories, data.caloriesTarget)
+                        "%.0f / %.0f".format(data.displayCalories, data.caloriesTarget)
                     else
                         "%.0f kcal".format(data.displayCalories),
                     style = TextStyle(
-                        fontSize = 14.sp,
+                        fontSize = 13.sp,
                         fontWeight = FontWeight.Bold
                     )
                 )
             }
 
-            if (data.caloriesBurned > 0) {
+            // Calories progress bar
+            if (data.caloriesTarget > 0) {
                 Spacer(modifier = GlanceModifier.height(4.dp))
-                Text(
-                    text = "food %.0f − %.0f burned".format(data.caloriesCurrent, data.caloriesBurned),
-                    style = TextStyle(fontSize = 11.sp)
-                )
+                WidgetProgressBar(progress = calPct)
             }
 
-            Spacer(modifier = GlanceModifier.height(12.dp))
+            Spacer(modifier = GlanceModifier.height(8.dp))
 
-            // Macro grid (2x2)
-            Column(modifier = GlanceModifier.fillMaxWidth()) {
-                // Row 1: Protein and Net Carbs
-                Row(
-                    modifier = GlanceModifier.fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    MacroBox("P", data.proteinG, "g", GlanceModifier.defaultWeight())
-                    Spacer(modifier = GlanceModifier.width(8.dp))
-                    MacroBox("NC", data.netCarbsG, "g", GlanceModifier.defaultWeight())
-                }
-
-                Spacer(modifier = GlanceModifier.height(8.dp))
-
-                // Row 2: Fat and Na:K Ratio
-                Row(
-                    modifier = GlanceModifier.fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    MacroBox("F", data.fatG, "g", GlanceModifier.defaultWeight())
-                    Spacer(modifier = GlanceModifier.width(8.dp))
-                    MacroBox("Na:K", data.naKRatio, "", GlanceModifier.defaultWeight(), decimalPlaces = 2)
-                }
+            // Macro row: P · NC · F · Na:K
+            Row(
+                modifier = GlanceModifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                MacroBox("P", data.proteinG, "g", GlanceModifier.defaultWeight())
+                MacroBox("NC", data.netCarbsG, "g", GlanceModifier.defaultWeight())
+                MacroBox("F", data.fatG, "g", GlanceModifier.defaultWeight())
+                MacroBox("Na:K", data.naKRatio, "", GlanceModifier.defaultWeight(), decimalPlaces = 2)
             }
-
-            Spacer(modifier = GlanceModifier.height(12.dp))
 
             // Water
             if (data.waterTarget > 0) {
+                Spacer(modifier = GlanceModifier.height(8.dp))
                 Row(
                     modifier = GlanceModifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
                         text = "Water",
-                        style = TextStyle(fontSize = 14.sp)
+                        style = TextStyle(fontSize = 13.sp)
                     )
                     Spacer(modifier = GlanceModifier.defaultWeight())
                     Text(
                         text = "%.0f / %.0f mL".format(data.waterMl, data.waterTarget),
                         style = TextStyle(
-                            fontSize = 14.sp,
+                            fontSize = 13.sp,
                             fontWeight = FontWeight.Bold
                         )
                     )
                 }
-                Spacer(modifier = GlanceModifier.height(8.dp))
+                Spacer(modifier = GlanceModifier.height(4.dp))
+                WidgetProgressBar(progress = waterPct)
             }
 
             // Weight
             if (data.weightKg != null) {
+                Spacer(modifier = GlanceModifier.height(8.dp))
                 Row(
                     modifier = GlanceModifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
                         text = "Weight",
-                        style = TextStyle(fontSize = 14.sp)
+                        style = TextStyle(fontSize = 13.sp)
                     )
                     Spacer(modifier = GlanceModifier.defaultWeight())
                     Text(
@@ -225,12 +216,35 @@ fun TodayWidgetContent(data: TodayWidgetData) {
                         else
                             "%.1f %s".format(data.displayWeight, data.weightUnit.symbol),
                         style = TextStyle(
-                            fontSize = 14.sp,
+                            fontSize = 13.sp,
                             fontWeight = FontWeight.Bold
                         )
                     )
                 }
             }
+        }
+    }
+}
+
+/**
+ * Simple 10-segment progress bar for Glance widgets.
+ * Each segment uses defaultWeight() so the fill/track ratio is always correct
+ * regardless of widget size.
+ */
+@Composable
+private fun WidgetProgressBar(
+    progress: Float,
+    modifier: GlanceModifier = GlanceModifier
+) {
+    val filled = (progress.coerceIn(0f, 1f) * 10).roundToInt()
+    Row(modifier = modifier.fillMaxWidth().height(4.dp)) {
+        repeat(filled) {
+            Box(modifier = GlanceModifier.defaultWeight().height(4.dp)
+                .background(GlanceTheme.colors.primary)) {}
+        }
+        repeat(10 - filled) {
+            Box(modifier = GlanceModifier.defaultWeight().height(4.dp)
+                .background(GlanceTheme.colors.surfaceVariant)) {}
         }
     }
 }
@@ -249,9 +263,9 @@ fun MacroBox(
     ) {
         Text(
             text = label,
-            style = TextStyle(fontSize = 11.sp)
+            style = TextStyle(fontSize = 12.sp)
         )
-        Spacer(modifier = GlanceModifier.height(4.dp))
+        Spacer(modifier = GlanceModifier.height(2.dp))
         val formattedValue = if (decimalPlaces > 0) {
             "%.${decimalPlaces}f%s".format(value, unit)
         } else {
