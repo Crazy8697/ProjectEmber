@@ -59,10 +59,10 @@ class TodayWidget : GlanceAppWidget() {
     private suspend fun fetchWidgetData(context: Context): TodayWidgetData {
         return withContext(Dispatchers.IO) {
             try {
-                val database = AppDatabase.getDatabase(context)
-                val ketoRepository = KetoRepository(database.ketoEntryDao())
-                val exerciseRepository = ExerciseRepository(database.exerciseEntryDao(), database.exerciseCategoryDao())
-                val weightRepository = WeightRepository(database.weightEntryDao())
+                val database = AppDatabase.getInstance(context)
+                val ketoRepository = KetoRepository(database.ketoDao())
+                val exerciseRepository = ExerciseRepository(database.exerciseEntryDao())
+                val weightRepository = WeightRepository(database.weightDao())
                 val targetsStore = KetoTargetsStore(context)
                 val unitsPreferencesStore = UnitsPreferencesStore(context)
                 val dailyRhythmStore = DailyRhythmStore(context)
