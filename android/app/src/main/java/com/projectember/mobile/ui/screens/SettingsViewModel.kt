@@ -21,6 +21,8 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.projectember.mobile.data.backup.BackupManager
 import com.projectember.mobile.data.backup.BackupPayloadV1
+import com.projectember.mobile.data.backup.NightlyBackupEngine
+import com.projectember.mobile.data.backup.NightlyBackupStore
 import com.projectember.mobile.data.local.DailyRhythm
 import com.projectember.mobile.data.local.DailyRhythmStore
 import com.projectember.mobile.data.local.EatingStyle
@@ -68,6 +70,8 @@ class SettingsViewModel(
     private val dailyRhythmStore: DailyRhythmStore,
     private val mealTimingStore: MealTimingStore,
     private val healthMetricPreferencesStore: HealthMetricPreferencesStore,
+    private val nightlyBackupStore: NightlyBackupStore,
+    private val nightlyBackupEngine: NightlyBackupEngine,
 ) : ViewModel() {
 
     // ── Health Connect state ──────────────────────────────────────────────────
@@ -348,6 +352,48 @@ class SettingsViewModel(
 
     fun clearResetState() { _resetState.value = BackupOpState.Idle }
 
+    // ── Nightly Backup settings ───────────────────────────────────────────────
+
+    private val _autoBackupEnabled = MutableStateFlow(nightlyBackupStore.isAutoBackupEnabled())
+    val autoBackupEnabled: StateFlow<Boolean> = _autoBackupEnabled.asStateFlow()
+
+    fun setAutoBackupEnabled(enabled: Boolean) {
+        nightlyBackupStore.setAutoBackupEnabled(enabled)
+        _autoBackupEnabled.value = enabled
+    }
+
+    private val _retentionCount = MutableStateFlow(nightlyBackupStore.getRetentionCount())
+    val retentionCount: StateFlow<Int> = _retentionCount.asStateFlow()
+
+    fun setRetentionCount(count: Int) {
+        nightlyBackupStore.setRetentionCount(count)
+        _retentionCount.value = count.coerceIn(2, 3)
+    }
+
+    private val _lastBackupMs = MutableStateFlow(nightlyBackupStore.getLastSuccessMs())
+    val lastBackupMs: StateFlow<Long> = _lastBackupMs.asStateFlow()
+
+    private val _manualBackupState = MutableStateFlow<BackupOpState>(BackupOpState.Idle)
+    val manualBackupState: StateFlow<BackupOpState> = _manualBackupState.asStateFlow()
+
+    fun runManualBackup() {
+        viewModelScope.launch {
+            _manualBackupState.value = BackupOpState.InProgress
+            nightlyBackupEngine.performBackup()
+                .onSuccess {
+                    _lastBackupMs.value = nightlyBackupStore.getLastSuccessMs()
+                    _manualBackupState.value = BackupOpState.Success("Backup saved to Documents/Ember/Backups/")
+                }
+                .onFailure { e ->
+                    _manualBackupState.value = BackupOpState.Error(
+                        e.message ?: "Backup failed. Check storage permissions."
+                    )
+                }
+        }
+    }
+
+    fun clearManualBackupState() { _manualBackupState.value = BackupOpState.Idle }
+
     fun clearClearRecipeIndexState() { _clearRecipeIndexState.value = BackupOpState.Idle }
 
     // ── Theme ─────────────────────────────────────────────────────────────────
@@ -474,6 +520,8 @@ class SettingsViewModelFactory(
     private val dailyRhythmStore: DailyRhythmStore,
     private val mealTimingStore: MealTimingStore,
     private val healthMetricPreferencesStore: HealthMetricPreferencesStore,
+    private val nightlyBackupStore: NightlyBackupStore,
+    private val nightlyBackupEngine: NightlyBackupEngine,
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T =
@@ -488,5 +536,7 @@ class SettingsViewModelFactory(
             dailyRhythmStore,
             mealTimingStore,
             healthMetricPreferencesStore,
+            nightlyBackupStore,
+            nightlyBackupEngine,
         ) as T
 }

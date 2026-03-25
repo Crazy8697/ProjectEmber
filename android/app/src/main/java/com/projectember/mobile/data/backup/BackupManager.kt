@@ -17,6 +17,8 @@ import com.projectember.mobile.data.repository.ExerciseCategoryRepository
 import com.projectember.mobile.data.repository.ExerciseRepository
 import com.projectember.mobile.data.repository.KetoRepository
 import com.projectember.mobile.data.repository.RecipeRepository
+import com.projectember.mobile.data.local.entities.ManualHealthEntry
+import com.projectember.mobile.data.repository.ManualHealthEntryRepository
 import com.projectember.mobile.data.repository.StackDefinitionRepository
 import com.projectember.mobile.data.repository.SupplementRepository
 import com.projectember.mobile.data.repository.WeightRepository
@@ -52,6 +54,7 @@ class BackupManager(
     private val weightRepository: WeightRepository,
     private val supplementRepository: SupplementRepository,
     private val stackDefinitionRepository: StackDefinitionRepository,
+    private val manualHealthEntryRepository: ManualHealthEntryRepository,
     private val ketoTargetsStore: KetoTargetsStore,
     // Preference stores for exporting/restoring preferences
     private val themePreferencesStore: com.projectember.mobile.data.local.ThemePreferencesStore,
@@ -118,6 +121,9 @@ class BackupManager(
             // 4. Stack definitions before supplement entries (supplement_entries.stackDefinitionId references stack_definitions.id)
             stackDefinitionRepository.replaceAll(payload.stackDefinitions.map { it.toEntity() })
             supplementRepository.replaceAll(payload.supplementEntries.map { it.toEntity() })
+
+            // 5. Manual health entries have no cross-table dependencies
+            manualHealthEntryRepository.replaceAll(payload.manualHealthEntries.map { it.toEntity() })
         }
 
         // SharedPreferences are saved only after the DB transaction has committed.
@@ -196,6 +202,7 @@ class BackupManager(
             weightRepository.replaceAll(emptyList())
             supplementRepository.replaceAll(emptyList())
             stackDefinitionRepository.replaceAll(emptyList())
+            manualHealthEntryRepository.replaceAll(emptyList())
         }
         ketoTargetsStore.save(KetoTargets())
     }
@@ -218,6 +225,7 @@ class BackupManager(
         root.put("weightEntries", weightRepository.getAllOnce().toJsonArray { it.toJson() })
         root.put("supplementEntries", supplementRepository.getAllOnce().toJsonArray { it.toJson() })
         root.put("stackDefinitions", stackDefinitionRepository.getAllOnce().toJsonArray { it.toJson() })
+        root.put("manualHealthEntries", manualHealthEntryRepository.getAllOnce().toJsonArray { it.toJson() })
         root.put("ketoTargets", ketoTargetsStore.targets.value.toJson())
 
         // Preferences: theme, units, daily rhythm, meal timing, health metric prefs
@@ -308,6 +316,8 @@ class BackupManager(
             ?.let { parseSupplementEntries(it) } ?: emptyList()
         val stackDefinitions = root.optJSONArray("stackDefinitions")
             ?.let { parseStackDefinitions(it) } ?: emptyList()
+        val manualHealthEntries = root.optJSONArray("manualHealthEntries")
+            ?.let { parseManualHealthEntries(it) } ?: emptyList()
         val ketoTargets = root.optJSONObject("ketoTargets")
             ?.let { parseKetoTargets(it) } ?: KetoTargetsDto()
 
@@ -391,6 +401,7 @@ class BackupManager(
             weightEntries = weightEntries,
             supplementEntries = supplementEntries,
             stackDefinitions = stackDefinitions,
+            manualHealthEntries = manualHealthEntries,
             ketoTargets = ketoTargets,
             theme = theme,
             units = units,
@@ -640,6 +651,30 @@ private fun parseStackDefinitions(arr: JSONArray): List<StackDefinitionDto> =
         )
     }
 
+private fun ManualHealthEntry.toJson() = JSONObject().apply {
+    put("id", id)
+    put("metricType", metricType)
+    put("value1", value1)
+    if (value2 != null) put("value2", value2)
+    put("entryDate", entryDate)
+    put("entryTime", entryTime)
+    put("source", source)
+}
+
+private fun parseManualHealthEntries(arr: JSONArray): List<ManualHealthEntryDto> =
+    (0 until arr.length()).map { i ->
+        val o = arr.getJSONObject(i)
+        ManualHealthEntryDto(
+            id = o.getInt("id"),
+            metricType = o.getString("metricType"),
+            value1 = o.getDouble("value1"),
+            value2 = if (o.has("value2") && !o.isNull("value2")) o.getDouble("value2") else null,
+            entryDate = o.getString("entryDate"),
+            entryTime = o.getString("entryTime"),
+            source = o.optString("source", "manual")
+        )
+    }
+
 private fun parseKetoTargets(o: JSONObject) = KetoTargetsDto(
     caloriesKcal = o.optDouble("caloriesKcal", 2000.0),
     proteinG = o.optDouble("proteinG", 100.0),
@@ -743,6 +778,16 @@ internal fun StackDefinitionDto.toEntity() = StackDefinition(
     sodiumMg = sodiumMg,
     potassiumMg = potassiumMg,
     magnesiumMg = magnesiumMg
+)
+
+internal fun ManualHealthEntryDto.toEntity() = ManualHealthEntry(
+    id = id,
+    metricType = metricType,
+    value1 = value1,
+    value2 = value2,
+    entryDate = entryDate,
+    entryTime = entryTime,
+    source = source
 )
 
 internal fun KetoTargetsDto.toKetoTargets() = KetoTargets(
