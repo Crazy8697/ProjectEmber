@@ -42,4 +42,10 @@ sealed class Screen(val route: String) {
         fun createRoute(definitionId: Int) = "stack_definition_edit/$definitionId"
     }
     data object JsonImport : Screen("json_import")
+    data object IngredientIndex : Screen("ingredient_index")
+    data object IngredientAdd : Screen("ingredient_add")
+    data object IngredientEdit : Screen("ingredient_edit/{ingredientId}") {
+        fun createRoute(ingredientId: Int) = "ingredient_edit/$ingredientId"
+    }
+    data object RecipeBuilder : Screen("recipe_builder")
 }

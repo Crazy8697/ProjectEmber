@@ -70,7 +70,9 @@ fun RecipesScreen(
     onNavigateToAddRecipe: () -> Unit,
     onNavigateToEditRecipe: (Int) -> Unit,
     onNavigateToNerdMode: () -> Unit,
-    onNavigateToBulkCategory: () -> Unit = {}
+    onNavigateToBulkCategory: () -> Unit = {},
+    onNavigateToIngredientIndex: () -> Unit = {},
+    onNavigateToRecipeBuilder: () -> Unit = {}
 ) {
     val recipes by viewModel.recipes.collectAsState()
     val selectedRecipe by viewModel.selectedRecipe.collectAsState()
@@ -178,6 +180,26 @@ fun RecipesScreen(
                                 expanded = showMainMenu,
                                 onDismissRequest = { showMainMenu = false }
                             ) {
+                                DropdownMenuItem(
+                                    text = { Text("Recipe Builder") },
+                                    leadingIcon = {
+                                        Icon(Icons.Default.Add, contentDescription = null)
+                                    },
+                                    onClick = {
+                                        showMainMenu = false
+                                        onNavigateToRecipeBuilder()
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Ingredient Index") },
+                                    leadingIcon = {
+                                        Icon(Icons.Default.Edit, contentDescription = null)
+                                    },
+                                    onClick = {
+                                        showMainMenu = false
+                                        onNavigateToIngredientIndex()
+                                    }
+                                )
                                 DropdownMenuItem(
                                     text = { Text("Category Manager") },
                                     leadingIcon = {

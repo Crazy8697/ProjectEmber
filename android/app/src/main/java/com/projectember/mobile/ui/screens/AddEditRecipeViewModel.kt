@@ -19,6 +19,7 @@ import com.projectember.mobile.data.local.entities.Recipe
 import com.projectember.mobile.data.local.entities.RecipeIngredient
 import com.projectember.mobile.data.local.entities.decodeIngredients
 import com.projectember.mobile.data.local.entities.encodeIngredients
+import com.projectember.mobile.data.local.entities.parsedTags
 import com.projectember.mobile.data.repository.RecipeRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -119,6 +120,10 @@ class AddEditRecipeViewModel(
     var ingredients by mutableStateOf<List<RecipeIngredient>>(emptyList())
         private set
 
+    /** Additional category tags (beyond the primary [category]). */
+    var additionalTags by mutableStateOf<Set<String>>(emptySet())
+        private set
+
     var nameError by mutableStateOf<String?>(null)
         private set
 
@@ -143,6 +148,7 @@ class AddEditRecipeViewModel(
                     waterMl = formatDouble(volUnit.fromMl(recipe.waterMl))
                     servings = formatDouble(recipe.servings).ifBlank { "1" }
                     ingredients = decodeIngredients(recipe.ingredientsRaw)
+                    additionalTags = recipe.parsedTags().toSet()
                 }
             }
         }
@@ -153,7 +159,15 @@ class AddEditRecipeViewModel(
         nameError = null
     }
 
-    fun onCategoryChange(value: String) { category = value }
+    fun onCategoryChange(value: String) {
+        category = value
+        // If the new primary category was also an additional tag, remove it to avoid duplication.
+        additionalTags = additionalTags - value
+    }
+
+    fun onTagToggle(cat: String) {
+        additionalTags = if (cat in additionalTags) additionalTags - cat else additionalTags + cat
+    }
     fun onDescriptionChange(value: String) { description = value }
     fun onCaloriesChange(value: String) { calories = value }
     fun onProteinGChange(value: String) { proteinG = value }
@@ -312,6 +326,8 @@ class AddEditRecipeViewModel(
             val storedNetCarbs    = maxOf(0.0, storedTotalCarbsG - storedFiberG)
             val storedWaterMl     = volUnit.toMl(parseDoubleOrZero(waterMl))
 
+            val storedTags = additionalTags.filter { it != category }.joinToString(",")
+
             val existing = originalRecipe
             if (existing != null) {
                 recipeRepository.updateRecipe(
@@ -330,7 +346,8 @@ class AddEditRecipeViewModel(
                         magnesiumMg = parseDoubleOrZero(magnesiumMg),
                         waterMl = storedWaterMl,
                         ingredientsRaw = encodedIngredients,
-                        servings = servings.toDoubleOrNull()?.coerceAtLeast(0.1) ?: 1.0
+                        servings = servings.toDoubleOrNull()?.coerceAtLeast(0.1) ?: 1.0,
+                        tags = storedTags
                     )
                 )
             } else {
@@ -350,7 +367,8 @@ class AddEditRecipeViewModel(
                         magnesiumMg = parseDoubleOrZero(magnesiumMg),
                         waterMl = storedWaterMl,
                         ingredientsRaw = encodedIngredients,
-                        servings = servings.toDoubleOrNull()?.coerceAtLeast(0.1) ?: 1.0
+                        servings = servings.toDoubleOrNull()?.coerceAtLeast(0.1) ?: 1.0,
+                        tags = storedTags
                     )
                 )
             }
