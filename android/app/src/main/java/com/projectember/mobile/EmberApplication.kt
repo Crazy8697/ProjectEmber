@@ -1,6 +1,8 @@
 package com.projectember.mobile
 
 import android.app.Application
+import com.projectember.mobile.data.barcode.BarcodeProductLookupRepository
+import com.projectember.mobile.data.barcode.BarcodeProductResult
 import com.projectember.mobile.data.backup.BackupManager
 import com.projectember.mobile.data.backup.NightlyBackupEngine
 import com.projectember.mobile.data.backup.NightlyBackupScheduler
@@ -62,6 +64,9 @@ class EmberApplication : Application() {
     val manualHealthEntryRepository by lazy { ManualHealthEntryRepository(database.manualHealthEntryDao()) }
     val supplementRepository by lazy { SupplementRepository(database.supplementEntryDao()) }
     val stackDefinitionRepository by lazy { StackDefinitionRepository(database.stackDefinitionDao()) }
+    val barcodeProductLookupRepository by lazy { BarcodeProductLookupRepository() }
+    /** One-shot transfer slot: set before navigating to a create screen, cleared after reading. */
+    var pendingBarcodeResult: BarcodeProductResult? = null
     val themePreferencesStore by lazy { ThemePreferencesStore(this) }
     val unitsPreferencesStore by lazy { UnitsPreferencesStore(this) }
     val dailyRhythmStore by lazy { DailyRhythmStore(this) }

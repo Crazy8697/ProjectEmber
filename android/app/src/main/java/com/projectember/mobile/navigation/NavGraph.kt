@@ -68,6 +68,7 @@ import com.projectember.mobile.ui.screens.RecipesViewModelFactory
 import com.projectember.mobile.ui.screens.SettingsScreen
 import com.projectember.mobile.ui.screens.SettingsViewModel
 import com.projectember.mobile.ui.screens.SettingsViewModelFactory
+import com.projectember.mobile.data.barcode.BarcodeProductResult
 import com.projectember.mobile.ui.screens.StacksScreen
 import com.projectember.mobile.ui.screens.StacksViewModel
 import com.projectember.mobile.ui.screens.StacksViewModelFactory
@@ -233,8 +234,14 @@ fun EmberNavGraph(
             arguments = listOf(navArgument("barcode") { type = NavType.StringType; defaultValue = "" })
         ) { backStackEntry ->
             val initialBarcode = backStackEntry.arguments?.getString("barcode")?.takeIf { it.isNotBlank() }
+            // Consume any pending online-lookup result (set by the barcode scanner flow)
+            val productResult = app.pendingBarcodeResult?.also { app.pendingBarcodeResult = null }
             val viewModel: AddEditIngredientViewModel = viewModel(
-                factory = AddEditIngredientViewModelFactory(app.ingredientRepository, initialBarcode = initialBarcode)
+                factory = AddEditIngredientViewModelFactory(
+                    app.ingredientRepository,
+                    initialBarcode = initialBarcode,
+                    initialProductResult = productResult
+                )
             )
             AddEditIngredientScreen(
                 viewModel = viewModel,
@@ -571,13 +578,19 @@ fun EmberNavGraph(
                 viewModel = viewModel,
                 onNavigateBack = { navController.popBackStack() },
                 onNavigateToAddDefinition = { navController.navigate(Screen.StackDefinitionAdd.route) },
-                onNavigateToEditDefinition = { definitionId -> navController.navigate(Screen.StackDefinitionEdit.createRoute(definitionId)) }
+                onNavigateToEditDefinition = { definitionId -> navController.navigate(Screen.StackDefinitionEdit.createRoute(definitionId)) },
+                onNavigateToBarcodeScanner = { navController.navigate(Screen.BarcodeScanner.route) }
             )
         }
 
         composable(Screen.StackDefinitionAdd.route) {
+            // Consume any pending online-lookup result (set by the barcode scanner flow)
+            val productResult = app.pendingBarcodeResult?.also { app.pendingBarcodeResult = null }
             val viewModel: AddEditStackDefinitionViewModel = viewModel(
-                factory = AddEditStackDefinitionViewModelFactory(app.stackDefinitionRepository)
+                factory = AddEditStackDefinitionViewModelFactory(
+                    app.stackDefinitionRepository,
+                    initialProductResult = productResult
+                )
             )
             AddEditStackDefinitionScreen(
                 viewModel = viewModel,
@@ -608,18 +621,46 @@ fun EmberNavGraph(
 
         composable(Screen.BarcodeScanner.route) {
             val viewModel: BarcodeScannerViewModel = viewModel(
-                factory = BarcodeScannerViewModelFactory(app.ingredientRepository)
+                factory = BarcodeScannerViewModelFactory(
+                    app.ingredientRepository,
+                    app.stackDefinitionRepository,
+                    app.barcodeProductLookupRepository
+                )
             )
             BarcodeScannerScreen(
                 viewModel = viewModel,
                 onNavigateBack = { navController.popBackStack() },
-                onBarcodeFound = { ingredientId ->
+                onFoundIngredient = { ingredientId ->
                     navController.popBackStack()
                     navController.navigate(Screen.IngredientEdit.createRoute(ingredientId))
                 },
-                onBarcodeNotFound = { barcode ->
+                onFoundSupplement = { definitionId ->
+                    navController.popBackStack()
+                    navController.navigate(Screen.StackDefinitionEdit.createRoute(definitionId))
+                },
+                onSaveAsFood = { result ->
+                    app.pendingBarcodeResult = result
+                    navController.popBackStack()
+                    navController.navigate(Screen.IngredientAdd.createRoute(result.barcode))
+                },
+                onSaveAsSupplement = { result ->
+                    app.pendingBarcodeResult = result
+                    navController.popBackStack()
+                    navController.navigate(Screen.StackDefinitionAdd.route)
+                },
+                onCreateFood = { barcode ->
                     navController.popBackStack()
                     navController.navigate(Screen.IngredientAdd.createRoute(barcode))
+                },
+                onCreateSupplement = { barcode ->
+                    app.pendingBarcodeResult = BarcodeProductResult(
+                        barcode = barcode, name = "", brand = null,
+                        servingSizeNote = null, caloriesKcal = null,
+                        proteinG = null, fatG = null, totalCarbsG = null,
+                        fiberG = null, sodiumMg = null
+                    )
+                    navController.popBackStack()
+                    navController.navigate(Screen.StackDefinitionAdd.route)
                 }
             )
         }

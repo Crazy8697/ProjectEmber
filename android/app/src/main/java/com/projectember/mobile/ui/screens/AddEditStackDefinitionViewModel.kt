@@ -6,13 +6,15 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.projectember.mobile.data.barcode.BarcodeProductResult
 import com.projectember.mobile.data.local.entities.StackDefinition
 import com.projectember.mobile.data.repository.StackDefinitionRepository
 import kotlinx.coroutines.launch
 
 class AddEditStackDefinitionViewModel(
     private val stackDefinitionRepository: StackDefinitionRepository,
-    private val editDefinitionId: Int? = null
+    private val editDefinitionId: Int? = null,
+    initialProductResult: BarcodeProductResult? = null
 ) : ViewModel() {
 
     val isEditMode: Boolean get() = editDefinitionId != null
@@ -25,6 +27,10 @@ class AddEditStackDefinitionViewModel(
     var defaultDose by mutableStateOf("")
         private set
     var defaultUnit by mutableStateOf("")
+        private set
+
+    // ── Barcode ───────────────────────────────────────────────────────────────
+    var barcode by mutableStateOf("")
         private set
 
     // ── Notes ─────────────────────────────────────────────────────────────────
@@ -52,6 +58,31 @@ class AddEditStackDefinitionViewModel(
         private set
 
     init {
+        // Pre-fill from online lookup result when creating a new supplement via barcode scan.
+        // If name is blank (NotFound path), only barcode is pre-filled.
+        if (initialProductResult != null && editDefinitionId == null) {
+            barcode = initialProductResult.barcode
+            if (initialProductResult.name.isNotBlank()) {
+                val displayName = if (!initialProductResult.brand.isNullOrBlank()) {
+                    "${initialProductResult.brand} — ${initialProductResult.name}"
+                } else {
+                    initialProductResult.name
+                }
+                name = displayName
+                if (!initialProductResult.servingSizeNote.isNullOrBlank()) {
+                    defaultDose = initialProductResult.servingSizeNote
+                }
+                if (initialProductResult.caloriesKcal != null) caloriesKcal = initialProductResult.caloriesKcal.toPlainString()
+                if (initialProductResult.proteinG != null) proteinG = initialProductResult.proteinG.toPlainString()
+                if (initialProductResult.fatG != null) fatG = initialProductResult.fatG.toPlainString()
+                if (initialProductResult.totalCarbsG != null) {
+                    val carbs = initialProductResult.totalCarbsG
+                    val fiber = initialProductResult.fiberG ?: 0.0
+                    netCarbsG = maxOf(0.0, carbs - fiber).toPlainString()
+                }
+                if (initialProductResult.sodiumMg != null) sodiumMg = initialProductResult.sodiumMg.toPlainString()
+            }
+        }
         if (editDefinitionId != null) {
             viewModelScope.launch {
                 val def = stackDefinitionRepository.getById(editDefinitionId)
@@ -60,6 +91,7 @@ class AddEditStackDefinitionViewModel(
                     name = def.name
                     defaultDose = def.defaultDose ?: ""
                     defaultUnit = def.defaultUnit ?: ""
+                    barcode = def.barcode ?: ""
                     notes = def.notes ?: ""
                     caloriesKcal = def.caloriesKcal?.toPlainString() ?: ""
                     proteinG = def.proteinG?.toPlainString() ?: ""
@@ -77,6 +109,7 @@ class AddEditStackDefinitionViewModel(
     fun onNameChange(v: String) { name = v; nameError = null }
     fun onDefaultDoseChange(v: String) { defaultDose = v }
     fun onDefaultUnitChange(v: String) { defaultUnit = v }
+    fun onBarcodeChange(v: String) { barcode = v }
     fun onNotesChange(v: String) { notes = v }
     fun onCaloriesChange(v: String) { caloriesKcal = v }
     fun onProteinChange(v: String) { proteinG = v }
@@ -104,6 +137,7 @@ class AddEditStackDefinitionViewModel(
             name = trimmedName,
             defaultDose = defaultDose.trim().takeIf { it.isNotBlank() },
             defaultUnit = defaultUnit.trim().takeIf { it.isNotBlank() },
+            barcode = barcode.trim().takeIf { it.isNotBlank() },
             notes = notes.trim().takeIf { it.isNotBlank() },
             caloriesKcal = caloriesKcal.trim().toDoubleOrNull(),
             proteinG = proteinG.trim().toDoubleOrNull(),
@@ -155,9 +189,10 @@ private fun Double.toPlainString(): String =
 
 class AddEditStackDefinitionViewModelFactory(
     private val stackDefinitionRepository: StackDefinitionRepository,
-    private val editDefinitionId: Int? = null
+    private val editDefinitionId: Int? = null,
+    private val initialProductResult: BarcodeProductResult? = null
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T =
-        AddEditStackDefinitionViewModel(stackDefinitionRepository, editDefinitionId) as T
+        AddEditStackDefinitionViewModel(stackDefinitionRepository, editDefinitionId, initialProductResult) as T
 }

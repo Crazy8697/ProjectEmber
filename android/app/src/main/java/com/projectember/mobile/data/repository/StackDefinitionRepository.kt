@@ -18,6 +18,8 @@ class StackDefinitionRepository(private val dao: StackDefinitionDao) {
 
     suspend fun getAllOnce(): List<StackDefinition> = dao.getAllOnce()
 
+    suspend fun findByBarcode(barcode: String): StackDefinition? = dao.findByBarcode(barcode)
+
     suspend fun replaceAll(definitions: List<StackDefinition>) {
         dao.deleteAll()
         definitions.forEach { dao.insert(it) }

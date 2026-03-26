@@ -52,16 +52,17 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import android.graphics.Bitmap
+import android.graphics.Matrix
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.BinaryBitmap
 import com.google.zxing.DecodeHintType
-import android.graphics.Bitmap
-import android.graphics.Matrix
 import com.google.zxing.MultiFormatReader
 import com.google.zxing.NotFoundException
 import com.google.zxing.RGBLuminanceSource
 import com.google.zxing.common.HybridBinarizer
 import java.util.concurrent.Executors
+import com.projectember.mobile.data.barcode.BarcodeProductResult
 import com.projectember.mobile.ui.theme.KetoAccent
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -69,8 +70,15 @@ import com.projectember.mobile.ui.theme.KetoAccent
 fun BarcodeScannerScreen(
     viewModel: BarcodeScannerViewModel,
     onNavigateBack: () -> Unit,
-    onBarcodeFound: (ingredientId: Int) -> Unit,
-    onBarcodeNotFound: (barcode: String) -> Unit
+    // Local match callbacks
+    onFoundIngredient: (ingredientId: Int) -> Unit,
+    onFoundSupplement: (definitionId: Int) -> Unit,
+    // Online result callbacks — user picks food or supplement destination
+    onSaveAsFood: (BarcodeProductResult) -> Unit,
+    onSaveAsSupplement: (BarcodeProductResult) -> Unit,
+    // No match at all — barcode-only create
+    onCreateFood: (barcode: String) -> Unit,
+    onCreateSupplement: (barcode: String) -> Unit
 ) {
     val context = LocalContext.current
     val scanState by viewModel.scanState.collectAsState()
@@ -134,25 +142,43 @@ fun BarcodeScannerScreen(
                 )
 
                 when (val state = scanState) {
-                    is BarcodeScannerViewModel.ScanState.Found -> {
+                    is BarcodeScannerViewModel.ScanState.FoundIngredient -> {
                         ScanResultPanel(
-                            title = "Match Found",
+                            title = "Food Match Found",
                             body = state.ingredient.name,
                             primaryLabel = "View Ingredient",
-                            onPrimary = { onBarcodeFound(state.ingredient.id) },
+                            onPrimary = { onFoundIngredient(state.ingredient.id) },
                             secondaryLabel = "Scan Again",
                             onSecondary = viewModel::reset,
                             modifier = Modifier.align(Alignment.BottomCenter)
                         )
                     }
-                    is BarcodeScannerViewModel.ScanState.NotFound -> {
+                    is BarcodeScannerViewModel.ScanState.FoundSupplement -> {
                         ScanResultPanel(
-                            title = "No Match",
-                            body = "Barcode: ${state.barcode}\nNot in your ingredient index.",
-                            primaryLabel = "Create Ingredient",
-                            onPrimary = { onBarcodeNotFound(state.barcode) },
+                            title = "Supplement Match Found",
+                            body = state.definition.name,
+                            primaryLabel = "View Supplement",
+                            onPrimary = { onFoundSupplement(state.definition.id) },
                             secondaryLabel = "Scan Again",
                             onSecondary = viewModel::reset,
+                            modifier = Modifier.align(Alignment.BottomCenter)
+                        )
+                    }
+                    is BarcodeScannerViewModel.ScanState.OnlineLookupResult -> {
+                        OnlineLookupPanel(
+                            result = state.result,
+                            onSaveAsFood = { onSaveAsFood(state.result) },
+                            onSaveAsSupplement = { onSaveAsSupplement(state.result) },
+                            onScanAgain = viewModel::reset,
+                            modifier = Modifier.align(Alignment.BottomCenter)
+                        )
+                    }
+                    is BarcodeScannerViewModel.ScanState.NotFound -> {
+                        NoMatchPanel(
+                            barcode = state.barcode,
+                            onCreateFood = { onCreateFood(state.barcode) },
+                            onCreateSupplement = { onCreateSupplement(state.barcode) },
+                            onScanAgain = viewModel::reset,
                             modifier = Modifier.align(Alignment.BottomCenter)
                         )
                     }
@@ -215,6 +241,110 @@ private fun ScanResultPanel(
             }
             OutlinedButton(onClick = onSecondary, modifier = Modifier.fillMaxWidth()) {
                 Text(secondaryLabel)
+            }
+        }
+    }
+}
+
+@Composable
+private fun OnlineLookupPanel(
+    result: BarcodeProductResult,
+    onSaveAsFood: () -> Unit,
+    onSaveAsSupplement: () -> Unit,
+    onScanAgain: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        color = MaterialTheme.colorScheme.surface,
+        shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
+        tonalElevation = 4.dp
+    ) {
+        Column(
+            modifier = Modifier.padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Text(
+                text = "Found Online",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = KetoAccent
+            )
+            Text(
+                text = buildString {
+                    append(result.name)
+                    if (!result.brand.isNullOrBlank()) append("\n${result.brand}")
+                    if (!result.servingSizeNote.isNullOrBlank()) append("\nServing: ${result.servingSizeNote}")
+                },
+                style = MaterialTheme.typography.bodyMedium
+            )
+            Text(
+                text = "Save this item as:",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Button(
+                onClick = onSaveAsFood,
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(containerColor = KetoAccent)
+            ) {
+                Text("Food / Ingredient")
+            }
+            OutlinedButton(onClick = onSaveAsSupplement, modifier = Modifier.fillMaxWidth()) {
+                Text("Supplement")
+            }
+            OutlinedButton(onClick = onScanAgain, modifier = Modifier.fillMaxWidth()) {
+                Text("Scan Again")
+            }
+        }
+    }
+}
+
+@Composable
+private fun NoMatchPanel(
+    barcode: String,
+    onCreateFood: () -> Unit,
+    onCreateSupplement: () -> Unit,
+    onScanAgain: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        color = MaterialTheme.colorScheme.surface,
+        shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
+        tonalElevation = 4.dp
+    ) {
+        Column(
+            modifier = Modifier.padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Text(
+                text = "No Match",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = KetoAccent
+            )
+            Text(
+                text = "Barcode: $barcode\nNot found locally or online.",
+                style = MaterialTheme.typography.bodyMedium
+            )
+            Text(
+                text = "Create manually as:",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Button(
+                onClick = onCreateFood,
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(containerColor = KetoAccent)
+            ) {
+                Text("Food / Ingredient")
+            }
+            OutlinedButton(onClick = onCreateSupplement, modifier = Modifier.fillMaxWidth()) {
+                Text("Supplement")
+            }
+            OutlinedButton(onClick = onScanAgain, modifier = Modifier.fillMaxWidth()) {
+                Text("Scan Again")
             }
         }
     }

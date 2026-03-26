@@ -69,7 +69,7 @@ fun HomeScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = "🔥 Project Ember",
+                        text = "🔥 Ember",
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold
                     )
