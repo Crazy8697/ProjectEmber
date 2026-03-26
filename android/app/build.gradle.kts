@@ -13,8 +13,8 @@ android {
         applicationId = "com.projectember.mobile"
         minSdk = 26
         targetSdk = 34
-        // PR72: bump versionCode for build 72
-        versionCode = 72
+        // PR73: bump versionCode for build 73
+        versionCode = 73
         versionName = "0.7"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -84,6 +84,9 @@ dependencies {
     implementation(libs.androidx.camera.view)
     implementation(libs.zxing.core)
     implementation(libs.guava)
+
+    // PR73: ML Kit text recognition for nutrition label OCR
+    implementation(libs.mlkit.text.recognition)
 
     debugImplementation(libs.androidx.ui.tooling)
 }

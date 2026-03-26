@@ -8,6 +8,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.projectember.mobile.data.barcode.BarcodeProductResult
 import com.projectember.mobile.data.barcode.NameNormalizer
+import com.projectember.mobile.data.label.NutritionParseResult
 import com.projectember.mobile.data.local.entities.Ingredient
 import com.projectember.mobile.data.repository.IngredientRepository
 import kotlinx.coroutines.launch
@@ -21,7 +22,9 @@ class AddEditIngredientViewModel(
      * When true (edit mode with online data), pre-fill nutrition fields that are currently
      * zero with values from [initialProductResult]. Does not overwrite existing non-zero values.
      */
-    private val mergeOnlineData: Boolean = false
+    private val mergeOnlineData: Boolean = false,
+    /** PR73: pre-fill from a label OCR scan result. Only applied in create mode. */
+    initialLabelResult: NutritionParseResult? = null
 ) : ViewModel() {
 
     val isEditMode: Boolean get() = editIngredientId != null
@@ -80,6 +83,23 @@ class AddEditIngredientViewModel(
             if (initialProductResult.fiberG != null) fiberG = fmt(initialProductResult.fiberG)
             if (initialProductResult.sodiumMg != null) sodiumMg = fmt(initialProductResult.sodiumMg)
         }
+        // PR73: Pre-fill from label OCR scan (create mode only, label-first nutrition path)
+        if (initialLabelResult != null && editIngredientId == null) {
+            if (initialLabelResult.servingAmount != null) {
+                defaultAmount = fmt(initialLabelResult.servingAmount)
+                defaultUnit = initialLabelResult.servingUnit ?: "g"
+            }
+            if (initialLabelResult.calories != null) calories = fmt(initialLabelResult.calories)
+            if (initialLabelResult.proteinG != null) proteinG = fmt(initialLabelResult.proteinG)
+            if (initialLabelResult.fatG != null) fatG = fmt(initialLabelResult.fatG)
+            if (initialLabelResult.totalCarbsG != null) totalCarbsG = fmt(initialLabelResult.totalCarbsG)
+            if (initialLabelResult.fiberG != null) fiberG = fmt(initialLabelResult.fiberG)
+            if (initialLabelResult.sodiumMg != null) sodiumMg = fmt(initialLabelResult.sodiumMg)
+            if (initialLabelResult.potassiumMg != null) potassiumMg = fmt(initialLabelResult.potassiumMg)
+            if (initialLabelResult.magnesiumMg != null) magnesiumMg = fmt(initialLabelResult.magnesiumMg)
+            android.util.Log.d("AddEditIngredient", "LABEL_DRAFT_CREATED from OCR parse result")
+        }
+
         if (editIngredientId != null) {
             viewModelScope.launch {
                 val ing = ingredientRepository.getById(editIngredientId) ?: return@launch
@@ -183,7 +203,7 @@ class AddEditIngredientViewModel(
     }
 
     private fun fmt(d: Double): String =
-        if (d == 0.0) "" else d.toBigDecimal().stripTrailingZeros().toPlainString()
+        if (d == 0.0) "0" else d.toBigDecimal().stripTrailingZeros().toPlainString()
 
     private fun dbl(s: String): Double = s.toDoubleOrNull() ?: 0.0
 }
@@ -193,11 +213,13 @@ class AddEditIngredientViewModelFactory(
     private val editIngredientId: Int? = null,
     private val initialBarcode: String? = null,
     private val initialProductResult: BarcodeProductResult? = null,
-    private val mergeOnlineData: Boolean = false
+    private val mergeOnlineData: Boolean = false,
+    private val initialLabelResult: NutritionParseResult? = null
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T =
         AddEditIngredientViewModel(
-            ingredientRepository, editIngredientId, initialBarcode, initialProductResult, mergeOnlineData
+            ingredientRepository, editIngredientId, initialBarcode,
+            initialProductResult, mergeOnlineData, initialLabelResult
         ) as T
 }

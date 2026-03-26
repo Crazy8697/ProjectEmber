@@ -14,6 +14,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.DocumentScanner
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
@@ -54,7 +55,8 @@ fun IngredientIndexScreen(
     onNavigateBack: () -> Unit,
     onNavigateToAddIngredient: () -> Unit,
     onNavigateToEditIngredient: (Int) -> Unit,
-    onNavigateToBarcodeScanner: () -> Unit = {}
+    onNavigateToBarcodeScanner: () -> Unit = {},
+    onNavigateToLabelScanner: () -> Unit = {}
 ) {
     val ingredients by viewModel.ingredients.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
@@ -98,6 +100,11 @@ fun IngredientIndexScreen(
                     }
                 },
                 actions = {
+                    // PR73: label scan is the primary nutrition entry path
+                    IconButton(onClick = onNavigateToLabelScanner) {
+                        Icon(Icons.Default.DocumentScanner, contentDescription = "Scan nutrition label")
+                    }
+                    // Barcode scan: secondary path for identity / reuse
                     IconButton(onClick = onNavigateToBarcodeScanner) {
                         Icon(Icons.Default.QrCodeScanner, contentDescription = "Scan barcode")
                     }

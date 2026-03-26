@@ -72,6 +72,12 @@
                 android:resource="@xml/file_paths" />
         </provider>
 
+        <!-- PR73: tell Play Services to pre-download the ML Kit OCR model on install
+             so the first label scan doesn't wait for a background download. -->
+        <meta-data
+            android:name="com.google.mlkit.vision.DEPENDENCIES"
+            android:value="ocr" />
+
         <!-- Today Widget -->
         <receiver
             android:name=".widget.TodayWidgetReceiver"

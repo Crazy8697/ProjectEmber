@@ -58,6 +58,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.projectember.mobile.data.local.entities.Recipe
+import androidx.compose.material.icons.filled.DocumentScanner
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.QrCodeScanner
 import com.projectember.mobile.data.local.entities.decodeIngredients
@@ -75,7 +76,8 @@ fun RecipesScreen(
     onNavigateToBulkCategory: () -> Unit = {},
     onNavigateToIngredientIndex: () -> Unit = {},
     onNavigateToRecipeBuilder: () -> Unit = {},
-    onNavigateToBarcodeScanner: () -> Unit = {}
+    onNavigateToBarcodeScanner: () -> Unit = {},
+    onNavigateToLabelScanner: () -> Unit = {}
 ) {
     val recipes by viewModel.recipes.collectAsState()
     val selectedRecipe by viewModel.selectedRecipe.collectAsState()
@@ -183,6 +185,16 @@ fun RecipesScreen(
                                 expanded = showMainMenu,
                                 onDismissRequest = { showMainMenu = false }
                             ) {
+                                DropdownMenuItem(
+                                    text = { Text("Scan Nutrition Label") },
+                                    leadingIcon = {
+                                        Icon(Icons.Default.DocumentScanner, contentDescription = null)
+                                    },
+                                    onClick = {
+                                        showMainMenu = false
+                                        onNavigateToLabelScanner()
+                                    }
+                                )
                                 DropdownMenuItem(
                                     text = { Text("Scan Barcode") },
                                     leadingIcon = {
