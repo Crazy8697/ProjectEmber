@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.projectember.mobile.data.barcode.BarcodeProductResult
+import com.projectember.mobile.data.barcode.NameNormalizer
 import com.projectember.mobile.data.local.entities.Ingredient
 import com.projectember.mobile.data.repository.IngredientRepository
 import kotlinx.coroutines.launch
@@ -15,7 +16,12 @@ class AddEditIngredientViewModel(
     private val ingredientRepository: IngredientRepository,
     private val editIngredientId: Int? = null,
     initialBarcode: String? = null,
-    initialProductResult: BarcodeProductResult? = null
+    initialProductResult: BarcodeProductResult? = null,
+    /**
+     * When true (edit mode with online data), pre-fill nutrition fields that are currently
+     * zero with values from [initialProductResult]. Does not overwrite existing non-zero values.
+     */
+    private val mergeOnlineData: Boolean = false
 ) : ViewModel() {
 
     val isEditMode: Boolean get() = editIngredientId != null
@@ -58,12 +64,14 @@ class AddEditIngredientViewModel(
     init {
         // Pre-fill from online lookup result (takes priority over bare initialBarcode)
         if (initialProductResult != null && editIngredientId == null) {
-            val displayName = if (!initialProductResult.brand.isNullOrBlank()) {
-                "${initialProductResult.brand} — ${initialProductResult.name}"
-            } else {
-                initialProductResult.name
-            }
-            name = displayName
+            val cleanedName = NameNormalizer.cleanProductName(
+                if (!initialProductResult.brand.isNullOrBlank()) {
+                    "${initialProductResult.brand} — ${initialProductResult.name}"
+                } else {
+                    initialProductResult.name
+                }
+            )
+            name = cleanedName
             barcode = initialProductResult.barcode
             if (initialProductResult.caloriesKcal != null) calories = fmt(initialProductResult.caloriesKcal)
             if (initialProductResult.proteinG != null) proteinG = fmt(initialProductResult.proteinG)
@@ -89,6 +97,25 @@ class AddEditIngredientViewModel(
                 magnesiumMg = fmt(ing.magnesiumMg)
                 waterMl = fmt(ing.waterMl)
                 barcode = ing.barcode ?: ""
+
+                // Merge online data into empty/zero fields only (does not overwrite existing values)
+                if (mergeOnlineData && initialProductResult != null) {
+                    if (ing.calories == 0.0 && initialProductResult.caloriesKcal != null)
+                        calories = fmt(initialProductResult.caloriesKcal)
+                    if (ing.proteinG == 0.0 && initialProductResult.proteinG != null)
+                        proteinG = fmt(initialProductResult.proteinG)
+                    if (ing.fatG == 0.0 && initialProductResult.fatG != null)
+                        fatG = fmt(initialProductResult.fatG)
+                    if (ing.totalCarbsG == 0.0 && initialProductResult.totalCarbsG != null)
+                        totalCarbsG = fmt(initialProductResult.totalCarbsG)
+                    if (ing.fiberG == 0.0 && initialProductResult.fiberG != null)
+                        fiberG = fmt(initialProductResult.fiberG)
+                    if (ing.sodiumMg == 0.0 && initialProductResult.sodiumMg != null)
+                        sodiumMg = fmt(initialProductResult.sodiumMg)
+                    // Store barcode if ingredient didn't have one
+                    if (ing.barcode.isNullOrBlank() && initialProductResult.barcode.isNotBlank())
+                        barcode = initialProductResult.barcode
+                }
             }
         }
     }
@@ -121,9 +148,11 @@ class AddEditIngredientViewModel(
             val totalC = dbl(totalCarbsG)
             val fiber = dbl(fiberG)
             val netC = maxOf(0.0, totalC - fiber)
+            val trimmedName = name.trim()
             val ing = Ingredient(
                 id = original?.id ?: 0,
-                name = name.trim(),
+                name = trimmedName,
+                normalizedName = NameNormalizer.normalize(trimmedName),
                 defaultAmount = parsedAmount!!,
                 defaultUnit = defaultUnit.trim().ifBlank { "g" },
                 calories = dbl(calories),
@@ -163,9 +192,12 @@ class AddEditIngredientViewModelFactory(
     private val ingredientRepository: IngredientRepository,
     private val editIngredientId: Int? = null,
     private val initialBarcode: String? = null,
-    private val initialProductResult: BarcodeProductResult? = null
+    private val initialProductResult: BarcodeProductResult? = null,
+    private val mergeOnlineData: Boolean = false
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T =
-        AddEditIngredientViewModel(ingredientRepository, editIngredientId, initialBarcode, initialProductResult) as T
+        AddEditIngredientViewModel(
+            ingredientRepository, editIngredientId, initialBarcode, initialProductResult, mergeOnlineData
+        ) as T
 }

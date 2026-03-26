@@ -254,8 +254,15 @@ fun EmberNavGraph(
             arguments = listOf(navArgument("ingredientId") { type = NavType.IntType })
         ) { backStackEntry ->
             val ingredientId = backStackEntry.arguments?.getInt("ingredientId") ?: return@composable
+            // Consume any pending online-lookup result (set by onUpdateIngredientWithOnlineData)
+            val productResult = app.pendingBarcodeResult?.also { app.pendingBarcodeResult = null }
             val viewModel: AddEditIngredientViewModel = viewModel(
-                factory = AddEditIngredientViewModelFactory(app.ingredientRepository, ingredientId)
+                factory = AddEditIngredientViewModelFactory(
+                    app.ingredientRepository,
+                    ingredientId,
+                    initialProductResult = productResult,
+                    mergeOnlineData = productResult != null
+                )
             )
             AddEditIngredientScreen(
                 viewModel = viewModel,
@@ -630,14 +637,23 @@ fun EmberNavGraph(
             BarcodeScannerScreen(
                 viewModel = viewModel,
                 onNavigateBack = { navController.popBackStack() },
-                onFoundIngredient = { ingredientId ->
+                // Barcode matched local ingredient — reuse-first actions
+                onUseIngredient = { navController.popBackStack() },
+                onEditIngredient = { ingredientId ->
                     navController.popBackStack()
                     navController.navigate(Screen.IngredientEdit.createRoute(ingredientId))
                 },
+                onUpdateIngredientWithOnlineData = { ingredientId, result ->
+                    app.pendingBarcodeResult = result
+                    navController.popBackStack()
+                    navController.navigate(Screen.IngredientEdit.createRoute(ingredientId))
+                },
+                // Barcode matched local supplement
                 onFoundSupplement = { definitionId ->
                     navController.popBackStack()
                     navController.navigate(Screen.StackDefinitionEdit.createRoute(definitionId))
                 },
+                // Online result: no local match — pick destination
                 onSaveAsFood = { result ->
                     app.pendingBarcodeResult = result
                     navController.popBackStack()
@@ -648,6 +664,19 @@ fun EmberNavGraph(
                     navController.popBackStack()
                     navController.navigate(Screen.StackDefinitionAdd.route)
                 },
+                // Online result: possible name match
+                onLinkToExisting = { ingredientId, barcode ->
+                    viewModel.linkBarcodeToIngredient(barcode, ingredientId) { linkedId ->
+                        navController.popBackStack()
+                        navController.navigate(Screen.IngredientEdit.createRoute(linkedId))
+                    }
+                },
+                onCreateNewAnyway = { result ->
+                    app.pendingBarcodeResult = result
+                    navController.popBackStack()
+                    navController.navigate(Screen.IngredientAdd.createRoute(result.barcode))
+                },
+                // No match at all — manual create
                 onCreateFood = { barcode ->
                     navController.popBackStack()
                     navController.navigate(Screen.IngredientAdd.createRoute(barcode))

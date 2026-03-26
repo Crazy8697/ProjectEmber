@@ -63,6 +63,7 @@ import com.google.zxing.RGBLuminanceSource
 import com.google.zxing.common.HybridBinarizer
 import java.util.concurrent.Executors
 import com.projectember.mobile.data.barcode.BarcodeProductResult
+import com.projectember.mobile.data.local.entities.Ingredient
 import com.projectember.mobile.ui.theme.KetoAccent
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -70,12 +71,18 @@ import com.projectember.mobile.ui.theme.KetoAccent
 fun BarcodeScannerScreen(
     viewModel: BarcodeScannerViewModel,
     onNavigateBack: () -> Unit,
-    // Local match callbacks
-    onFoundIngredient: (ingredientId: Int) -> Unit,
+    // Local barcode match — existing ingredient
+    onUseIngredient: () -> Unit,
+    onEditIngredient: (ingredientId: Int) -> Unit,
+    onUpdateIngredientWithOnlineData: (ingredientId: Int, result: BarcodeProductResult) -> Unit,
+    // Local barcode match — existing supplement
     onFoundSupplement: (definitionId: Int) -> Unit,
-    // Online result callbacks — user picks food or supplement destination
+    // Online lookup: no local match, no name match — pick destination
     onSaveAsFood: (BarcodeProductResult) -> Unit,
     onSaveAsSupplement: (BarcodeProductResult) -> Unit,
+    // Online lookup: possible name match found
+    onLinkToExisting: (ingredientId: Int, barcode: String) -> Unit,
+    onCreateNewAnyway: (BarcodeProductResult) -> Unit,
     // No match at all — barcode-only create
     onCreateFood: (barcode: String) -> Unit,
     onCreateSupplement: (barcode: String) -> Unit
@@ -143,13 +150,16 @@ fun BarcodeScannerScreen(
 
                 when (val state = scanState) {
                     is BarcodeScannerViewModel.ScanState.FoundIngredient -> {
-                        ScanResultPanel(
-                            title = "Food Match Found",
-                            body = state.ingredient.name,
-                            primaryLabel = "View Ingredient",
-                            onPrimary = { onFoundIngredient(state.ingredient.id) },
-                            secondaryLabel = "Scan Again",
-                            onSecondary = viewModel::reset,
+                        viewModel.onDuplicateBlocked(state.ingredient)
+                        ExistingItemPanel(
+                            ingredient = state.ingredient,
+                            onlineData = state.onlineData,
+                            onUseExisting = onUseIngredient,
+                            onEditBeforeUse = { onEditIngredient(state.ingredient.id) },
+                            onUpdateWithOnlineData = { result ->
+                                onUpdateIngredientWithOnlineData(state.ingredient.id, result)
+                            },
+                            onScanAgain = viewModel::reset,
                             modifier = Modifier.align(Alignment.BottomCenter)
                         )
                     }
@@ -165,13 +175,26 @@ fun BarcodeScannerScreen(
                         )
                     }
                     is BarcodeScannerViewModel.ScanState.OnlineLookupResult -> {
-                        OnlineLookupPanel(
-                            result = state.result,
-                            onSaveAsFood = { onSaveAsFood(state.result) },
-                            onSaveAsSupplement = { onSaveAsSupplement(state.result) },
-                            onScanAgain = viewModel::reset,
-                            modifier = Modifier.align(Alignment.BottomCenter)
-                        )
+                        if (state.nameMatch != null) {
+                            PossibleMatchPanel(
+                                result = state.result,
+                                nameMatch = state.nameMatch,
+                                onLinkToExisting = {
+                                    onLinkToExisting(state.nameMatch.id, state.result.barcode)
+                                },
+                                onCreateNewAnyway = { onCreateNewAnyway(state.result) },
+                                onScanAgain = viewModel::reset,
+                                modifier = Modifier.align(Alignment.BottomCenter)
+                            )
+                        } else {
+                            OnlineLookupPanel(
+                                result = state.result,
+                                onSaveAsFood = { onSaveAsFood(state.result) },
+                                onSaveAsSupplement = { onSaveAsSupplement(state.result) },
+                                onScanAgain = viewModel::reset,
+                                modifier = Modifier.align(Alignment.BottomCenter)
+                            )
+                        }
                     }
                     is BarcodeScannerViewModel.ScanState.NotFound -> {
                         NoMatchPanel(
@@ -200,6 +223,123 @@ fun BarcodeScannerScreen(
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+/** Panel shown when the barcode already exists locally — reuse-first. */
+@Composable
+private fun ExistingItemPanel(
+    ingredient: Ingredient,
+    onlineData: BarcodeProductResult?,
+    onUseExisting: () -> Unit,
+    onEditBeforeUse: () -> Unit,
+    onUpdateWithOnlineData: (BarcodeProductResult) -> Unit,
+    onScanAgain: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        color = MaterialTheme.colorScheme.surface,
+        shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
+        tonalElevation = 4.dp
+    ) {
+        Column(
+            modifier = Modifier.padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(
+                text = "Existing item found",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = KetoAccent
+            )
+            Text(text = ingredient.name, style = MaterialTheme.typography.bodyMedium)
+            if (onlineData != null) {
+                Text(
+                    text = "Better data available online — tap Update to fill in missing values.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Button(
+                onClick = onUseExisting,
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(containerColor = KetoAccent)
+            ) {
+                Text("Use Existing")
+            }
+            if (onlineData != null) {
+                OutlinedButton(
+                    onClick = { onUpdateWithOnlineData(onlineData) },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Update Values")
+                }
+            }
+            OutlinedButton(onClick = onEditBeforeUse, modifier = Modifier.fillMaxWidth()) {
+                Text("Edit Before Use")
+            }
+            OutlinedButton(onClick = onScanAgain, modifier = Modifier.fillMaxWidth()) {
+                Text("Scan Again")
+            }
+        }
+    }
+}
+
+/** Panel shown when name matches an existing ingredient but barcode does not. */
+@Composable
+private fun PossibleMatchPanel(
+    result: BarcodeProductResult,
+    nameMatch: Ingredient,
+    onLinkToExisting: () -> Unit,
+    onCreateNewAnyway: () -> Unit,
+    onScanAgain: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        color = MaterialTheme.colorScheme.surface,
+        shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
+        tonalElevation = 4.dp
+    ) {
+        Column(
+            modifier = Modifier.padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Text(
+                text = "Possible match found",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = KetoAccent
+            )
+            Text(
+                text = "Scanned: ${result.name}",
+                style = MaterialTheme.typography.bodyMedium
+            )
+            Text(
+                text = "Looks like: ${nameMatch.name}",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = "Link to the existing item to avoid duplicates.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Button(
+                onClick = onLinkToExisting,
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(containerColor = KetoAccent)
+            ) {
+                Text("Link to Existing")
+            }
+            OutlinedButton(onClick = onCreateNewAnyway, modifier = Modifier.fillMaxWidth()) {
+                Text("Create New Anyway")
+            }
+            OutlinedButton(onClick = onScanAgain, modifier = Modifier.fillMaxWidth()) {
+                Text("Scan Again")
             }
         }
     }
