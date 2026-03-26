@@ -1,4 +1,4 @@
-# Project Ember Mobile Worklist
+# Ember Mobile Worklist
 
 _Date: 2026-03-25_
 
@@ -21,6 +21,10 @@ _Date: 2026-03-25_
 14. **History / trend editing cleanup:** manual backfill and editing of historical entries for specific days are done.
 15. **Today widget foundation:** the widget now mirrors the app card much more closely, including theme-aware styling, Na:K ratio, visible Calories and Water bars, compact layout cleanup, and working refresh behavior.
 16. **Master backup system:** nightly full-state backup is in place with manual backup support, local phone backup storage, and rotating retention.
+17. **Ingredient Index + Recipe Builder foundation:** recipe creation now supports ingredient-based building from a reusable ingredient library, with a lean builder flow and persisted ingredient-row structure.
+18. **Cooking multi-category support:** cooking-side items can now carry more than one category/tag where appropriate, such as Lunch and Dinner.
+19. **Barcode scanner foundation:** CameraX + ZXing scanning is in place, the 16 KB warning is resolved, and scanner flow is stable on-device.
+20. **Barcode online lookup + Ember rename:** unknown barcode flow now supports online lookup for food and supplements, local-first reuse, and user-facing app branding is now consistently Ember.
 
 ### Future work
 1. **Recipe Library Usefulness Pass**
@@ -28,24 +32,30 @@ _Date: 2026-03-25_
    - improve browsing/filter usefulness where it still feels clunky
    - validate real-device recipe library flow
    - clean up remaining servings/category friction
-   - add a Recipe Builder for ingredient-based recipe creation
-   - evaluate barcode scanner support for packaged food/product entry
+   - expand and refine the Ingredient Index starter library
+   - polish Recipe Builder usability now that the foundation exists
+   - continue improving barcode-backed food/product intake
    - recipe image support remains optional/later
 
-2. **Backup / recovery confidence follow-through**
+2. **Supplement barcode/usefulness follow-through**
+   - validate real-device supplement scan/create/edit/reuse flow
+   - improve supplement-specific field mapping from barcode lookup where useful
+   - tighten duplicate/conflict behavior if real friction appears
+
+3. **Backup / recovery confidence follow-through**
    - validate real restore behavior from nightly/manual backups on-device
    - make sure backup history/status stays trustworthy in real use
    - only expand backup location/folder flexibility if real pain appears
 
-3. **UX cleanup / settings hygiene follow-through**
-   - keep settings organized as new pacing/health/supplement/backup options are added
+4. **UX cleanup / settings hygiene follow-through**
+   - keep settings organized as new pacing/health/supplement/backup/barcode options are added
    - avoid turning Settings into a junk drawer
    - continue visual cleanup to match intended dashboard style
    - keep destructive actions clearly separated and understandable
    - keep version/build info trustworthy
    - only promote this work if real friction appears, not out of compulsive tinkering
 
-4. **Later reassessment**
+5. **Later reassessment**
    - reprioritize after more real-device use
 
 ---
@@ -59,7 +69,8 @@ Focus now:
 - validate real-device browsing/filter flow now that the underlying structure is stronger
 - improve category/filter behavior only where it still feels clunky
 - identify any remaining friction in servings-based recipe logging
-- add a **Recipe Builder** so recipes can be created from ingredients instead of only manual top-level nutrition entry
+- expand and refine the **Ingredient Index** so the builder is genuinely useful in day-to-day use
+- polish the **Recipe Builder** now that the foundation exists
 - support:
   - ingredient rows
   - editable quantities/units
@@ -67,29 +78,31 @@ Focus now:
   - servings
   - per-serving nutrition
   - save into the existing recipe system cleanly
-- evaluate a **Barcode Scanner** for packaged food/product entry
-- preferred barcode direction:
-  - scan barcode
-  - capture barcode value
-  - support lookup/manual confirmation flow
-  - keep it extensible for later local/remote product data integration
-- recipe image support remains optional and lower priority than Builder/Scanner
+- continue improving barcode-backed packaged food/product intake now that scanner + online lookup are live
+- recipe image support remains optional and lower priority than Builder/Barcode usefulness
 
-### 2. Backup / recovery confidence follow-through
+### 2. Supplement barcode/usefulness follow-through
+Focus now:
+- validate real-device supplement barcode flow end to end
+- improve supplement create/edit UX when coming from barcode lookup
+- confirm rescans reliably resolve to existing supplement records
+- refine mapping only where lookup results are actually useful in practice
+
+### 3. Backup / recovery confidence follow-through
 Focus now:
 - validate real restore behavior from the new master backup system on-device
 - confirm nightly backup timing and retention behave correctly in real use
 - confirm recovery is practical after reinstall/test churn
 - only add custom backup location support if the default path becomes a real limitation
 
-### 3. UX cleanup / settings hygiene follow-through
+### 4. UX cleanup / settings hygiene follow-through
 Focus now:
-- keep settings organized as new pacing/health/supplement/backup options are added
+- keep settings organized as new pacing/health/supplement/backup/barcode options are added
 - avoid turning Settings into a junk drawer
 - continue visual cleanup to match intended dashboard style
 - keep destructive actions clearly separated and understandable
 - keep version/build info trustworthy
 - only promote this work if real friction appears, not out of compulsive tinkering
 
-### 4. Later reassessment
+### 5. Later reassessment
 After more real-device usage, re-evaluate the order and decide what deserves to stay, split, or die.
