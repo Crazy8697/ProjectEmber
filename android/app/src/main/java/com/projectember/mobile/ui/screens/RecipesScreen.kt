@@ -58,6 +58,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.projectember.mobile.data.local.entities.Recipe
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.QrCodeScanner
 import com.projectember.mobile.data.local.entities.decodeIngredients
 import com.projectember.mobile.ui.theme.KetoAccent
 import kotlinx.coroutines.launch
@@ -72,7 +73,8 @@ fun RecipesScreen(
     onNavigateToNerdMode: () -> Unit,
     onNavigateToBulkCategory: () -> Unit = {},
     onNavigateToIngredientIndex: () -> Unit = {},
-    onNavigateToRecipeBuilder: () -> Unit = {}
+    onNavigateToRecipeBuilder: () -> Unit = {},
+    onNavigateToBarcodeScanner: () -> Unit = {}
 ) {
     val recipes by viewModel.recipes.collectAsState()
     val selectedRecipe by viewModel.selectedRecipe.collectAsState()
@@ -180,6 +182,16 @@ fun RecipesScreen(
                                 expanded = showMainMenu,
                                 onDismissRequest = { showMainMenu = false }
                             ) {
+                                DropdownMenuItem(
+                                    text = { Text("Scan Barcode") },
+                                    leadingIcon = {
+                                        Icon(Icons.Default.QrCodeScanner, contentDescription = null)
+                                    },
+                                    onClick = {
+                                        showMainMenu = false
+                                        onNavigateToBarcodeScanner()
+                                    }
+                                )
                                 DropdownMenuItem(
                                     text = { Text("Recipe Builder") },
                                     leadingIcon = {

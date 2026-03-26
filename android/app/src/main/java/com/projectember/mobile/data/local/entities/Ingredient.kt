@@ -30,5 +30,7 @@ data class Ingredient(
     val magnesiumMg: Double = 0.0,
     val waterMl: Double = 0.0,
     /** True for the built-in seed set; false for user-created custom ingredients. */
-    val isBuiltIn: Boolean = false
+    val isBuiltIn: Boolean = false,
+    /** Optional barcode value (UPC, EAN, QR, etc.) scanned from the product packaging. */
+    val barcode: String? = null
 )
