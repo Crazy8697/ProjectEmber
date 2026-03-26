@@ -1,6 +1,6 @@
 # Ember Mobile Worklist
 
-_Date: 2026-03-25_
+_Date: 2026-03-26_
 
 ## Short version
 
@@ -25,29 +25,37 @@ _Date: 2026-03-25_
 18. **Cooking multi-category support:** cooking-side items can now carry more than one category/tag where appropriate, such as Lunch and Dinner.
 19. **Barcode scanner foundation:** CameraX + ZXing scanning is in place, the 16 KB warning is resolved, and scanner flow is stable on-device.
 20. **Barcode online lookup + Ember rename:** unknown barcode flow now supports online lookup for food and supplements, local-first reuse, and user-facing app branding is now consistently Ember.
+21. **Recipe Library Usefulness Pass:** complete.
+22. **Backup / recovery confidence follow-through:** complete, including export coverage verification and real restore validation on-device.
 
 ### Future work
-1. **Recipe Library Usefulness Pass**
-   - seed more real recipes
-   - improve browsing/filter usefulness where it still feels clunky
-   - validate real-device recipe library flow
-   - clean up remaining servings/category friction
-   - expand and refine the Ingredient Index starter library
-   - polish Recipe Builder usability now that the foundation exists
-   - continue improving barcode-backed food/product intake
-   - recipe image support remains optional/later
+1. **Smart Intake System**
+   - follow the rule: **Label first for nutrition. Barcode second for rescue, identity, and reuse.**
+   - make barcode rescans surface existing ingredient records instead of creating duplicates
+   - keep barcode as the memory/reuse key even when label scan becomes primary
 
-2. **Supplement barcode/usefulness follow-through**
-   - validate real-device supplement scan/create/edit/reuse flow
-   - improve supplement-specific field mapping from barcode lookup where useful
-   - tighten duplicate/conflict behavior if real friction appears
+   **PR72 — Smart Barcode Flow (Reuse + Merge + Cleanup)**
+   - validate real-device food and supplement barcode flow end to end
+   - detect and reuse existing ingredients via barcode
+   - prevent duplicates using barcode identity plus normalized-name safety checks
+   - clean ugly imported product names automatically
+   - auto-fill obvious zero values instead of leaving known fields blank
+   - improve merge/override behavior when better data is available
+   - tighten duplicate/conflict handling only where real friction appears
 
-3. **Backup / recovery confidence follow-through**
-   - validate real restore behavior from nightly/manual backups on-device
-   - make sure backup history/status stays trustworthy in real use
-   - only expand backup location/folder flexibility if real pain appears
+   **PR73 — Label Scan Foundation (OCR)**
+   - add label-first nutrition scanning from camera
+   - extract serving size, calories, macros, and electrolyte fields where present
+   - create ingredient drafts directly from label data as the primary intake path
+   - use barcode only when label read is incomplete, weak, or needed for identity/reuse
 
-4. **UX cleanup / settings hygiene follow-through**
+   **PR74 — Intake UX Simplification**
+   - unify intake into a clean label-first flow with barcode fallback
+   - make scan → review → save feel fast and trustworthy
+   - reduce manual cleanup after scanning
+   - clearly surface existing-item reuse when barcode matches local DB records
+
+2. **UX cleanup / settings hygiene follow-through**
    - keep settings organized as new pacing/health/supplement/backup/barcode options are added
    - avoid turning Settings into a junk drawer
    - continue visual cleanup to match intended dashboard style
@@ -55,47 +63,46 @@ _Date: 2026-03-25_
    - keep version/build info trustworthy
    - only promote this work if real friction appears, not out of compulsive tinkering
 
-5. **Later reassessment**
+3. **Later reassessment**
    - reprioritize after more real-device use
 
 ---
 
 ## Highest priority
 
-### 1. Recipe library usefulness pass
+### 1. Smart Intake System
 Focus now:
-- seed the recipe library with more real recipes already built together
-- make the recipe DB feel useful instead of half-empty
-- validate real-device browsing/filter flow now that the underlying structure is stronger
-- improve category/filter behavior only where it still feels clunky
-- identify any remaining friction in servings-based recipe logging
-- expand and refine the **Ingredient Index** so the builder is genuinely useful in day-to-day use
-- polish the **Recipe Builder** now that the foundation exists
-- support:
-  - ingredient rows
-  - editable quantities/units
-  - recipe total nutrition
-  - servings
-  - per-serving nutrition
-  - save into the existing recipe system cleanly
-- continue improving barcode-backed packaged food/product intake now that scanner + online lookup are live
-- recipe image support remains optional and lower priority than Builder/Barcode usefulness
+- make intake fast, accurate, and reusable
+- follow the locked rule:
+  - **Label first for nutrition**
+  - **Barcode second for rescue, identity, and reuse**
+- ensure barcode rescans reliably surface existing ingredient data
+- eliminate duplicate ingredient creation
+- reduce cleanup work after scanning
+- make intake feel like a finished feature instead of a raw import utility
 
-### 2. Supplement barcode/usefulness follow-through
+#### PR72 — Smart Barcode Flow (Reuse + Merge + Cleanup)
 Focus now:
-- validate real-device supplement barcode flow end to end
-- improve supplement create/edit UX when coming from barcode lookup
-- confirm rescans reliably resolve to existing supplement records
-- refine mapping only where lookup results are actually useful in practice
+- validate real-device barcode scan/create/edit/reuse flow for food and supplements
+- confirm rescans reliably resolve to existing local ingredient records
+- improve imported naming cleanup and obvious zero-fill behavior
+- refine merge/override behavior only where it improves actual use
 
-### 3. Backup / recovery confidence follow-through
+#### PR73 — Label Scan Foundation (OCR)
 Focus now:
-- validate real restore behavior from the new master backup system on-device
-- confirm nightly backup timing and retention behave correctly in real use
-- confirm recovery is practical after reinstall/test churn
-- only add custom backup location support if the default path becomes a real limitation
+- build the primary nutrition intake path around label scanning
+- extract nutrition fields directly from the package label
+- create draft ingredients from label data with review before save
+- use barcode only as fallback/support for identity and reuse
 
-### 4. UX cleanup / settings hygiene follow-through
+#### PR74 — Intake UX Simplification
+Focus now:
+- unify label-first and barcode-fallback behavior into one clear flow
+- keep scan → review → save simple
+- surface reuse suggestions clearly when existing items are found
+- minimize manual field babysitting
+
+### 2. UX cleanup / settings hygiene follow-through
 Focus now:
 - keep settings organized as new pacing/health/supplement/backup/barcode options are added
 - avoid turning Settings into a junk drawer
@@ -104,5 +111,5 @@ Focus now:
 - keep version/build info trustworthy
 - only promote this work if real friction appears, not out of compulsive tinkering
 
-### 5. Later reassessment
+### 3. Later reassessment
 After more real-device usage, re-evaluate the order and decide what deserves to stay, split, or die.
