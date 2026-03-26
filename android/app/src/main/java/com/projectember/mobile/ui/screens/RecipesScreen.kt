@@ -20,6 +20,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -205,7 +206,7 @@ fun RecipesScreen(
                                 DropdownMenuItem(
                                     text = { Text("Ingredient Index") },
                                     leadingIcon = {
-                                        Icon(Icons.Default.Edit, contentDescription = null)
+                                        Icon(Icons.Default.Search, contentDescription = null)
                                     },
                                     onClick = {
                                         showMainMenu = false
@@ -444,7 +445,7 @@ private fun RecipeCategoryHeader(label: String) {
         color = KetoAccent,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 8.dp, bottom = 2.dp)
+            .padding(top = 8.dp, bottom = 4.dp)
     )
 }
 
@@ -457,7 +458,7 @@ private fun RecipeCard(recipe: Recipe, onClick: () -> Unit, showCategory: Boolea
         ),
         onClick = onClick
     ) {
-        Column(modifier = Modifier.padding(14.dp)) {
+        Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,

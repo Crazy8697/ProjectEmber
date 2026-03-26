@@ -112,13 +112,13 @@ fun StacksScreen(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = "No stacks yet.",
-                    style = MaterialTheme.typography.bodyLarge,
+                    text = "No stacks yet",
+                    style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "Tap + to save your first reusable Keto stack.",
+                    text = "Tap + to create a stack",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

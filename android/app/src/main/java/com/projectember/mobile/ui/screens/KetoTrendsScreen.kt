@@ -999,7 +999,7 @@ private fun KetoMetricHistoryContent(
                             textAlign = TextAlign.Center
                         )
                         Text(
-                            text = "Tap + to log a weight entry.",
+                            text = "Tap + to log a weight entry",
                             style = MaterialTheme.typography.bodyMedium,
                             color = OnSurfaceVariant,
                             textAlign = TextAlign.Center

@@ -321,8 +321,7 @@ private fun NoMatchPanel(
             Text(
                 text = "No Match",
                 style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = KetoAccent
+                fontWeight = FontWeight.SemiBold
             )
             Text(
                 text = "Barcode: $barcode\nNot found locally or online.",

@@ -13,6 +13,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.DatePicker
@@ -164,10 +165,7 @@ fun AddEditSupplementScreen(
                 actions = {
                     if (viewModel.isEditMode) {
                         IconButton(onClick = { showOverflowMenu = true }) {
-                            Text(
-                                text = "⋮",
-                                style = MaterialTheme.typography.titleLarge
-                            )
+                            Icon(Icons.Default.MoreVert, contentDescription = "More options")
                         }
                         DropdownMenu(
                             expanded = showOverflowMenu,

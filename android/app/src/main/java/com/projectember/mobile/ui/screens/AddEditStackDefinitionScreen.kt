@@ -14,6 +14,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
@@ -87,11 +88,7 @@ fun AddEditStackDefinitionScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Text(
-                        text = if (viewModel.isEditMode) "Edit Stack" else "New Stack",
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Text(if (viewModel.isEditMode) "Edit Stack" else "New Stack")
                 },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
@@ -101,7 +98,7 @@ fun AddEditStackDefinitionScreen(
                 actions = {
                     if (viewModel.isEditMode) {
                         IconButton(onClick = { showOverflowMenu = true }) {
-                            Text("⋮", style = MaterialTheme.typography.titleLarge)
+                            Icon(Icons.Default.MoreVert, contentDescription = "More options")
                         }
                         DropdownMenu(
                             expanded = showOverflowMenu,

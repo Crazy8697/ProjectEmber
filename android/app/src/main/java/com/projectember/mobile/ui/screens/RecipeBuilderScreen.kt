@@ -199,7 +199,7 @@ fun RecipeBuilderScreen(
             if (viewModel.rows.isEmpty()) {
                 item {
                     Text(
-                        text = "No ingredients added yet. Tap \"Add Ingredient\" to pick from the Ingredient Index.",
+                        text = "No ingredients yet. Use \"Add Ingredient\" to build the recipe.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

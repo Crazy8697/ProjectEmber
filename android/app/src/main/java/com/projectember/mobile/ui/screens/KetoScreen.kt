@@ -443,7 +443,7 @@ fun KetoScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
-                            text = "Tap + to log a keto entry.",
+                            text = "Tap + to log a keto entry",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
