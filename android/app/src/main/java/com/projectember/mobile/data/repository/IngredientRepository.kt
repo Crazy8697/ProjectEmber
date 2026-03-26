@@ -12,6 +12,7 @@ class IngredientRepository(private val dao: IngredientDao) {
     suspend fun delete(ingredient: Ingredient) = dao.delete(ingredient)
     suspend fun count(): Int = dao.count()
     suspend fun findByBarcode(barcode: String): Ingredient? = dao.findByBarcode(barcode)
+    suspend fun findByNormalizedName(normalizedName: String): Ingredient? = dao.findByNormalizedName(normalizedName)
     suspend fun getAllOnce(): List<Ingredient> = dao.getAllIngredientsOnce()
     suspend fun replaceAll(ingredients: List<Ingredient>) {
         dao.deleteAll()

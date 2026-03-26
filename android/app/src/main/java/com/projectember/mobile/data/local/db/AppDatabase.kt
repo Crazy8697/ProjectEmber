@@ -33,7 +33,7 @@ import com.projectember.mobile.data.local.entities.WeightEntry
                 WeightEntry::class, ManualHealthEntry::class,
                 SupplementEntry::class, StackDefinition::class,
                 Ingredient::class],
-    version = 18,
+    version = 19,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -316,6 +316,29 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * Adds the normalizedName column to the ingredients table for fast duplicate detection
+         * during barcode scanning. Also adds indexes on barcode and normalizedName.
+         *
+         * Existing rows get an empty string for normalizedName; they will be re-normalized
+         * the next time each ingredient is saved via AddEditIngredientViewModel.
+         */
+        private val MIGRATION_18_19 = object : Migration(18, 19) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL(
+                    "ALTER TABLE ingredients ADD COLUMN normalizedName TEXT NOT NULL DEFAULT ''"
+                )
+                database.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_ingredients_barcode` " +
+                        "ON `ingredients` (`barcode`)"
+                )
+                database.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_ingredients_normalizedName` " +
+                        "ON `ingredients` (`normalizedName`)"
+                )
+            }
+        }
+
         fun getInstance(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 INSTANCE ?: Room.databaseBuilder(
@@ -329,7 +352,7 @@ abstract class AppDatabase : RoomDatabase() {
                         MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10,
                         MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13,
                         MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16,
-                        MIGRATION_16_17, MIGRATION_17_18
+                        MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19
                     )
                     .build().also { INSTANCE = it }
             }
