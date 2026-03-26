@@ -1,13 +1,13 @@
 [versions]
-agp = "8.13.2"
-kotlin = "1.9.23"
-ksp = "1.9.23-1.0.20"
+agp = "9.1.0"
+kotlin = "2.2.10"
+ksp = "2.2.10-2.0.2"
 coreKtx = "1.13.1"
 lifecycleRuntimeKtx = "2.7.0"
 activityCompose = "1.9.0"
 composeBom = "2024.05.00"
 navigationCompose = "2.7.7"
-room = "2.6.1"
+room = "2.8.4"
 coroutines = "1.8.0"
 retrofit = "2.11.0"
 moshi = "1.15.1"
@@ -54,3 +54,4 @@ guava = { group = "com.google.guava", name = "guava", version.ref = "guava" }
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
+kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
