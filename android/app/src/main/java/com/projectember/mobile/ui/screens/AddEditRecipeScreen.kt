@@ -388,6 +388,38 @@ fun AddEditRecipeScreen(
                 }
             }
 
+            // ── Additional tags ───────────────────────────────────────────────
+            val taggableCategories = categories.filter { it != viewModel.category }
+            if (taggableCategories.isNotEmpty()) {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Text(
+                        text = "Also applies to",
+                        style = MaterialTheme.typography.labelLarge
+                    )
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        taggableCategories.forEach { cat ->
+                            val isTagged = cat in viewModel.additionalTags
+                            AssistChip(
+                                onClick = { viewModel.onTagToggle(cat) },
+                                label = { Text(cat) },
+                                colors = AssistChipDefaults.assistChipColors(
+                                    containerColor = if (isTagged) KetoAccent.copy(alpha = 0.75f)
+                                    else MaterialTheme.colorScheme.surfaceVariant,
+                                    labelColor = if (isTagged) MaterialTheme.colorScheme.onPrimary
+                                    else MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            )
+                        }
+                    }
+                }
+            }
+
             // ── Macros ───────────────────────────────────────────────────────
             Row(
                 modifier = Modifier.fillMaxWidth(),

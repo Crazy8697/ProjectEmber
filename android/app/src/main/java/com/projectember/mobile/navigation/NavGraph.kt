@@ -44,9 +44,18 @@ import com.projectember.mobile.ui.screens.KetoSettingsScreen
 import com.projectember.mobile.ui.screens.KetoTrendsScreen
 import com.projectember.mobile.ui.screens.KetoViewModel
 import com.projectember.mobile.ui.screens.KetoViewModelFactory
+import com.projectember.mobile.ui.screens.AddEditIngredientScreen
+import com.projectember.mobile.ui.screens.AddEditIngredientViewModel
+import com.projectember.mobile.ui.screens.AddEditIngredientViewModelFactory
 import com.projectember.mobile.ui.screens.BulkCategoryScreen
 import com.projectember.mobile.ui.screens.BulkCategoryViewModel
 import com.projectember.mobile.ui.screens.BulkCategoryViewModelFactory
+import com.projectember.mobile.ui.screens.IngredientIndexScreen
+import com.projectember.mobile.ui.screens.IngredientIndexViewModel
+import com.projectember.mobile.ui.screens.IngredientIndexViewModelFactory
+import com.projectember.mobile.ui.screens.RecipeBuilderScreen
+import com.projectember.mobile.ui.screens.RecipeBuilderViewModel
+import com.projectember.mobile.ui.screens.RecipeBuilderViewModelFactory
 import com.projectember.mobile.ui.screens.RecipeNerdModeScreen
 import com.projectember.mobile.ui.screens.RecipeNerdModeViewModel
 import com.projectember.mobile.ui.screens.RecipeNerdModeViewModelFactory
@@ -196,7 +205,60 @@ fun EmberNavGraph(
                 onNavigateToAddRecipe = { navController.navigate(Screen.RecipeAdd.route) },
                 onNavigateToEditRecipe = { recipeId -> navController.navigate(Screen.RecipeEdit.createRoute(recipeId)) },
                 onNavigateToNerdMode = { navController.navigate(Screen.RecipeNerdMode.route) },
-                onNavigateToBulkCategory = { navController.navigate(Screen.RecipeBulkCategory.route) }
+                onNavigateToBulkCategory = { navController.navigate(Screen.RecipeBulkCategory.route) },
+                onNavigateToIngredientIndex = { navController.navigate(Screen.IngredientIndex.route) },
+                onNavigateToRecipeBuilder = { navController.navigate(Screen.RecipeBuilder.route) }
+            )
+        }
+
+        composable(Screen.IngredientIndex.route) {
+            val viewModel: IngredientIndexViewModel = viewModel(
+                factory = IngredientIndexViewModelFactory(app.ingredientRepository)
+            )
+            IngredientIndexScreen(
+                viewModel = viewModel,
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToAddIngredient = { navController.navigate(Screen.IngredientAdd.route) },
+                onNavigateToEditIngredient = { id -> navController.navigate(Screen.IngredientEdit.createRoute(id)) }
+            )
+        }
+
+        composable(Screen.IngredientAdd.route) {
+            val viewModel: AddEditIngredientViewModel = viewModel(
+                factory = AddEditIngredientViewModelFactory(app.ingredientRepository)
+            )
+            AddEditIngredientScreen(
+                viewModel = viewModel,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(
+            route = Screen.IngredientEdit.route,
+            arguments = listOf(navArgument("ingredientId") { type = NavType.IntType })
+        ) { backStackEntry ->
+            val ingredientId = backStackEntry.arguments?.getInt("ingredientId") ?: return@composable
+            val viewModel: AddEditIngredientViewModel = viewModel(
+                factory = AddEditIngredientViewModelFactory(app.ingredientRepository, ingredientId)
+            )
+            AddEditIngredientScreen(
+                viewModel = viewModel,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Screen.RecipeBuilder.route) {
+            val viewModel: RecipeBuilderViewModel = viewModel(
+                factory = RecipeBuilderViewModelFactory(
+                    app.recipeRepository,
+                    app.ingredientRepository,
+                    app.recipeCategoryStore
+                )
+            )
+            RecipeBuilderScreen(
+                viewModel = viewModel,
+                onNavigateBack = { navController.popBackStack() },
+                onSaved = { navController.popBackStack() }
             )
         }
 

@@ -20,6 +20,7 @@ import com.projectember.mobile.data.repository.ExerciseCategoryRepository
 import com.projectember.mobile.data.repository.ExerciseRepository
 import com.projectember.mobile.data.repository.KetoRepository
 import com.projectember.mobile.data.repository.ManualHealthEntryRepository
+import com.projectember.mobile.data.repository.IngredientRepository
 import com.projectember.mobile.data.repository.RecipeRepository
 import com.projectember.mobile.data.repository.StackDefinitionRepository
 import com.projectember.mobile.data.repository.SupplementRepository
@@ -44,6 +45,7 @@ class EmberApplication : Application() {
     val ketoTargetsStore by lazy { KetoTargetsStore(this) }
     val weightRepository by lazy { WeightRepository(database.weightDao()) }
     val recipeRepository by lazy { RecipeRepository(database.recipeDao()) }
+    val ingredientRepository by lazy { IngredientRepository(database.ingredientDao()) }
     val syncRepository by lazy { SyncRepository(database.syncStatusDao()) }
     val syncManager by lazy { SyncManager(syncRepository) }
     val healthConnectManager by lazy {

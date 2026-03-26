@@ -8,6 +8,7 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.projectember.mobile.data.local.dao.ExerciseCategoryDao
 import com.projectember.mobile.data.local.dao.ExerciseEntryDao
+import com.projectember.mobile.data.local.dao.IngredientDao
 import com.projectember.mobile.data.local.dao.KetoDao
 import com.projectember.mobile.data.local.dao.ManualHealthEntryDao
 import com.projectember.mobile.data.local.dao.RecipeDao
@@ -17,6 +18,7 @@ import com.projectember.mobile.data.local.dao.SyncStatusDao
 import com.projectember.mobile.data.local.dao.WeightDao
 import com.projectember.mobile.data.local.entities.ExerciseCategory
 import com.projectember.mobile.data.local.entities.ExerciseEntry
+import com.projectember.mobile.data.local.entities.Ingredient
 import com.projectember.mobile.data.local.entities.KetoEntry
 import com.projectember.mobile.data.local.entities.ManualHealthEntry
 import com.projectember.mobile.data.local.entities.Recipe
@@ -29,8 +31,9 @@ import com.projectember.mobile.data.local.entities.WeightEntry
     entities = [KetoEntry::class, Recipe::class, SyncStatus::class,
                 ExerciseCategory::class, ExerciseEntry::class,
                 WeightEntry::class, ManualHealthEntry::class,
-                SupplementEntry::class, StackDefinition::class],
-    version = 15,
+                SupplementEntry::class, StackDefinition::class,
+                Ingredient::class],
+    version = 16,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -43,6 +46,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun manualHealthEntryDao(): ManualHealthEntryDao
     abstract fun supplementEntryDao(): SupplementEntryDao
     abstract fun stackDefinitionDao(): StackDefinitionDao
+    abstract fun ingredientDao(): IngredientDao
 
     companion object {
         @Volatile
@@ -258,6 +262,41 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * Adds the Ingredient Index table, and two new columns on recipes:
+         *   - tags TEXT NOT NULL DEFAULT ''  (comma-separated additional category tags)
+         *   - builderRows TEXT               (JSON snapshot of Recipe Builder rows; nullable)
+         */
+        private val MIGRATION_15_16 = object : Migration(15, 16) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL(
+                    """CREATE TABLE IF NOT EXISTS `ingredients` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `name` TEXT NOT NULL,
+                        `defaultAmount` REAL NOT NULL DEFAULT 100.0,
+                        `defaultUnit` TEXT NOT NULL DEFAULT 'g',
+                        `calories` REAL NOT NULL DEFAULT 0.0,
+                        `proteinG` REAL NOT NULL DEFAULT 0.0,
+                        `fatG` REAL NOT NULL DEFAULT 0.0,
+                        `netCarbsG` REAL NOT NULL DEFAULT 0.0,
+                        `totalCarbsG` REAL NOT NULL DEFAULT 0.0,
+                        `fiberG` REAL NOT NULL DEFAULT 0.0,
+                        `sodiumMg` REAL NOT NULL DEFAULT 0.0,
+                        `potassiumMg` REAL NOT NULL DEFAULT 0.0,
+                        `magnesiumMg` REAL NOT NULL DEFAULT 0.0,
+                        `waterMl` REAL NOT NULL DEFAULT 0.0,
+                        `isBuiltIn` INTEGER NOT NULL DEFAULT 0
+                    )"""
+                )
+                database.execSQL(
+                    "ALTER TABLE recipes ADD COLUMN tags TEXT NOT NULL DEFAULT ''"
+                )
+                database.execSQL(
+                    "ALTER TABLE recipes ADD COLUMN builderRows TEXT"
+                )
+            }
+        }
+
         fun getInstance(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 INSTANCE ?: Room.databaseBuilder(
@@ -270,7 +309,7 @@ abstract class AppDatabase : RoomDatabase() {
                         MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7,
                         MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10,
                         MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13,
-                        MIGRATION_13_14, MIGRATION_14_15
+                        MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16
                     )
                     .build().also { INSTANCE = it }
             }

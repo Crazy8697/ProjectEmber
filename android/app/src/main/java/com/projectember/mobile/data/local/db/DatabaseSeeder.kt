@@ -1,5 +1,6 @@
 package com.projectember.mobile.data.local.db
 
+import com.projectember.mobile.data.local.IngredientSeeder
 import com.projectember.mobile.data.local.entities.ExerciseCategory
 import com.projectember.mobile.data.local.entities.KetoEntry
 import com.projectember.mobile.data.local.entities.Recipe
@@ -169,6 +170,8 @@ object DatabaseSeeder {
                 updatedAt = LocalDateTime.now().format(dateTimeFormatter)
             )
         )
+
+        IngredientSeeder.seed(database.ingredientDao())
 
         if (exerciseCategoryDao.count() == 0) {
             val builtIns = listOf(

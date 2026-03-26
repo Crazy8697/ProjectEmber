@@ -32,5 +32,23 @@ data class Recipe(
     /** Number of servings the full recipe yields. All nutrition fields are for the whole recipe. */
     val servings: Double = 1.0,
     val ketoNotes: String? = null,
-    val ingredientsRaw: String? = null
+    val ingredientsRaw: String? = null,
+    /**
+     * Comma-separated list of **additional** category tags beyond the primary [category].
+     * Empty string means no additional tags. Used for multi-category recipe tagging.
+     *
+     * Example: category="Lunch", tags="Dinner" means the recipe appears under both Lunch and Dinner.
+     */
+    val tags: String = "",
+    /**
+     * JSON snapshot of builder ingredient rows (see [BuilderRowData]).
+     * Non-null only for recipes created via the Recipe Builder.
+     * Enables re-opening built recipes in the builder in a future update.
+     */
+    val builderRows: String? = null
 )
+
+/** Returns the additional category tags stored in [Recipe.tags] as a trimmed, non-blank list. */
+fun Recipe.parsedTags(): List<String> =
+    if (tags.isBlank()) emptyList()
+    else tags.split(",").map { it.trim() }.filter { it.isNotBlank() }

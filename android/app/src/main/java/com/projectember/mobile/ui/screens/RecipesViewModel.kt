@@ -7,6 +7,7 @@ import com.projectember.mobile.data.local.UnitPreferences
 import com.projectember.mobile.data.local.UnitsPreferencesStore
 import com.projectember.mobile.data.local.entities.KetoEntry
 import com.projectember.mobile.data.local.entities.Recipe
+import com.projectember.mobile.data.local.entities.parsedTags
 import com.projectember.mobile.data.repository.KetoRepository
 import com.projectember.mobile.data.repository.RecipeRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -53,7 +54,10 @@ class RecipesViewModel(
     val selectedCategory: StateFlow<String> = _selectedCategory
 
     val recipes: StateFlow<List<Recipe>> = combine(_allRecipes, _selectedCategory) { all, cat ->
-        if (cat == ALL_CATEGORIES) all else all.filter { it.category == cat }
+        if (cat == ALL_CATEGORIES) all
+        else all.filter { recipe ->
+            recipe.category == cat || recipe.parsedTags().contains(cat)
+        }
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
@@ -61,7 +65,12 @@ class RecipesViewModel(
     )
 
     val availableCategories: StateFlow<List<String>> = _allRecipes
-        .map { all -> listOf(ALL_CATEGORIES) + all.map { it.category }.distinct().sorted() }
+        .map { all ->
+            val cats = all.flatMap { recipe ->
+                listOf(recipe.category) + recipe.parsedTags()
+            }.distinct().sorted()
+            listOf(ALL_CATEGORIES) + cats
+        }
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
