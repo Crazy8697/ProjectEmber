@@ -15,8 +15,10 @@ import com.projectember.mobile.data.local.entities.SupplementEntry
 import com.projectember.mobile.data.local.entities.WeightEntry
 import com.projectember.mobile.data.repository.ExerciseCategoryRepository
 import com.projectember.mobile.data.repository.ExerciseRepository
+import com.projectember.mobile.data.repository.IngredientRepository
 import com.projectember.mobile.data.repository.KetoRepository
 import com.projectember.mobile.data.repository.RecipeRepository
+import com.projectember.mobile.data.local.entities.Ingredient
 import com.projectember.mobile.data.local.entities.ManualHealthEntry
 import com.projectember.mobile.data.repository.ManualHealthEntryRepository
 import com.projectember.mobile.data.repository.StackDefinitionRepository
@@ -55,6 +57,10 @@ class BackupManager(
     private val supplementRepository: SupplementRepository,
     private val stackDefinitionRepository: StackDefinitionRepository,
     private val manualHealthEntryRepository: ManualHealthEntryRepository,
+    // PR71: added ingredient, recipe category, and calorie allocation stores
+    private val ingredientRepository: IngredientRepository,
+    private val recipeCategoryStore: com.projectember.mobile.data.local.RecipeCategoryStore,
+    private val calorieAllocationStore: com.projectember.mobile.data.local.CalorieAllocationStore,
     private val ketoTargetsStore: KetoTargetsStore,
     // Preference stores for exporting/restoring preferences
     private val themePreferencesStore: com.projectember.mobile.data.local.ThemePreferencesStore,
@@ -124,10 +130,48 @@ class BackupManager(
 
             // 5. Manual health entries have no cross-table dependencies
             manualHealthEntryRepository.replaceAll(payload.manualHealthEntries.map { it.toEntity() })
+
+            // 6. Ingredient index — includes both built-in and user-created entries.
+            //    Restoring all preserves IDs used by builderRows snapshots and ensures
+            //    the built-in seed is not duplicated (DatabaseSeeder skips seeding when
+            //    count > 0, so a full replace is the correct approach here).
+            if (payload.ingredients.isNotEmpty()) {
+                ingredientRepository.replaceAll(payload.ingredients.map { it.toEntity() })
+            }
         }
 
         // SharedPreferences are saved only after the DB transaction has committed.
         ketoTargetsStore.save(payload.ketoTargets.toKetoTargets())
+
+        // Recipe categories — restore user-defined category list if present in backup
+        if (payload.recipeCategories.isNotEmpty()) {
+            try {
+                val current = recipeCategoryStore.categories.value.toMutableList()
+                payload.recipeCategories.forEach { cat ->
+                    if (current.none { it.equals(cat, ignoreCase = true) }) {
+                        recipeCategoryStore.addCategory(cat)
+                    }
+                }
+                // Remove any categories not in the backup (except defaults cannot be removed by store)
+                current.forEach { cat ->
+                    if (payload.recipeCategories.none { it.equals(cat, ignoreCase = true) }) {
+                        recipeCategoryStore.deleteCategory(cat)
+                    }
+                }
+            } catch (_: Exception) {}
+        }
+
+        // Calorie allocation percentages
+        try {
+            calorieAllocationStore.save(
+                com.projectember.mobile.data.local.CalorieAllocation(
+                    breakfastPct = payload.calorieAllocation.breakfastPct,
+                    lunchPct = payload.calorieAllocation.lunchPct,
+                    dinnerPct = payload.calorieAllocation.dinnerPct,
+                    snackPct = payload.calorieAllocation.snackPct
+                )
+            )
+        } catch (_: Exception) {}
 
         // Restore preference stores (non-DB data)
         try {
@@ -226,6 +270,26 @@ class BackupManager(
         root.put("supplementEntries", supplementRepository.getAllOnce().toJsonArray { it.toJson() })
         root.put("stackDefinitions", stackDefinitionRepository.getAllOnce().toJsonArray { it.toJson() })
         root.put("manualHealthEntries", manualHealthEntryRepository.getAllOnce().toJsonArray { it.toJson() })
+
+        // PR71: ingredient index, recipe categories, calorie allocation
+        root.put("ingredients", ingredientRepository.getAllOnce().toJsonArray { it.toJson() })
+        try {
+            val cats = recipeCategoryStore.categories.value
+            val catsArr = JSONArray()
+            cats.forEach { catsArr.put(it) }
+            root.put("recipeCategories", catsArr)
+        } catch (_: Exception) {}
+        try {
+            val alloc = calorieAllocationStore.allocation.value
+            val allocj = JSONObject().apply {
+                put("breakfastPct", alloc.breakfastPct)
+                put("lunchPct", alloc.lunchPct)
+                put("dinnerPct", alloc.dinnerPct)
+                put("snackPct", alloc.snackPct)
+            }
+            root.put("calorieAllocation", allocj)
+        } catch (_: Exception) {}
+
         root.put("ketoTargets", ketoTargetsStore.targets.value.toJson())
 
         // Preferences: theme, units, daily rhythm, meal timing, health metric prefs
@@ -321,6 +385,27 @@ class BackupManager(
         val ketoTargets = root.optJSONObject("ketoTargets")
             ?.let { parseKetoTargets(it) } ?: KetoTargetsDto()
 
+        // PR71: ingredient index (optional — absent in older backups)
+        val ingredients = root.optJSONArray("ingredients")
+            ?.let { parseIngredients(it) } ?: emptyList()
+
+        // PR71: recipe categories (optional — absent in older backups)
+        val recipeCategories = root.optJSONArray("recipeCategories")?.let { arr ->
+            (0 until arr.length()).mapNotNull { i ->
+                arr.optString(i, "").takeIf { it.isNotEmpty() }
+            }
+        } ?: emptyList()
+
+        // PR71: calorie allocation (optional — absent in older backups)
+        val calorieAllocation = root.optJSONObject("calorieAllocation")?.let { o ->
+            CalorieAllocationDto(
+                breakfastPct = o.optInt("breakfastPct", 25),
+                lunchPct = o.optInt("lunchPct", 25),
+                dinnerPct = o.optInt("dinnerPct", 50),
+                snackPct = o.optInt("snackPct", 0)
+            )
+        } ?: CalorieAllocationDto()
+
         // Optional new preference sections — maintain backward compatibility by falling back to defaults
         val theme = root.optJSONObject("theme")?.let {
             ThemeDto(selectedThemeName = it.optString("selectedThemeName", "EMBER_DARK"))
@@ -402,12 +487,15 @@ class BackupManager(
             supplementEntries = supplementEntries,
             stackDefinitions = stackDefinitions,
             manualHealthEntries = manualHealthEntries,
+            ingredients = ingredients,
+            recipeCategories = recipeCategories,
             ketoTargets = ketoTargets,
             theme = theme,
             units = units,
             dailyRhythm = dailyRhythm,
             mealTiming = mealTiming,
-            healthMetricPreferences = healthMetricPreferences
+            healthMetricPreferences = healthMetricPreferences,
+            calorieAllocation = calorieAllocation
         )
     }
 }
@@ -457,6 +545,9 @@ private fun Recipe.toJson() = JSONObject().apply {
     put("servings", servings)
     putOpt("ketoNotes", ketoNotes)
     putOpt("ingredientsRaw", ingredientsRaw)
+    // PR71: tags (multi-category) and builderRows (Recipe Builder snapshot)
+    put("tags", tags)
+    putOpt("builderRows", builderRows)
 }
 
 private fun ExerciseEntry.toJson() = JSONObject().apply {
@@ -510,6 +601,27 @@ private fun StackDefinition.toJson() = JSONObject().apply {
     putOpt("sodiumMg", sodiumMg)
     putOpt("potassiumMg", potassiumMg)
     putOpt("magnesiumMg", magnesiumMg)
+    // PR71: barcode added in DB migration 17→18
+    putOpt("barcode", barcode)
+}
+
+private fun Ingredient.toJson() = JSONObject().apply {
+    put("id", id)
+    put("name", name)
+    put("defaultAmount", defaultAmount)
+    put("defaultUnit", defaultUnit)
+    put("calories", calories)
+    put("proteinG", proteinG)
+    put("fatG", fatG)
+    put("netCarbsG", netCarbsG)
+    put("totalCarbsG", totalCarbsG)
+    put("fiberG", fiberG)
+    put("sodiumMg", sodiumMg)
+    put("potassiumMg", potassiumMg)
+    put("magnesiumMg", magnesiumMg)
+    put("waterMl", waterMl)
+    put("isBuiltIn", isBuiltIn)
+    putOpt("barcode", barcode)
 }
 
 private fun KetoTargets.toJson() = JSONObject().apply {
@@ -568,7 +680,10 @@ private fun parseRecipes(arr: JSONArray): List<RecipeDto> =
             waterMl = o.optDouble("waterMl", 0.0),
             servings = o.optDouble("servings", 1.0),
             ketoNotes = o.optString("ketoNotes", "").takeIf { it.isNotEmpty() },
-            ingredientsRaw = o.optString("ingredientsRaw", "").takeIf { it.isNotEmpty() }
+            ingredientsRaw = o.optString("ingredientsRaw", "").takeIf { it.isNotEmpty() },
+            // PR71: tags and builderRows (default-safe for older backups)
+            tags = o.optString("tags", ""),
+            builderRows = o.optString("builderRows", "").takeIf { it.isNotEmpty() }
         )
     }
 
@@ -647,7 +762,9 @@ private fun parseStackDefinitions(arr: JSONArray): List<StackDefinitionDto> =
             netCarbsG = optDoubleOrNull("netCarbsG"),
             sodiumMg = optDoubleOrNull("sodiumMg"),
             potassiumMg = optDoubleOrNull("potassiumMg"),
-            magnesiumMg = optDoubleOrNull("magnesiumMg")
+            magnesiumMg = optDoubleOrNull("magnesiumMg"),
+            // PR71: barcode (default-safe for older backups)
+            barcode = o.optString("barcode", "").takeIf { it.isNotEmpty() }
         )
     }
 
@@ -672,6 +789,29 @@ private fun parseManualHealthEntries(arr: JSONArray): List<ManualHealthEntryDto>
             entryDate = o.getString("entryDate"),
             entryTime = o.getString("entryTime"),
             source = o.optString("source", "manual")
+        )
+    }
+
+private fun parseIngredients(arr: JSONArray): List<IngredientDto> =
+    (0 until arr.length()).map { i ->
+        val o = arr.getJSONObject(i)
+        IngredientDto(
+            id = o.getInt("id"),
+            name = o.getString("name"),
+            defaultAmount = o.optDouble("defaultAmount", 100.0),
+            defaultUnit = o.optString("defaultUnit", "g"),
+            calories = o.optDouble("calories", 0.0),
+            proteinG = o.optDouble("proteinG", 0.0),
+            fatG = o.optDouble("fatG", 0.0),
+            netCarbsG = o.optDouble("netCarbsG", 0.0),
+            totalCarbsG = o.optDouble("totalCarbsG", 0.0),
+            fiberG = o.optDouble("fiberG", 0.0),
+            sodiumMg = o.optDouble("sodiumMg", 0.0),
+            potassiumMg = o.optDouble("potassiumMg", 0.0),
+            magnesiumMg = o.optDouble("magnesiumMg", 0.0),
+            waterMl = o.optDouble("waterMl", 0.0),
+            isBuiltIn = o.optBoolean("isBuiltIn", false),
+            barcode = o.optString("barcode", "").takeIf { it.isNotEmpty() }
         )
     }
 
@@ -724,7 +864,10 @@ internal fun RecipeDto.toEntity() = Recipe(
     waterMl = waterMl,
     servings = servings,
     ketoNotes = ketoNotes,
-    ingredientsRaw = ingredientsRaw
+    ingredientsRaw = ingredientsRaw,
+    // PR71: tags and builderRows
+    tags = tags,
+    builderRows = builderRows
 )
 
 internal fun ExerciseCategoryDto.toEntity() = ExerciseCategory(
@@ -777,7 +920,28 @@ internal fun StackDefinitionDto.toEntity() = StackDefinition(
     netCarbsG = netCarbsG,
     sodiumMg = sodiumMg,
     potassiumMg = potassiumMg,
-    magnesiumMg = magnesiumMg
+    magnesiumMg = magnesiumMg,
+    // PR71: barcode
+    barcode = barcode
+)
+
+internal fun IngredientDto.toEntity() = Ingredient(
+    id = id,
+    name = name,
+    defaultAmount = defaultAmount,
+    defaultUnit = defaultUnit,
+    calories = calories,
+    proteinG = proteinG,
+    fatG = fatG,
+    netCarbsG = netCarbsG,
+    totalCarbsG = totalCarbsG,
+    fiberG = fiberG,
+    sodiumMg = sodiumMg,
+    potassiumMg = potassiumMg,
+    magnesiumMg = magnesiumMg,
+    waterMl = waterMl,
+    isBuiltIn = isBuiltIn,
+    barcode = barcode
 )
 
 internal fun ManualHealthEntryDto.toEntity() = ManualHealthEntry(
