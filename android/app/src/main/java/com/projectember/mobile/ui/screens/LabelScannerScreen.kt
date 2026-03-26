@@ -117,8 +117,9 @@ fun LabelScannerScreen(
     val handleCapture: () -> Unit = capture@{
         val imageCapture = imageCaptureRef.value
         if (imageCapture == null) {
-            // Camera not ready yet — log so it shows in Logcat
+            // Camera not ready — show visible feedback instead of silently dropping the tap
             Log.w(TAG, "CAPTURE_ATTEMPTED: camera not ready yet — imageCaptureRef is null")
+            viewModel.onOcrFailed("Camera not ready — please wait a moment and try again")
             return@capture
         }
         Log.d(TAG, "CAPTURE_STARTED: requesting image from ImageCapture")
@@ -127,30 +128,37 @@ fun LabelScannerScreen(
         imageCapture.takePicture(captureExecutor, object : ImageCapture.OnImageCapturedCallback() {
             override fun onCaptureSuccess(image: androidx.camera.core.ImageProxy) {
                 Log.d(TAG, "IMAGE_CAPTURED: format=${image.format} rotation=${image.imageInfo.rotationDegrees}")
-                val mediaImage = image.image
-                if (mediaImage == null) {
-                    Log.e(TAG, "IMAGE_CAPTURE_NULL: image.image returned null — cannot run OCR")
+                // Wrap entire processing in try-catch so image.close() always runs
+                try {
+                    val mediaImage = image.image
+                    if (mediaImage == null) {
+                        Log.e(TAG, "IMAGE_CAPTURE_NULL: image.image returned null — cannot run OCR")
+                        image.close()
+                        viewModel.onOcrFailed("Camera returned a blank frame — try again")
+                        return
+                    }
+                    val inputImage = InputImage.fromMediaImage(
+                        mediaImage,
+                        image.imageInfo.rotationDegrees
+                    )
+                    // recognizer was created on the main thread above — safe to call process() from here
+                    recognizer.process(inputImage)
+                        .addOnSuccessListener { visionText ->
+                            val text = visionText.text
+                            image.close()
+                            Log.d(TAG, "OCR_TEXT_CAPTURED (${text.length} chars):\n$text")
+                            viewModel.onTextRecognized(text)
+                        }
+                        .addOnFailureListener { e ->
+                            image.close()
+                            Log.e(TAG, "OCR_FAILED: ${e.javaClass.simpleName}: ${e.message}", e)
+                            viewModel.onOcrFailed(e.message ?: e.javaClass.simpleName)
+                        }
+                } catch (e: Exception) {
+                    Log.e(TAG, "OCR_EXCEPTION: ${e.javaClass.simpleName}: ${e.message}", e)
                     image.close()
-                    viewModel.onTextRecognized("")
-                    return
+                    viewModel.onOcrFailed("Unexpected error during scan: ${e.message}")
                 }
-                val inputImage = InputImage.fromMediaImage(
-                    mediaImage,
-                    image.imageInfo.rotationDegrees
-                )
-                // recognizer was created on the main thread above — safe to call process() from here
-                recognizer.process(inputImage)
-                    .addOnSuccessListener { visionText ->
-                        val text = visionText.text
-                        image.close()
-                        Log.d(TAG, "OCR_TEXT_CAPTURED (${text.length} chars):\n$text")
-                        viewModel.onTextRecognized(text)
-                    }
-                    .addOnFailureListener { e ->
-                        image.close()
-                        Log.e(TAG, "OCR_FAILED: ${e.javaClass.simpleName}: ${e.message}", e)
-                        viewModel.onOcrFailed(e.message ?: e.javaClass.simpleName)
-                    }
             }
 
             override fun onError(exception: ImageCaptureException) {
