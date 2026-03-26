@@ -179,6 +179,15 @@ fun AddEditStackDefinitionScreen(
                 )
             }
 
+            OutlinedTextField(
+                value = viewModel.barcode,
+                onValueChange = viewModel::onBarcodeChange,
+                label = { Text("Barcode (optional)") },
+                placeholder = { Text("Scan or type product barcode") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
+            )
+
             // ── Section: Notes ────────────────────────────────────────────────
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
             Text(

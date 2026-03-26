@@ -29,6 +29,9 @@ interface StackDefinitionDao {
     @Query("SELECT * FROM stack_definitions ORDER BY name ASC")
     suspend fun getAllOnce(): List<StackDefinition>
 
+    @Query("SELECT * FROM stack_definitions WHERE barcode = :barcode LIMIT 1")
+    suspend fun findByBarcode(barcode: String): StackDefinition?
+
     @Query("DELETE FROM stack_definitions")
     suspend fun deleteAll()
 }

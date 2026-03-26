@@ -27,7 +27,9 @@ data class StackDefinition(
     val netCarbsG: Double? = null,
     val sodiumMg: Double? = null,
     val potassiumMg: Double? = null,
-    val magnesiumMg: Double? = null
+    val magnesiumMg: Double? = null,
+    /** Optional barcode (UPC/EAN/QR) from product packaging scan. */
+    val barcode: String? = null
 ) {
     /** True if this definition carries any nutrition data that can feed Keto. */
     fun hasNutritionData(): Boolean =

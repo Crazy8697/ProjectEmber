@@ -33,7 +33,7 @@ import com.projectember.mobile.data.local.entities.WeightEntry
                 WeightEntry::class, ManualHealthEntry::class,
                 SupplementEntry::class, StackDefinition::class,
                 Ingredient::class],
-    version = 17,
+    version = 18,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -306,6 +306,16 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * Adds the barcode column to stack_definitions so supplement items can be
+         * found by barcode scan without a network call after first save.
+         */
+        private val MIGRATION_17_18 = object : Migration(17, 18) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("ALTER TABLE stack_definitions ADD COLUMN barcode TEXT")
+            }
+        }
+
         fun getInstance(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 INSTANCE ?: Room.databaseBuilder(
@@ -319,7 +329,7 @@ abstract class AppDatabase : RoomDatabase() {
                         MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10,
                         MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13,
                         MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16,
-                        MIGRATION_16_17
+                        MIGRATION_16_17, MIGRATION_17_18
                     )
                     .build().also { INSTANCE = it }
             }

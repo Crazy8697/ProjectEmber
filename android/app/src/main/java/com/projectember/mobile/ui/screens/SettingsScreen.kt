@@ -178,7 +178,7 @@ fun SettingsScreen(
             )
             val intent = Intent(Intent.ACTION_SEND).apply {
                 type = "application/json"
-                putExtra(Intent.EXTRA_SUBJECT, "Project Ember Backup")
+                putExtra(Intent.EXTRA_SUBJECT, "Ember Backup")
                 putExtra(Intent.EXTRA_TEXT, "Backup export attached/generated from the mobile app.")
                 putExtra(Intent.EXTRA_STREAM, uri)
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
@@ -470,7 +470,7 @@ fun SettingsScreen(
                         SettingsRow(label = "Status", value = "⚠️ Permissions required")
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "Project Ember needs read access to health and fitness data " +
+                            text = "Ember needs read access to health and fitness data " +
                                 "in Health Connect to display metrics across your screens.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant

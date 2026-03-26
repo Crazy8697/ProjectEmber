@@ -18,6 +18,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material3.Badge
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -55,7 +56,8 @@ fun StacksScreen(
     viewModel: StacksViewModel,
     onNavigateBack: () -> Unit,
     onNavigateToAddDefinition: () -> Unit,
-    onNavigateToEditDefinition: (Int) -> Unit
+    onNavigateToEditDefinition: (Int) -> Unit,
+    onNavigateToBarcodeScanner: () -> Unit = {}
 ) {
     val definitions by viewModel.definitions.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -74,6 +76,11 @@ fun StacksScreen(
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    IconButton(onClick = onNavigateToBarcodeScanner) {
+                        Icon(Icons.Default.QrCodeScanner, contentDescription = "Scan barcode")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(

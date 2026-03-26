@@ -6,6 +6,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.projectember.mobile.data.barcode.BarcodeProductResult
 import com.projectember.mobile.data.local.entities.Ingredient
 import com.projectember.mobile.data.repository.IngredientRepository
 import kotlinx.coroutines.launch
@@ -13,7 +14,8 @@ import kotlinx.coroutines.launch
 class AddEditIngredientViewModel(
     private val ingredientRepository: IngredientRepository,
     private val editIngredientId: Int? = null,
-    initialBarcode: String? = null
+    initialBarcode: String? = null,
+    initialProductResult: BarcodeProductResult? = null
 ) : ViewModel() {
 
     val isEditMode: Boolean get() = editIngredientId != null
@@ -54,6 +56,22 @@ class AddEditIngredientViewModel(
         private set
 
     init {
+        // Pre-fill from online lookup result (takes priority over bare initialBarcode)
+        if (initialProductResult != null && editIngredientId == null) {
+            val displayName = if (!initialProductResult.brand.isNullOrBlank()) {
+                "${initialProductResult.brand} — ${initialProductResult.name}"
+            } else {
+                initialProductResult.name
+            }
+            name = displayName
+            barcode = initialProductResult.barcode
+            if (initialProductResult.caloriesKcal != null) calories = fmt(initialProductResult.caloriesKcal)
+            if (initialProductResult.proteinG != null) proteinG = fmt(initialProductResult.proteinG)
+            if (initialProductResult.fatG != null) fatG = fmt(initialProductResult.fatG)
+            if (initialProductResult.totalCarbsG != null) totalCarbsG = fmt(initialProductResult.totalCarbsG)
+            if (initialProductResult.fiberG != null) fiberG = fmt(initialProductResult.fiberG)
+            if (initialProductResult.sodiumMg != null) sodiumMg = fmt(initialProductResult.sodiumMg)
+        }
         if (editIngredientId != null) {
             viewModelScope.launch {
                 val ing = ingredientRepository.getById(editIngredientId) ?: return@launch
@@ -144,9 +162,10 @@ class AddEditIngredientViewModel(
 class AddEditIngredientViewModelFactory(
     private val ingredientRepository: IngredientRepository,
     private val editIngredientId: Int? = null,
-    private val initialBarcode: String? = null
+    private val initialBarcode: String? = null,
+    private val initialProductResult: BarcodeProductResult? = null
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T =
-        AddEditIngredientViewModel(ingredientRepository, editIngredientId, initialBarcode) as T
+        AddEditIngredientViewModel(ingredientRepository, editIngredientId, initialBarcode, initialProductResult) as T
 }
