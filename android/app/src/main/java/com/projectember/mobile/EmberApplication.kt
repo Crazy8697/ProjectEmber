@@ -87,6 +87,10 @@ class EmberApplication : Application() {
             supplementRepository = supplementRepository,
             stackDefinitionRepository = stackDefinitionRepository,
             manualHealthEntryRepository = manualHealthEntryRepository,
+            // PR71: ingredient index, recipe categories, calorie allocation
+            ingredientRepository = ingredientRepository,
+            recipeCategoryStore = recipeCategoryStore,
+            calorieAllocationStore = calorieAllocationStore,
             ketoTargetsStore = ketoTargetsStore,
             themePreferencesStore = themePreferencesStore,
             unitsPreferencesStore = unitsPreferencesStore,

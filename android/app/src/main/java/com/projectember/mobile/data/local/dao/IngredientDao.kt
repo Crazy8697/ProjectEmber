@@ -34,4 +34,10 @@ interface IngredientDao {
 
     @Query("SELECT * FROM ingredients WHERE barcode = :barcode LIMIT 1")
     suspend fun findByBarcode(barcode: String): Ingredient?
+
+    @Query("SELECT * FROM ingredients ORDER BY name ASC")
+    suspend fun getAllIngredientsOnce(): List<Ingredient>
+
+    @Query("DELETE FROM ingredients")
+    suspend fun deleteAll()
 }

@@ -21,13 +21,17 @@ data class BackupPayloadV1(
     val supplementEntries: List<SupplementEntryDto> = emptyList(),
     val stackDefinitions: List<StackDefinitionDto> = emptyList(),
     val manualHealthEntries: List<ManualHealthEntryDto> = emptyList(),
+    // PR71: added ingredient index, recipe categories, calorie allocation
+    val ingredients: List<IngredientDto> = emptyList(),
+    val recipeCategories: List<String> = emptyList(),
     val ketoTargets: KetoTargetsDto,
-    // Newly added preference coverage
+    // Preference stores
     val theme: ThemeDto = ThemeDto(),
     val units: UnitsDto = UnitsDto(),
     val dailyRhythm: DailyRhythmDto = DailyRhythmDto(),
     val mealTiming: MealTimingDto = MealTimingDto(),
-    val healthMetricPreferences: HealthMetricPreferencesDto = HealthMetricPreferencesDto()
+    val healthMetricPreferences: HealthMetricPreferencesDto = HealthMetricPreferencesDto(),
+    val calorieAllocation: CalorieAllocationDto = CalorieAllocationDto()
 )
 
 data class ThemeDto(
@@ -103,7 +107,10 @@ data class RecipeDto(
     val waterMl: Double = 0.0,
     val servings: Double = 1.0,
     val ketoNotes: String? = null,
-    val ingredientsRaw: String? = null
+    val ingredientsRaw: String? = null,
+    // PR71: additional tags for multi-category and builder snapshot
+    val tags: String = "",
+    val builderRows: String? = null
 )
 
 data class ExerciseEntryDto(
@@ -178,5 +185,35 @@ data class StackDefinitionDto(
     val netCarbsG: Double? = null,
     val sodiumMg: Double? = null,
     val potassiumMg: Double? = null,
-    val magnesiumMg: Double? = null
+    val magnesiumMg: Double? = null,
+    // PR71: barcode field added in DB migration 17→18
+    val barcode: String? = null
+)
+
+// PR71: ingredient index backup — all nutrition per defaultAmount/defaultUnit
+data class IngredientDto(
+    val id: Int = 0,
+    val name: String,
+    val defaultAmount: Double = 100.0,
+    val defaultUnit: String = "g",
+    val calories: Double = 0.0,
+    val proteinG: Double = 0.0,
+    val fatG: Double = 0.0,
+    val netCarbsG: Double = 0.0,
+    val totalCarbsG: Double = 0.0,
+    val fiberG: Double = 0.0,
+    val sodiumMg: Double = 0.0,
+    val potassiumMg: Double = 0.0,
+    val magnesiumMg: Double = 0.0,
+    val waterMl: Double = 0.0,
+    val isBuiltIn: Boolean = false,
+    val barcode: String? = null
+)
+
+// PR71: meal calorie distribution preferences
+data class CalorieAllocationDto(
+    val breakfastPct: Int = 25,
+    val lunchPct: Int = 25,
+    val dinnerPct: Int = 50,
+    val snackPct: Int = 0
 )
