@@ -214,7 +214,8 @@ fun EmberNavGraph(
                 onNavigateToBulkCategory = { navController.navigate(Screen.RecipeBulkCategory.route) },
                 onNavigateToIngredientIndex = { navController.navigate(Screen.IngredientIndex.route) },
                 onNavigateToRecipeBuilder = { navController.navigate(Screen.RecipeBuilder.route) },
-                onNavigateToBarcodeScanner = { navController.navigate(Screen.BarcodeScanner.route) }
+                onNavigateToBarcodeScanner = { navController.navigate(Screen.BarcodeScanner.route) },
+                onNavigateToLabelScanner = { navController.navigate(Screen.LabelScanner.route) }
             )
         }
 

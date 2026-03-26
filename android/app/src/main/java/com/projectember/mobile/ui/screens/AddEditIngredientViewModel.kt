@@ -203,7 +203,7 @@ class AddEditIngredientViewModel(
     }
 
     private fun fmt(d: Double): String =
-        if (d == 0.0) "" else d.toBigDecimal().stripTrailingZeros().toPlainString()
+        if (d == 0.0) "0" else d.toBigDecimal().stripTrailingZeros().toPlainString()
 
     private fun dbl(s: String): Double = s.toDoubleOrNull() ?: 0.0
 }
