@@ -52,4 +52,6 @@ sealed class Screen(val route: String) {
     }
     data object RecipeBuilder : Screen("recipe_builder")
     data object BarcodeScanner : Screen("barcode_scanner")
+    /** PR73: camera-based nutrition label OCR scan flow. */
+    data object LabelScanner : Screen("label_scanner")
 }

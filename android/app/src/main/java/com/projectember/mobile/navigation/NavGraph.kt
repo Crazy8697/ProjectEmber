@@ -69,6 +69,8 @@ import com.projectember.mobile.ui.screens.SettingsScreen
 import com.projectember.mobile.ui.screens.SettingsViewModel
 import com.projectember.mobile.ui.screens.SettingsViewModelFactory
 import com.projectember.mobile.data.barcode.BarcodeProductResult
+import com.projectember.mobile.ui.screens.LabelScannerScreen
+import com.projectember.mobile.ui.screens.LabelScannerViewModel
 import com.projectember.mobile.ui.screens.StacksScreen
 import com.projectember.mobile.ui.screens.StacksViewModel
 import com.projectember.mobile.ui.screens.StacksViewModelFactory
@@ -225,7 +227,10 @@ fun EmberNavGraph(
                 onNavigateBack = { navController.popBackStack() },
                 onNavigateToAddIngredient = { navController.navigate(Screen.IngredientAdd.createRoute()) },
                 onNavigateToEditIngredient = { id -> navController.navigate(Screen.IngredientEdit.createRoute(id)) },
-                onNavigateToBarcodeScanner = { navController.navigate(Screen.BarcodeScanner.route) }
+                // Barcode: secondary — identity / reuse
+                onNavigateToBarcodeScanner = { navController.navigate(Screen.BarcodeScanner.route) },
+                // Label scan: primary nutrition entry path (PR73)
+                onNavigateToLabelScanner = { navController.navigate(Screen.LabelScanner.route) }
             )
         }
 
@@ -236,11 +241,14 @@ fun EmberNavGraph(
             val initialBarcode = backStackEntry.arguments?.getString("barcode")?.takeIf { it.isNotBlank() }
             // Consume any pending online-lookup result (set by the barcode scanner flow)
             val productResult = app.pendingBarcodeResult?.also { app.pendingBarcodeResult = null }
+            // Consume any pending label OCR result (set by the label scanner flow — PR73)
+            val labelResult = app.pendingLabelResult?.also { app.pendingLabelResult = null }
             val viewModel: AddEditIngredientViewModel = viewModel(
                 factory = AddEditIngredientViewModelFactory(
                     app.ingredientRepository,
                     initialBarcode = initialBarcode,
-                    initialProductResult = productResult
+                    initialProductResult = productResult,
+                    initialLabelResult = labelResult
                 )
             )
             AddEditIngredientScreen(
@@ -623,6 +631,20 @@ fun EmberNavGraph(
                 supplementRepository = app.supplementRepository,
                 ketoRepository = app.ketoRepository,
                 onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        // PR73: Label scan — primary nutrition intake path
+        composable(Screen.LabelScanner.route) {
+            val viewModel: LabelScannerViewModel = viewModel()
+            LabelScannerScreen(
+                viewModel = viewModel,
+                onNavigateBack = { navController.popBackStack() },
+                onUseDraft = { labelResult ->
+                    app.pendingLabelResult = labelResult
+                    navController.popBackStack()
+                    navController.navigate(Screen.IngredientAdd.createRoute())
+                }
             )
         }
 

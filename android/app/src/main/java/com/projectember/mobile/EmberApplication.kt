@@ -3,6 +3,7 @@ package com.projectember.mobile
 import android.app.Application
 import com.projectember.mobile.data.barcode.BarcodeProductLookupRepository
 import com.projectember.mobile.data.barcode.BarcodeProductResult
+import com.projectember.mobile.data.label.NutritionParseResult
 import com.projectember.mobile.data.backup.BackupManager
 import com.projectember.mobile.data.backup.NightlyBackupEngine
 import com.projectember.mobile.data.backup.NightlyBackupScheduler
@@ -67,6 +68,8 @@ class EmberApplication : Application() {
     val barcodeProductLookupRepository by lazy { BarcodeProductLookupRepository() }
     /** One-shot transfer slot: set before navigating to a create screen, cleared after reading. */
     var pendingBarcodeResult: BarcodeProductResult? = null
+    /** One-shot transfer slot for label-scan OCR results (PR73). Cleared after reading. */
+    var pendingLabelResult: NutritionParseResult? = null
     val themePreferencesStore by lazy { ThemePreferencesStore(this) }
     val unitsPreferencesStore by lazy { UnitsPreferencesStore(this) }
     val dailyRhythmStore by lazy { DailyRhythmStore(this) }
