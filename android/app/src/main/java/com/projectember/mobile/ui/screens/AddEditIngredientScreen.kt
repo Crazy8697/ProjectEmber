@@ -249,6 +249,18 @@ fun AddEditIngredientScreen(
                 )
             }
 
+            HorizontalDivider()
+
+            Text("Barcode (optional)", style = MaterialTheme.typography.labelLarge)
+            OutlinedTextField(
+                value = viewModel.barcode,
+                onValueChange = viewModel::onBarcodeChange,
+                label = { Text("Barcode") },
+                placeholder = { Text("e.g. 012345678901") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+
             Spacer(modifier = Modifier.height(8.dp))
 
             Button(

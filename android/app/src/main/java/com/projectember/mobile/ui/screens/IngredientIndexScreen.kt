@@ -14,6 +14,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
@@ -52,7 +53,8 @@ fun IngredientIndexScreen(
     viewModel: IngredientIndexViewModel,
     onNavigateBack: () -> Unit,
     onNavigateToAddIngredient: () -> Unit,
-    onNavigateToEditIngredient: (Int) -> Unit
+    onNavigateToEditIngredient: (Int) -> Unit,
+    onNavigateToBarcodeScanner: () -> Unit = {}
 ) {
     val ingredients by viewModel.ingredients.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
@@ -93,6 +95,11 @@ fun IngredientIndexScreen(
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    IconButton(onClick = onNavigateToBarcodeScanner) {
+                        Icon(Icons.Default.QrCodeScanner, contentDescription = "Scan barcode")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(

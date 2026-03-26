@@ -31,4 +31,7 @@ interface IngredientDao {
 
     @Query("SELECT COUNT(*) FROM ingredients")
     suspend fun count(): Int
+
+    @Query("SELECT * FROM ingredients WHERE barcode = :barcode LIMIT 1")
+    suspend fun findByBarcode(barcode: String): Ingredient?
 }

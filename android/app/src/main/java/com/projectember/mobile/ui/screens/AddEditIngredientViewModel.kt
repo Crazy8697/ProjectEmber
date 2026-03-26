@@ -12,7 +12,8 @@ import kotlinx.coroutines.launch
 
 class AddEditIngredientViewModel(
     private val ingredientRepository: IngredientRepository,
-    private val editIngredientId: Int? = null
+    private val editIngredientId: Int? = null,
+    initialBarcode: String? = null
 ) : ViewModel() {
 
     val isEditMode: Boolean get() = editIngredientId != null
@@ -44,6 +45,8 @@ class AddEditIngredientViewModel(
         private set
     var waterMl by mutableStateOf("")
         private set
+    var barcode by mutableStateOf(initialBarcode ?: "")
+        private set
 
     var nameError by mutableStateOf<String?>(null)
         private set
@@ -67,6 +70,7 @@ class AddEditIngredientViewModel(
                 potassiumMg = fmt(ing.potassiumMg)
                 magnesiumMg = fmt(ing.magnesiumMg)
                 waterMl = fmt(ing.waterMl)
+                barcode = ing.barcode ?: ""
             }
         }
     }
@@ -83,6 +87,7 @@ class AddEditIngredientViewModel(
     fun onPotassiumMgChange(v: String) { potassiumMg = v }
     fun onMagnesiumMgChange(v: String) { magnesiumMg = v }
     fun onWaterMlChange(v: String) { waterMl = v }
+    fun onBarcodeChange(v: String) { barcode = v }
 
     fun save(onSuccess: () -> Unit, onValidationFailed: () -> Unit = {}) {
         var valid = true
@@ -113,7 +118,8 @@ class AddEditIngredientViewModel(
                 potassiumMg = dbl(potassiumMg),
                 magnesiumMg = dbl(magnesiumMg),
                 waterMl = dbl(waterMl),
-                isBuiltIn = original?.isBuiltIn ?: false
+                isBuiltIn = original?.isBuiltIn ?: false,
+                barcode = barcode.trim().ifBlank { null }
             )
             if (original != null) ingredientRepository.update(ing)
             else ingredientRepository.insert(ing)
@@ -137,9 +143,10 @@ class AddEditIngredientViewModel(
 
 class AddEditIngredientViewModelFactory(
     private val ingredientRepository: IngredientRepository,
-    private val editIngredientId: Int? = null
+    private val editIngredientId: Int? = null,
+    private val initialBarcode: String? = null
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T =
-        AddEditIngredientViewModel(ingredientRepository, editIngredientId) as T
+        AddEditIngredientViewModel(ingredientRepository, editIngredientId, initialBarcode) as T
 }

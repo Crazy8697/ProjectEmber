@@ -47,6 +47,9 @@ import com.projectember.mobile.ui.screens.KetoViewModelFactory
 import com.projectember.mobile.ui.screens.AddEditIngredientScreen
 import com.projectember.mobile.ui.screens.AddEditIngredientViewModel
 import com.projectember.mobile.ui.screens.AddEditIngredientViewModelFactory
+import com.projectember.mobile.ui.screens.BarcodeScannerScreen
+import com.projectember.mobile.ui.screens.BarcodeScannerViewModel
+import com.projectember.mobile.ui.screens.BarcodeScannerViewModelFactory
 import com.projectember.mobile.ui.screens.BulkCategoryScreen
 import com.projectember.mobile.ui.screens.BulkCategoryViewModel
 import com.projectember.mobile.ui.screens.BulkCategoryViewModelFactory
@@ -207,7 +210,8 @@ fun EmberNavGraph(
                 onNavigateToNerdMode = { navController.navigate(Screen.RecipeNerdMode.route) },
                 onNavigateToBulkCategory = { navController.navigate(Screen.RecipeBulkCategory.route) },
                 onNavigateToIngredientIndex = { navController.navigate(Screen.IngredientIndex.route) },
-                onNavigateToRecipeBuilder = { navController.navigate(Screen.RecipeBuilder.route) }
+                onNavigateToRecipeBuilder = { navController.navigate(Screen.RecipeBuilder.route) },
+                onNavigateToBarcodeScanner = { navController.navigate(Screen.BarcodeScanner.route) }
             )
         }
 
@@ -218,14 +222,19 @@ fun EmberNavGraph(
             IngredientIndexScreen(
                 viewModel = viewModel,
                 onNavigateBack = { navController.popBackStack() },
-                onNavigateToAddIngredient = { navController.navigate(Screen.IngredientAdd.route) },
-                onNavigateToEditIngredient = { id -> navController.navigate(Screen.IngredientEdit.createRoute(id)) }
+                onNavigateToAddIngredient = { navController.navigate(Screen.IngredientAdd.createRoute()) },
+                onNavigateToEditIngredient = { id -> navController.navigate(Screen.IngredientEdit.createRoute(id)) },
+                onNavigateToBarcodeScanner = { navController.navigate(Screen.BarcodeScanner.route) }
             )
         }
 
-        composable(Screen.IngredientAdd.route) {
+        composable(
+            route = Screen.IngredientAdd.route,
+            arguments = listOf(navArgument("barcode") { type = NavType.StringType; defaultValue = "" })
+        ) { backStackEntry ->
+            val initialBarcode = backStackEntry.arguments?.getString("barcode")?.takeIf { it.isNotBlank() }
             val viewModel: AddEditIngredientViewModel = viewModel(
-                factory = AddEditIngredientViewModelFactory(app.ingredientRepository)
+                factory = AddEditIngredientViewModelFactory(app.ingredientRepository, initialBarcode = initialBarcode)
             )
             AddEditIngredientScreen(
                 viewModel = viewModel,
@@ -594,6 +603,24 @@ fun EmberNavGraph(
                 supplementRepository = app.supplementRepository,
                 ketoRepository = app.ketoRepository,
                 onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Screen.BarcodeScanner.route) {
+            val viewModel: BarcodeScannerViewModel = viewModel(
+                factory = BarcodeScannerViewModelFactory(app.ingredientRepository)
+            )
+            BarcodeScannerScreen(
+                viewModel = viewModel,
+                onNavigateBack = { navController.popBackStack() },
+                onBarcodeFound = { ingredientId ->
+                    navController.popBackStack()
+                    navController.navigate(Screen.IngredientEdit.createRoute(ingredientId))
+                },
+                onBarcodeNotFound = { barcode ->
+                    navController.popBackStack()
+                    navController.navigate(Screen.IngredientAdd.createRoute(barcode))
+                }
             )
         }
     }

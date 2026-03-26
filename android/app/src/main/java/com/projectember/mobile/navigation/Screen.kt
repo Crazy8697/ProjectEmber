@@ -43,9 +43,13 @@ sealed class Screen(val route: String) {
     }
     data object JsonImport : Screen("json_import")
     data object IngredientIndex : Screen("ingredient_index")
-    data object IngredientAdd : Screen("ingredient_add")
+    data object IngredientAdd : Screen("ingredient_add?barcode={barcode}") {
+        fun createRoute(barcode: String = "") =
+            if (barcode.isBlank()) "ingredient_add" else "ingredient_add?barcode=${java.net.URLEncoder.encode(barcode, "UTF-8")}"
+    }
     data object IngredientEdit : Screen("ingredient_edit/{ingredientId}") {
         fun createRoute(ingredientId: Int) = "ingredient_edit/$ingredientId"
     }
     data object RecipeBuilder : Screen("recipe_builder")
+    data object BarcodeScanner : Screen("barcode_scanner")
 }
