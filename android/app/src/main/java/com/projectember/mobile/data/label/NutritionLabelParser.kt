@@ -66,36 +66,61 @@ object NutritionLabelParser {
         return result
     }
 
+    // Nutrient keywords used to guard the next-line fallback from cross-field contamination.
+    private val NUTRIENT_KEYWORDS = listOf(
+        "calorie", "total fat", "saturated fat", "trans fat", "cholesterol",
+        "sodium", "potassium", "total carb", "carbohydrate", "dietary fiber",
+        "total fiber", "fiber", "sugar", "protein", "vitamin", "iron", "calcium",
+        "magnesium", "phosphorus"
+    )
+
     /**
      * Scans normalized lines for the first line matching any of [labels] and extracts a number.
-     * Falls back to the following line if the matching line has no number itself.
-     * Skips percentage-only values.
+     *
+     * - Searches AFTER the matched label text to avoid picking up numbers from other nutrients
+     *   on the same merged OCR line (e.g. "total fat 5g total carb. 0g protein 0g").
+     * - Falls back to the next line only when the next line does not start a different nutrient.
      */
     private fun extractNumeric(normLines: List<String>, labels: List<String>): Double? {
         for (i in normLines.indices) {
             val line = normLines[i]
-            if (labels.none { label -> line.contains(label) }) continue
-            // Prefer a number on the same line (e.g. "Total Fat 4g")
-            val fromSameLine = parseFirstNumber(line)
+            val matchedLabel = labels.firstOrNull { label -> line.contains(label) } ?: continue
+
+            // Search only the text after the matched label — avoids stealing values from other
+            // nutrients that appear earlier on the same (merged) OCR line.
+            val afterLabel = line.substringAfter(matchedLabel)
+            val fromSameLine = parseFirstNumber(afterLabel)
             if (fromSameLine != null) return fromSameLine
-            // Fall back to the next line (some label formats put the value on the next line)
+
+            // Fall back to the next line only if it is not itself a nutrient field.
             if (i + 1 < normLines.size) {
-                val fromNext = parseFirstNumber(normLines[i + 1])
-                if (fromNext != null) return fromNext
+                val nextLine = normLines[i + 1]
+                val nextIsNutrient = NUTRIENT_KEYWORDS.any { nextLine.contains(it) }
+                if (!nextIsNutrient) {
+                    val fromNext = parseFirstNumber(nextLine)
+                    if (fromNext != null) return fromNext
+                }
             }
         }
         return null
     }
 
     /**
-     * Extracts the first numeric value from [line], ignoring bare "%" values.
-     * Handles: "4g", "230mg", "4.5 g", "110", "0".
-     * Returns null if no number is found.
+     * Extracts the first numeric value from [line], ignoring bare "%DV" percentage tokens.
+     *
+     * Handles: "4g", "230mg", "4.5 g", "110", "0", "0g", "0%".
+     * When the only numbers on the line are "0%" tokens (e.g. "0%" DV for a zero-amount nutrient),
+     * returns 0.0 rather than null — the label explicitly states the value is zero.
      */
     private fun parseFirstNumber(line: String): Double? {
         // Remove percentage tokens (e.g. "5%", "10 %") to avoid confusing %DV with nutrient amounts.
+        val hadZeroPercent = Regex("\\b0\\s*%").containsMatchIn(line)
         val withoutPercent = line.replace(Regex("\\d+\\s*%"), " ").trim()
-        if (withoutPercent.isBlank()) return null
+        // If stripping percentages left nothing numeric but the line had "0%", the nutrient is
+        // explicitly zero (e.g. "Total Carbohydrate 0%").
+        if (withoutPercent.isBlank() || !withoutPercent.any { it.isDigit() }) {
+            return if (hadZeroPercent) 0.0 else null
+        }
         val match = Regex("(\\d+\\.?\\d*)\\s*(?:g|mg|mcg|kcal|cal)?\\b").find(withoutPercent)
         return match?.groupValues?.get(1)?.toDoubleOrNull()
     }
