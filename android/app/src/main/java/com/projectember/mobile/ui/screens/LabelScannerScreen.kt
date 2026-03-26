@@ -8,7 +8,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
-import androidx.camera.core.ImageProxy
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
@@ -35,6 +34,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -51,11 +51,13 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -80,7 +82,8 @@ fun LabelScannerScreen(
     val context = LocalContext.current
     val scanState by viewModel.scanState.collectAsState()
 
-    var hasCameraPermission = remember {
+    // ── Permission ────────────────────────────────────────────────────────────
+    var hasCameraPermission by remember {
         mutableStateOf(
             ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA)
                 == PackageManager.PERMISSION_GRANTED
@@ -88,28 +91,45 @@ fun LabelScannerScreen(
     }
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
-    ) { granted -> hasCameraPermission.value = granted }
+    ) { granted -> hasCameraPermission = granted }
 
     LaunchedEffect(Unit) {
-        if (!hasCameraPermission.value) permissionLauncher.launch(Manifest.permission.CAMERA)
+        if (!hasCameraPermission) permissionLauncher.launch(Manifest.permission.CAMERA)
     }
 
-    // Capture executor — one background thread for ImageCapture callbacks.
+    // ── ML Kit recognizer — created once on main thread, closed on dispose ───
+    // BUG FIX: was previously created inside onCaptureSuccess (background thread).
+    // TextRecognition.getClient() must be called on the main thread.
+    val recognizer = remember { TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS) }
+    DisposableEffect(Unit) { onDispose { recognizer.close() } }
+
+    // ── Capture executor — background thread for ImageCapture callbacks ───────
     val captureExecutor = remember { Executors.newSingleThreadExecutor() }
     DisposableEffect(Unit) { onDispose { captureExecutor.shutdown() } }
 
-    // Slot to hold the ImageCapture use-case once the camera is bound.
+    // ── Camera readiness ──────────────────────────────────────────────────────
+    // Slot filled when the camera is bound and ImageCapture is ready.
     val imageCaptureRef = remember { mutableStateOf<ImageCapture?>(null) }
+    // Derived: true once imageCaptureRef is populated.
+    val isCameraReady = imageCaptureRef.value != null
 
+    // ── Capture handler ───────────────────────────────────────────────────────
     val handleCapture: () -> Unit = capture@{
-        val imageCapture = imageCaptureRef.value ?: return@capture
+        val imageCapture = imageCaptureRef.value
+        if (imageCapture == null) {
+            // Camera not ready yet — log so it shows in Logcat
+            Log.w(TAG, "CAPTURE_ATTEMPTED: camera not ready yet — imageCaptureRef is null")
+            return@capture
+        }
+        Log.d(TAG, "CAPTURE_STARTED: requesting image from ImageCapture")
         viewModel.onCapturing()
 
         imageCapture.takePicture(captureExecutor, object : ImageCapture.OnImageCapturedCallback() {
-            override fun onCaptureSuccess(image: ImageProxy) {
+            override fun onCaptureSuccess(image: androidx.camera.core.ImageProxy) {
+                Log.d(TAG, "IMAGE_CAPTURED: format=${image.format} rotation=${image.imageInfo.rotationDegrees}")
                 val mediaImage = image.image
                 if (mediaImage == null) {
-                    Log.w(TAG, "onCaptureSuccess: image.image was null")
+                    Log.e(TAG, "IMAGE_CAPTURE_NULL: image.image returned null — cannot run OCR")
                     image.close()
                     viewModel.onTextRecognized("")
                     return
@@ -118,27 +138,29 @@ fun LabelScannerScreen(
                     mediaImage,
                     image.imageInfo.rotationDegrees
                 )
-                val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
+                // recognizer was created on the main thread above — safe to call process() from here
                 recognizer.process(inputImage)
                     .addOnSuccessListener { visionText ->
+                        val text = visionText.text
                         image.close()
-                        Log.d(TAG, "OCR_TEXT_CAPTURED: ${visionText.text.take(200)}")
-                        viewModel.onTextRecognized(visionText.text)
+                        Log.d(TAG, "OCR_TEXT_CAPTURED (${text.length} chars):\n$text")
+                        viewModel.onTextRecognized(text)
                     }
                     .addOnFailureListener { e ->
                         image.close()
-                        Log.e(TAG, "OCR failed", e)
-                        viewModel.onTextRecognized("")
+                        Log.e(TAG, "OCR_FAILED: ${e.javaClass.simpleName}: ${e.message}", e)
+                        viewModel.onOcrFailed(e.message ?: e.javaClass.simpleName)
                     }
             }
 
             override fun onError(exception: ImageCaptureException) {
-                Log.e(TAG, "Capture failed", exception)
-                viewModel.onTextRecognized("")
+                Log.e(TAG, "IMAGE_CAPTURE_ERROR: ${exception.imageCaptureError} — ${exception.message}", exception)
+                viewModel.onOcrFailed("Camera capture error: ${exception.message}")
             }
         })
     }
 
+    // ── UI ────────────────────────────────────────────────────────────────────
     Scaffold(
         topBar = {
             TopAppBar(
@@ -154,7 +176,7 @@ fun LabelScannerScreen(
             )
         }
     ) { paddingValues ->
-        if (!hasCameraPermission.value) {
+        if (!hasCameraPermission) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -181,15 +203,18 @@ fun LabelScannerScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            // Camera preview always runs underneath — avoids re-binding on state changes.
             LabelCameraPreview(
                 modifier = Modifier.fillMaxSize(),
-                onImageCaptureReady = { imageCaptureRef.value = it }
+                onImageCaptureReady = { capture ->
+                    Log.d(TAG, "CAMERA_READY: ImageCapture use-case bound")
+                    imageCaptureRef.value = capture
+                }
             )
 
             when (val state = scanState) {
                 is LabelScanState.Idle -> {
                     LabelGuideOverlay(
+                        cameraReady = isCameraReady,
                         onCapture = handleCapture,
                         modifier = Modifier.fillMaxSize()
                     )
@@ -213,6 +238,7 @@ fun LabelScannerScreen(
                 is LabelScanState.ParseResult -> {
                     ParseResultPanel(
                         result = state.result,
+                        rawOcrText = state.rawText,
                         onUseDraft = { onUseDraft(state.result) },
                         onScanAgain = viewModel::onScanAgain,
                         modifier = Modifier
@@ -241,8 +267,17 @@ fun LabelScannerScreen(
                                 color = MaterialTheme.colorScheme.onErrorContainer
                             )
                             Spacer(Modifier.height(4.dp))
+                            if (state.reason.isNotBlank()) {
+                                Text(
+                                    "Reason: ${state.reason}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onErrorContainer,
+                                    textAlign = TextAlign.Center
+                                )
+                                Spacer(Modifier.height(4.dp))
+                            }
                             Text(
-                                "Try again with better lighting, or hold the camera steady with the Nutrition Facts panel fully visible.",
+                                "Try again with better lighting, or ensure the Nutrition Facts panel is fully visible and steady.",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onErrorContainer,
                                 textAlign = TextAlign.Center
@@ -291,7 +326,7 @@ private fun LabelCameraPreview(
                     )
                     onImageCaptureReady(imageCapture)
                 } catch (e: Exception) {
-                    Log.e(TAG, "Failed to bind camera", e)
+                    Log.e(TAG, "CAMERA_BIND_FAILED: ${e.message}", e)
                 }
             }, ContextCompat.getMainExecutor(ctx))
 
@@ -303,6 +338,7 @@ private fun LabelCameraPreview(
 
 @Composable
 private fun LabelGuideOverlay(
+    cameraReady: Boolean,
     onCapture: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -316,7 +352,10 @@ private fun LabelGuideOverlay(
             color = Color.Black.copy(alpha = 0.55f)
         ) {
             Text(
-                text = "Point at the Nutrition Facts panel, then tap Capture",
+                text = if (cameraReady)
+                    "Point at the Nutrition Facts panel, then tap Capture"
+                else
+                    "Starting camera…",
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                 style = MaterialTheme.typography.bodyMedium,
                 color = Color.White,
@@ -330,11 +369,16 @@ private fun LabelGuideOverlay(
                 .align(Alignment.Center)
                 .fillMaxWidth(0.85f)
                 .aspectRatio(0.65f)
-                .border(2.dp, KetoAccent, RoundedCornerShape(8.dp))
+                .border(
+                    width = 2.dp,
+                    color = if (cameraReady) KetoAccent else Color.Gray,
+                    shape = RoundedCornerShape(8.dp)
+                )
         )
 
         Button(
             onClick = onCapture,
+            enabled = cameraReady,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .padding(bottom = 32.dp)
@@ -343,7 +387,7 @@ private fun LabelGuideOverlay(
         ) {
             Icon(Icons.Default.CameraAlt, contentDescription = null)
             Spacer(Modifier.width(8.dp))
-            Text("Capture Label")
+            Text(if (cameraReady) "Capture Label" else "Starting…")
         }
     }
 }
@@ -351,6 +395,7 @@ private fun LabelGuideOverlay(
 @Composable
 private fun ParseResultPanel(
     result: NutritionParseResult,
+    rawOcrText: String,
     onUseDraft: () -> Unit,
     onScanAgain: () -> Unit,
     modifier: Modifier = Modifier
@@ -359,6 +404,8 @@ private fun ParseResultPanel(
         result.calories, result.proteinG, result.fatG, result.totalCarbsG,
         result.fiberG, result.sodiumMg, result.potassiumMg, result.magnesiumMg
     ).any { it != null }
+
+    var showRawText by remember { mutableStateOf(false) }
 
     Surface(
         modifier = modifier,
@@ -389,10 +436,7 @@ private fun ParseResultPanel(
                 Spacer(Modifier.height(12.dp))
 
                 result.servingAmount?.let {
-                    ParsedRow(
-                        label = "Serving",
-                        value = "${fmtNum(it)} ${result.servingUnit ?: ""}".trim()
-                    )
+                    ParsedRow("Serving", "${fmtNum(it)} ${result.servingUnit ?: ""}".trim())
                 }
                 result.calories?.let { ParsedRow("Calories", "${fmtNum(it)} kcal") }
                 result.proteinG?.let { ParsedRow("Protein", "${fmtNum(it)} g") }
@@ -404,7 +448,7 @@ private fun ParseResultPanel(
                 result.magnesiumMg?.let { ParsedRow("Magnesium", "${fmtNum(it)} mg") }
 
                 if (result.missingFields.isNotEmpty()) {
-                    Spacer(Modifier.height(8.dp))
+                    Spacer(Modifier.height(6.dp))
                     Text(
                         "Not detected: ${result.missingFields.joinToString(", ")}",
                         style = MaterialTheme.typography.bodySmall,
@@ -428,8 +472,8 @@ private fun ParseResultPanel(
                 )
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    "The label could not be read clearly. Ensure the Nutrition Facts panel is " +
-                        "fully in frame and well lit.",
+                    "OCR captured text but could not extract nutrition values. " +
+                        "Check the raw text below to see what was read.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -441,6 +485,39 @@ private fun ParseResultPanel(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("Scan Again")
+            }
+
+            // ── Debug: raw OCR text ───────────────────────────────────────────
+            Spacer(Modifier.height(12.dp))
+            HorizontalDivider()
+            Spacer(Modifier.height(8.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "Raw OCR text (${rawOcrText.length} chars)",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                androidx.compose.material3.TextButton(onClick = { showRawText = !showRawText }) {
+                    Text(if (showRawText) "Hide" else "Show")
+                }
+            }
+            if (showRawText) {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    shape = RoundedCornerShape(4.dp)
+                ) {
+                    Text(
+                        text = if (rawOcrText.isBlank()) "(empty)" else rawOcrText,
+                        modifier = Modifier.padding(8.dp),
+                        style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
     }
