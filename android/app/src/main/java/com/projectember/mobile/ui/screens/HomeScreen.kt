@@ -249,11 +249,6 @@ private fun TodaySummaryCard(
                         fontWeight = FontWeight.SemiBold,
                         color = calTextColor
                     )
-                    Text(
-                        text = "food %.0f \u2212 %.0f burned".format(summary.calories, burned),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
                 }
                 if (caloriesTarget > 0) {
                     LinearProgressIndicator(
@@ -261,6 +256,13 @@ private fun TodaySummaryCard(
                         modifier = Modifier.fillMaxWidth(),
                         color = calBarColor,
                         trackColor = MaterialTheme.colorScheme.surfaceVariant
+                    )
+                }
+                if (burned > 0) {
+                    Text(
+                        text = "food %.0f \u2212 %.0f burned".format(summary.calories, burned),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 pacing.calorieDayState?.let { dayState ->
@@ -463,7 +465,7 @@ private fun NavCard(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 24.dp),
+                .padding(horizontal = 20.dp, vertical = 16.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {

@@ -227,13 +227,7 @@ fun SettingsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = {
-                    Text(
-                        text = "Settings",
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                },
+                title = { Text("Settings") },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(
@@ -467,7 +461,7 @@ fun SettingsScreen(
                     }
 
                     is HealthConnectUiState.PermissionsRequired -> {
-                        SettingsRow(label = "Status", value = "⚠️ Permissions required")
+                        SettingsRow(label = "Status", value = "Permissions required")
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
                             text = "Ember needs read access to health and fitness data " +
@@ -489,7 +483,7 @@ fun SettingsScreen(
                     }
 
                     is HealthConnectUiState.Ready -> {
-                        SettingsRow(label = "Status", value = "✅ Ready to sync")
+                        SettingsRow(label = "Status", value = "Ready to sync")
                         Spacer(modifier = Modifier.height(12.dp))
                         Button(
                             onClick = { viewModel.triggerSync() },
@@ -526,7 +520,7 @@ fun SettingsScreen(
                     }
 
                     is HealthConnectUiState.Syncing -> {
-                        SettingsRow(label = "Status", value = "⏳ Syncing…")
+                        SettingsRow(label = "Status", value = "Syncing…")
                         Spacer(modifier = Modifier.height(8.dp))
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             CircularProgressIndicator(
@@ -543,7 +537,7 @@ fun SettingsScreen(
                     }
 
                     is HealthConnectUiState.LastSyncSuccess -> {
-                        SettingsRow(label = "Status", value = "✅ Synced")
+                        SettingsRow(label = "Status", value = "Synced")
                         SettingsRow(label = "Last Sync", value = hcState.lastSyncTime)
                         SettingsRow(label = "Result", value = hcState.summary)
                         Spacer(modifier = Modifier.height(12.dp))
@@ -582,7 +576,7 @@ fun SettingsScreen(
                     }
 
                     is HealthConnectUiState.Error -> {
-                        SettingsRow(label = "Status", value = "❌ Error")
+                        SettingsRow(label = "Status", value = "Error")
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             text = hcState.message,
