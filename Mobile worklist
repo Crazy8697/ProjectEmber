@@ -55,7 +55,15 @@ _Date: 2026-03-26_
    - reduce manual cleanup after scanning
    - clearly surface existing-item reuse when barcode matches local DB records
 
-2. **UX cleanup / settings hygiene follow-through**
+2. **Daily deficit visibility**
+   - add true daily energy deficit to the main card and widgets without replacing calorie pacing
+   - keep **On Track** as the primary behavior-control signal based on pacing vs daily target
+   - show **Deficit: ~X kcal** as a secondary informational-only value based on expenditure/activity minus intake
+   - keep deficit visually secondary in the main card
+   - widgets should show a simplified raw deficit number with no interpretive labels
+   - do not let deficit override, replace, or weaken pacing guidance
+
+3. **UX cleanup / settings hygiene follow-through**
    - keep settings organized as new pacing/health/supplement/backup/barcode options are added
    - avoid turning Settings into a junk drawer
    - continue visual cleanup to match intended dashboard style
@@ -63,7 +71,7 @@ _Date: 2026-03-26_
    - keep version/build info trustworthy
    - only promote this work if real friction appears, not out of compulsive tinkering
 
-3. **Later reassessment**
+4. **Later reassessment**
    - reprioritize after more real-device use
 
 ---
@@ -102,7 +110,16 @@ Focus now:
 - surface reuse suggestions clearly when existing items are found
 - minimize manual field babysitting
 
-### 2. UX cleanup / settings hygiene follow-through
+### 2. Daily deficit visibility
+Focus now:
+- add true daily energy deficit to the main card without replacing pacing
+- keep **On Track** as the primary signal for eating behavior
+- show **Deficit: ~X kcal** as secondary outcome-only information
+- make deficit visually quieter than pacing
+- add a simplified raw deficit line to widgets
+- avoid labels like high/low or any behavior guidance based on deficit alone
+
+### 3. UX cleanup / settings hygiene follow-through
 Focus now:
 - keep settings organized as new pacing/health/supplement/backup/barcode options are added
 - avoid turning Settings into a junk drawer
@@ -111,5 +128,5 @@ Focus now:
 - keep version/build info trustworthy
 - only promote this work if real friction appears, not out of compulsive tinkering
 
-### 3. Later reassessment
+### 4. Later reassessment
 After more real-device usage, re-evaluate the order and decide what deserves to stay, split, or die.
